@@ -437,6 +437,34 @@ input,textarea,select{font-family:inherit;color:inherit}
   color:var(--brand);font-weight:600;
 }
 .datebtn.on svg{opacity:1}
+
+/* 数据页顶部的「统计范围」——整页数字都跟它走 */
+.dscope{margin:0 0 12px}
+.dscope-btn{
+  display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+  padding:10px 12px;border-radius:var(--r-md);
+  background:var(--card-bg);border:var(--bw) solid var(--line-2);
+  box-shadow:var(--shadow-sm);
+  transition:transform .15s,border-color .18s,box-shadow .18s;
+}
+.dscope-btn:active{transform:scale(.99)}
+.ds-ico{
+  flex:0 0 auto;width:34px;height:34px;border-radius:var(--r-xs);display:grid;place-items:center;
+  background:var(--surface-3);color:var(--brand);transition:background .2s,color .2s;
+}
+.ds-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.ds-k{font-size:10px;letter-spacing:.11em;color:var(--muted-2)}
+.ds-v{display:flex;align-items:baseline;gap:7px;min-width:0}
+.ds-v b{
+  font-size:13.5px;font-weight:620;letter-spacing:.01em;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ds-v em{flex:0 0 auto;font-style:normal;font-size:11px;color:var(--muted-2);font-variant-numeric:tabular-nums}
+.ds-chev{flex:0 0 auto;color:var(--muted-3);font-size:18px;line-height:1;margin-right:-2px}
+.dscope-btn.on{border-color:rgba(var(--brand-rgb),.30);box-shadow:var(--shadow)}
+.dscope-btn.on .ds-ico{background:linear-gradient(160deg,var(--logo-a),var(--logo-b));color:var(--accent-ink)}
+.dscope-btn.on .ds-v b{color:var(--brand)}
+
 /* 350–379 单行很挤，去掉日历图标给下拉腾点地 */
 @media (min-width:350px) and (max-width:379px){
   .datebtn svg{display:none}
@@ -605,6 +633,9 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 .empty p{margin:0;font-size:12.5px;line-height:1.6}
 .empty .cta{margin-top:18px;display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:var(--r-btn);
   background:var(--surface-3);border:var(--bw) solid var(--soft-line);color:var(--brand);font-size:13px;font-weight:600}
+.empty-acts{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+.empty-acts .cta{margin-top:0}
+.empty .cta.plain{background:transparent;border-color:var(--line);color:var(--muted)}
 
 /* ---------- 走势图 ---------- */
 .chart{
@@ -1024,6 +1055,19 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 
     <!-- ========== 数据 ========== -->
     <section id="view-data" class="hidden">
+      <div class="dscope" id="dataScope">
+        <button class="dscope-btn" id="btnDateData" aria-label="选择统计时间范围" aria-haspopup="dialog">
+          <span class="ds-ico">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.2" y="5" width="17.6" height="15.6" rx="3"/><path d="M8 3v4M16 3v4M3.2 10.4h17.6"/></svg>
+          </span>
+          <span class="ds-body">
+            <span class="ds-k">统计范围</span>
+            <span class="ds-v"><b id="dateLabelData">全部时间</b><em id="dataScopeN">0 场</em></span>
+          </span>
+          <span class="ds-chev">›</span>
+        </button>
+      </div>
+
       <div class="chart" id="trendCard">
         <div class="chart-head">
           <b>累计净收益走势</b>
@@ -1912,9 +1956,9 @@ function shortDay(s){
 }
 
 /* 累计净收益曲线：按时间顺序逐场累加，起点钉在 0，负值画到零线以下 */
-function renderTrend(){
+function renderTrend(list){
   var body = $('#chartBody'), axis = $('#chartAxis'), foot = $('#chartFoot');
-  var recs = db.records.slice().sort(byTimeAsc);
+  var recs = (list || db.records).slice().sort(byTimeAsc);
   $('#trendCount').textContent = recs.length + ' 场';
 
   if (!recs.length) {
@@ -1984,9 +2028,10 @@ function renderTrend(){
 }
 
 /* 成绩结构：圈外 / 进圈 / 进 FT 各占多少场、平均每场赚多少 */
-function renderStages(){
+function renderStages(list){
   var box = $('#stageList'), share = $('#stageShare');
-  var total = db.records.length;
+  list = list || db.records;
+  var total = list.length;
   if (!total) { box.innerHTML = ''; share.innerHTML = ''; return; }
 
   var defs = [
@@ -1995,8 +2040,8 @@ function renderStages(){
     { k: 'out', name: '圈外',  keep: function(r){ return stageOf(r) === 'out'; } }
   ];
   var rows = defs.map(function(d){
-    var list = db.records.filter(d.keep);
-    return { d: d, n: list.length, s: statsOf(list) };
+    var subset = list.filter(d.keep);
+    return { d: d, n: subset.length, s: statsOf(subset) };
   });
 
   share.innerHTML = rows.filter(function(r){ return r.n > 0; }).map(function(r){
@@ -2015,8 +2060,8 @@ function renderStages(){
 }
 
 /* 个人纪录：单场极值与连续战绩 */
-function renderBests(){
-  var recs = db.records.slice().sort(byTimeAsc);
+function renderBests(list){
+  var recs = (list || db.records).slice().sort(byTimeAsc);
   var best = null, worst = null, wRun = 0, lRun = 0, curW = 0, curL = 0;
 
   recs.forEach(function(r){
@@ -2050,19 +2095,59 @@ function renderBests(){
     + cell('最长连亏', lRun ? lRun + ' 场' : '—', lRun ? 'loss' : 'zero', '当前 ' + curL + ' 场');
 }
 
+/* 数据页只受时间筛选影响：记录页的输赢 / 比赛筛选不进来 */
+function dateFilteredRecords(){
+  return db.records.filter(function(r){ return passDate(r, state); });
+}
+
+function renderDataScope(list){
+  var btn = $('#btnDateData');
+  if (!btn) return;
+  var on = dateActive();
+  btn.classList.toggle('on', on);
+  $('#dateLabelData').textContent = on ? dateScopeText() : '全部时间';
+  $('#dataScopeN').textContent = statsOf(list).n + ' 场';
+}
+
+function renderDataEmpty(){
+  var box = $('#dataEmpty');
+  if (!db.records.length) {
+    box.innerHTML = '<div class="empty" style="padding:24px 6px 20px">'
+      + '<h3>还没有可统计的数据</h3>'
+      + '<p>记完一场，这里会长出走势、进圈结构和纪录</p>'
+      + '<button class="cta" data-add>＋ 记一笔</button>'
+      + '</div>';
+    return;
+  }
+  box.innerHTML = '<div class="empty" style="padding:32px 14px 24px">'
+    + '<h3>这个时间范围没有记录</h3>'
+    + '<p>' + esc(dateScopeText()) + '里没有比赛<br>换一段时间，或者看全部</p>'
+    + '<div class="empty-acts">'
+      + '<button class="cta" data-date>换个范围</button>'
+      + '<button class="cta plain" data-cleardate>全部时间</button>'
+    + '</div>'
+    + '</div>';
+}
+
 function renderData(){
-  var has = db.records.length > 0;
+  var list = dateFilteredRecords();
+  var hasAny = db.records.length > 0;
+  var has = list.length > 0;
+
+  $('#dataScope').classList.toggle('hidden', !hasAny);
   $('#trendCard').classList.toggle('hidden', !has);
   $('#dataStats').classList.toggle('hidden', !has);
   $('#dataEmpty').classList.toggle('hidden', has);
+  renderDataScope(list);
+  renderDataEmpty();
 
   var cnt = $('#evCount');
   if (cnt) cnt.textContent = db.events.length + ' 个';
 
   if (!has) return;
-  renderTrend();
-  renderStages();
-  renderBests();
+  renderTrend(list);
+  renderStages(list);
+  renderBests(list);
 }
 
 function renderAll(){
@@ -2265,7 +2350,7 @@ function saveRecord(){
   var off = dateActive() && !passDate({ time: form.time }, state);
   if (off) {
     state.filterY = 'all'; state.filterM = 'all'; state.filterD = 'all';
-    renderFilters(); renderStats(); renderRecords();
+    renderFilters(); renderStats(); renderRecords(); renderData();
   }
   closeModal('mRecord');
   toast(off ? '已保存 · 已显示全部时间' : (form.id ? '已更新' : '已记录'));
@@ -2698,6 +2783,15 @@ document.addEventListener('click', function(e){
     renderDatePicker();
     return;
   }
+  var dateOpen = e.target.closest ? e.target.closest('[data-date]') : null;
+  if (dateOpen) { openDatePicker(); return; }
+
+  var dateClear = e.target.closest ? e.target.closest('[data-cleardate]') : null;
+  if (dateClear) {
+    state.filterY = 'all'; state.filterM = 'all'; state.filterD = 'all';
+    renderFilters(); renderStats(); renderRecords(); renderData();
+    return;
+  }
   var demoBtn = e.target.closest ? e.target.closest('#btnClearDemo') : null;
   if (demoBtn) {
     db.events = []; db.records = [];
@@ -2714,6 +2808,7 @@ $('#filterEvent').addEventListener('change', function(){
 
 /* 时间筛选 */
 $('#btnDate').addEventListener('click', openDatePicker);
+$('#btnDateData').addEventListener('click', openDatePicker);
 
 $('#dpReset').addEventListener('click', function(){
   dpDraft = { filterY: 'all', filterM: 'all', filterD: 'all' };
@@ -2725,7 +2820,7 @@ $('#dpDone').addEventListener('click', function(){
   state.filterM = dpDraft.filterM;
   state.filterD = dpDraft.filterD;
   closeModal('mDate');
-  renderFilters(); renderStats(); renderRecords();
+  renderFilters(); renderStats(); renderRecords(); renderData();
 });
 
 /* 转屏 / 改窗宽时重画曲线 */
@@ -2733,7 +2828,7 @@ var rzTimer = null;
 window.addEventListener('resize', function(){
   clearTimeout(rzTimer);
   rzTimer = setTimeout(function(){
-    if (state.view === 'data' && db.records.length) renderTrend();
+    if (state.view === 'data' && db.records.length) renderData();
   }, 180);
 });
 
