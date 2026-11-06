@@ -370,13 +370,14 @@ input,textarea,select{font-family:inherit;color:inherit}
   background:radial-gradient(circle,var(--hero-glow),transparent 66%);pointer-events:none;
   transition:background .25s ease;
 }
+.hero-top{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .hero-label{font-size:11px;letter-spacing:.20em;color:var(--muted-2)}
 .hero-value{
   font-family:var(--num-font);
   font-size:36px;font-weight:680;letter-spacing:-.02em;line-height:1.18;margin:8px 0 2px;
   font-variant-numeric:tabular-nums;
 }
-.hero-note{font-size:11.5px;color:var(--muted);letter-spacing:.02em}
+.hero-note{font-size:11.5px;color:var(--muted);letter-spacing:.02em;text-wrap:pretty}
 .hero-grid{
   display:grid;grid-template-columns:repeat(4,1fr);gap:6px;
   margin-top:16px;padding-top:14px;border-top:var(--bw) solid var(--line-2);
@@ -384,6 +385,22 @@ input,textarea,select{font-family:inherit;color:inherit}
 .hero-grid>div{display:flex;flex-direction:column;gap:5px;min-width:0}
 .hero-grid span{font-size:10.5px;color:var(--muted-2);letter-spacing:.05em}
 .hero-grid b{font-family:var(--num-font);font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+
+/* ---------- 币种切换（hero / 数据页顶卡 / 表单 / 弹层共用） ---------- */
+.curseg{
+  display:inline-flex;flex:0 0 auto;gap:2px;padding:2px;
+  border-radius:var(--r-btn);
+  background:var(--surface-3);border:var(--bw) solid var(--soft-line);
+}
+.curseg button{
+  appearance:none;-webkit-appearance:none;border:0;background:transparent;
+  font:inherit;font-size:11px;font-weight:620;line-height:1.3;letter-spacing:.02em;
+  color:var(--muted-2);padding:3px 9px;border-radius:calc(var(--r-btn) - 2px);
+  cursor:pointer;transition:background .16s,color .16s,box-shadow .16s;
+}
+.curseg button.on{background:var(--card-bg);color:var(--brand);box-shadow:var(--shadow-sm)}
+.curseg button:active{opacity:.7}
+.curseg.sm button{padding:2px 7px;font-size:10.5px}
 
 /* ---------- demo banner ---------- */
 .demo-banner{
@@ -439,15 +456,18 @@ input,textarea,select{font-family:inherit;color:inherit}
 .datebtn.on svg{opacity:1}
 
 /* 数据页顶部的「统计范围」——整页数字都跟它走 */
-.dscope{margin:0 0 12px}
+.dscope{
+  margin:0 0 12px;background:var(--card-bg);
+  border:var(--bw) solid var(--line-2);border-radius:var(--r-md);
+  box-shadow:var(--shadow-sm);overflow:hidden;
+  transition:border-color .18s,box-shadow .18s;
+}
 .dscope-btn{
   display:flex;align-items:center;gap:11px;width:100%;text-align:left;
-  padding:10px 12px;border-radius:var(--r-md);
-  background:var(--card-bg);border:var(--bw) solid var(--line-2);
-  box-shadow:var(--shadow-sm);
-  transition:transform .15s,border-color .18s,box-shadow .18s;
+  padding:10px 12px;border-radius:0;background:transparent;border:0;
+  transition:background .15s;
 }
-.dscope-btn:active{transform:scale(.99)}
+.dscope-btn:active{background:var(--surface-2)}
 .ds-ico{
   flex:0 0 auto;width:34px;height:34px;border-radius:var(--r-xs);display:grid;place-items:center;
   background:var(--surface-3);color:var(--brand);transition:background .2s,color .2s;
@@ -461,9 +481,14 @@ input,textarea,select{font-family:inherit;color:inherit}
 }
 .ds-v em{flex:0 0 auto;font-style:normal;font-size:11px;color:var(--muted-2);font-variant-numeric:tabular-nums}
 .ds-chev{flex:0 0 auto;color:var(--muted-3);font-size:18px;line-height:1;margin-right:-2px}
-.dscope-btn.on{border-color:rgba(var(--brand-rgb),.30);box-shadow:var(--shadow)}
 .dscope-btn.on .ds-ico{background:linear-gradient(160deg,var(--logo-a),var(--logo-b));color:var(--accent-ink)}
 .dscope-btn.on .ds-v b{color:var(--brand)}
+.dscope.on{border-color:rgba(var(--brand-rgb),.30);box-shadow:var(--shadow)}
+
+/* 顶卡下半行：换算币种 */
+.dscope-cur{display:flex;align-items:center;gap:9px;padding:8px 12px;border-top:var(--bw) solid var(--line-2);background:var(--surface-2)}
+.dc-k{flex:0 0 auto;font-size:10px;letter-spacing:.11em;color:var(--muted-2)}
+.dc-rate{margin-left:auto;font-size:10.5px;color:var(--muted-3);font-variant-numeric:tabular-nums;white-space:nowrap}
 
 /* 350–379 单行很挤，去掉日历图标给下拉腾点地 */
 @media (min-width:350px) and (max-width:379px){
@@ -776,6 +801,8 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 
 /* ---------- form ---------- */
 .flabel{display:block;font-size:11px;letter-spacing:.10em;color:var(--muted-2);margin:0 0 8px 3px}
+.flabel-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 3px 8px}
+.flabel-row .flabel{margin:0}
 .flabel em{font-style:normal;font-size:10px;letter-spacing:.04em;margin-left:6px;padding:1.5px 5px;border-radius:5px;vertical-align:1px}
 .flabel em.req{background:var(--surface-3);color:var(--brand);border:var(--bw) solid var(--soft-line)}
 .flabel em.opt{background:var(--surface-2);color:var(--muted-2)}
@@ -1009,7 +1036,13 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
     <!-- ========== 记录 ========== -->
     <section id="view-records">
       <div class="hero">
-        <div class="hero-label">累计净收益</div>
+        <div class="hero-top">
+          <div class="hero-label">累计净收益</div>
+          <div class="curseg" id="heroCur" role="group" aria-label="显示币种">
+            <button type="button" data-cur="CNY">¥ 人民币</button>
+            <button type="button" data-cur="USD">$ 美元</button>
+          </div>
+        </div>
         <div class="hero-value" id="heroNet">¥0</div>
         <div class="hero-note" id="heroNote">还没有记录</div>
         <div class="hero-grid">
@@ -1080,6 +1113,14 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           </span>
           <span class="ds-chev">›</span>
         </button>
+        <div class="dscope-cur">
+          <span class="dc-k">统计币种</span>
+          <div class="curseg sm" id="dataCur" role="group" aria-label="统计币种">
+            <button type="button" data-cur="CNY">¥ 人民币</button>
+            <button type="button" data-cur="USD">$ 美元</button>
+          </div>
+          <span class="dc-rate" id="dataRate"></span>
+        </div>
       </div>
 
       <div class="chart" id="trendCard">
@@ -1141,6 +1182,18 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         <span class="lr-chev">›</span>
       </button>
 
+      <button class="linkrow" id="goRate">
+        <span class="lr-ico">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 8.4h13.2l-3-3"/><path d="M20.4 15.6H7.2l3 3"/></svg>
+        </span>
+        <span class="lr-body">
+          <b>美元汇率</b>
+          <em>美元桌换算成人民币的比例</em>
+        </span>
+        <span class="lr-meta" id="rateMeta">默认 1 : 7.0</span>
+        <span class="lr-chev">›</span>
+      </button>
+
       <div class="acts">
         <button class="btn" id="btnCsv">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></svg>
@@ -1162,6 +1215,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
       <p class="note">
         <b>口径说明</b><br>
         · 净收益 = 收益 − 成本；ROI = 净收益 ÷ 总成本。<br>
+        · 每场可以单独记人民币或美元。记录卡显示当时的原币，汇总按「数据管理 · 美元汇率」折成你选的统计币种，改汇率不会改动任何一条原始记录。<br>
         · 进圈率、ROI、场均这些比率只看「已记录的场次」。没记住的场次不补、也不猜 —— 缺记录只会让样本有偏，不会把公式算错。<br>
         · 累计金额会被缺记录影响。在「数据管理 · 期初结余」填一个记账前的总数，它只加进首页的累计净收益，不算场次、不进 ROI；走势曲线仍只画记账以来，卡片底部会把「记账以来 / 期初 / 合计」三个数对账。<br>
         · 成绩结构按记录时选的档位分组，与收益多少无关 —— 赏金赛圈外也能拿到淘汰奖励。<br>
@@ -1245,16 +1299,22 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
       </div>
 
       <div class="fgroup">
-        <span class="flabel">成本 / 收益</span>
+        <div class="flabel-row">
+          <span class="flabel">成本 / 收益</span>
+          <div class="curseg sm" id="fCur" role="group" aria-label="本场币种">
+            <button type="button" data-cur="CNY">¥ 人民币</button>
+            <button type="button" data-cur="USD">$ 美元</button>
+          </div>
+        </div>
         <div class="row2">
           <div class="field">
             <div class="fbody"><span class="fcap">成本（买入）</span>
-              <div style="display:flex;align-items:center;gap:4px"><span class="fprefix">¥</span><input class="finput" id="fCost" placeholder="0" inputmode="decimal" autocomplete="off"></div>
+              <div style="display:flex;align-items:center;gap:4px"><span class="fprefix" data-cursym>¥</span><input class="finput" id="fCost" placeholder="0" inputmode="decimal" autocomplete="off"></div>
             </div>
           </div>
           <div class="field">
             <div class="fbody"><span class="fcap">收益（奖金）</span>
-              <div style="display:flex;align-items:center;gap:4px"><span class="fprefix">¥</span><input class="finput" id="fIncome" placeholder="0" inputmode="decimal" autocomplete="off"></div>
+              <div style="display:flex;align-items:center;gap:4px"><span class="fprefix" data-cursym>¥</span><input class="finput" id="fIncome" placeholder="0" inputmode="decimal" autocomplete="off"></div>
             </div>
           </div>
         </div>
@@ -1414,9 +1474,15 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
     </div>
     <div class="sheet-body">
       <div class="fgroup">
-        <span class="flabel">记账之前已经累计</span>
+        <div class="flabel-row">
+          <span class="flabel">记账之前已经累计</span>
+          <div class="curseg sm" id="openingCurSeg" role="group" aria-label="期初币种">
+            <button type="button" data-cur="CNY">¥ 人民币</button>
+            <button type="button" data-cur="USD">$ 美元</button>
+          </div>
+        </div>
         <div class="field">
-          <span class="fi">¥</span>
+          <span class="fi" id="openingSym">¥</span>
           <div class="fbody">
             <input class="finput" id="openingInput" placeholder="0" inputmode="decimal" autocomplete="off">
           </div>
@@ -1425,6 +1491,36 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         <p class="fhint" id="openingPreview">填记账开始前已经累计的钱，亏了就点右边那颗「−」。</p>
       </div>
       <p class="note">它只加进首页的<b>累计净收益</b>这个总账，不算场次、不进 ROI、不影响进圈率和连胜纪录；走势曲线仍然只画记账以来，不会因为一个大额期初被压成平线。留空或填 0 表示不设。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 美元汇率 ========== -->
+<div class="modal" id="mRate" style="z-index:66">
+  <div class="modal-bg" data-close="mRate"></div>
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <button class="link" data-close="mRate">取消</button>
+      <h2>美元汇率</h2>
+      <button class="link gold" id="btnRateSave">保存</button>
+    </div>
+    <div class="sheet-body">
+      <div class="fgroup">
+        <span class="flabel">1 美元 折合人民币</span>
+        <div class="field">
+          <span class="fi">¥</span>
+          <div class="fbody">
+            <input class="finput" id="rateInput" placeholder="7.00" inputmode="decimal" autocomplete="off">
+          </div>
+        </div>
+        <p class="fhint" id="rateHint">保存后，美元桌的记录会按这个比例折成人民币统计。</p>
+      </div>
+      <button class="btn" id="btnRateFetch" style="width:100%">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 11.6a8.4 8.4 0 1 0 2.5-5.9"/><path d="M3.4 4.4v4.4h4.4"/></svg>
+        从网络更新最新汇率
+      </button>
+      <p class="note">汇率只用于<b>折算汇总</b> —— 每条记录里的金额不动，改汇率不会改到任何一场的成本和收益。手机上自动更新失败（境外接口可能连不上）时不用管，会沿用上次的值；也可以在这里填你自己换汇的实际价。</p>
     </div>
   </div>
 </div>
@@ -1470,21 +1566,24 @@ function money(v){
   var n = parseFloat(String(v == null ? '' : v).replace(/[^\d.\-]/g, ''));
   return isFinite(n) ? n : 0;
 }
-function fmtMoney(v){
+/* 金额格式化：fmtIn 按指定币种，fmtMoney / signed 跟当前展示币种 */
+function fmtIn(v, cur){
   var n = money(v);
   var neg = n < 0;
   var abs = Math.abs(n);
   var parts = abs.toFixed(2).split('.');
   var int = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   var dec = parts[1] === '00' ? '' : '.' + parts[1].replace(/0+$/, '');
-  return (neg ? '-' : '') + '¥' + int + dec;
+  return (neg ? '-' : '') + curSym(cur) + int + dec;
 }
-function signed(v){
+function fmtMoney(v){ return fmtIn(v, dispCur()); }
+function signedIn(v, cur){
   var n = money(v);
-  if (n > 0) return '+' + fmtMoney(n);
-  if (n < 0) return '-' + fmtMoney(Math.abs(n));
-  return '¥0';
+  if (n > 0) return '+' + fmtIn(n, cur);
+  if (n < 0) return '-' + fmtIn(Math.abs(n), cur);
+  return curSym(cur) + '0';
 }
+function signed(v){ return signedIn(v, dispCur()); }
 function cls(v){
   var n = money(v);
   return n > 0 ? 'gain' : (n < 0 ? 'loss' : 'zero');
@@ -1524,7 +1623,35 @@ function stamp(){
 }
 
 /* ================= 数据层 ================= */
-var db = { events: [], records: [], opening: '' };
+var db = { events: [], records: [], opening: '', openingCur: 'CNY', rate: '', rateAt: 0, rateSrc: '' };
+
+/* ---- 币种与汇率 ---- */
+var FX_FALLBACK = 7.0;                     // 拿不到网络汇率时的兜底值
+var CUR_KEY = 'matchledger.cur';           // 展示币种（只是看的方式，不进备份）
+var RATE_TTL = 12 * 60 * 60 * 1000;        // 自动更新的最小间隔
+
+function curOf(r){ return (r && r.cur === 'USD') ? 'USD' : 'CNY'; }
+function curSym(c){ return c === 'USD' ? '$' : '¥'; }
+function curName(c){ return c === 'USD' ? '美元' : '人民币'; }
+function dispCur(){
+  return (typeof state !== 'undefined' && state && state.dispCur === 'USD') ? 'USD' : 'CNY';
+}
+function fxRate(){ var r = money(db.rate); return r > 0 ? r : FX_FALLBACK; }
+function fxIsSet(){ return money(db.rate) > 0; }
+function conv(v, from, to){
+  var n = money(v);
+  if (!from || !to || from === to) return n;
+  var r = fxRate();
+  if (!(r > 0)) return n;
+  return from === 'USD' ? n * r : n / r;
+}
+/* 把某币种的金额折成当前展示币种 */
+function toDisp(v, cur){ return conv(v, cur || 'CNY', dispCur()); }
+/* 这批记录里有没有跟展示币种不同、需要折算的 */
+function needsFx(list){
+  var d = dispCur();
+  return (list || []).some(function(r){ return curOf(r) !== d; });
+}
 
 function loadDB(){
   var raw = null;
@@ -1535,6 +1662,10 @@ function loadDB(){
       db.events = Array.isArray(p.events) ? p.events : [];
       db.records = Array.isArray(p.records) ? p.records : [];
       db.opening = (p.opening === null || p.opening === undefined) ? '' : String(p.opening);
+      db.openingCur = p.openingCur === 'USD' ? 'USD' : 'CNY';
+      db.rate = (p.rate === null || p.rate === undefined) ? '' : String(p.rate);
+      db.rateAt = money(p.rateAt);
+      db.rateSrc = p.rateSrc ? String(p.rateSrc) : '';
     } catch(e) { console.warn('数据解析失败', e); }
     migrateRecords();
     return false;
@@ -1584,9 +1715,26 @@ function hasDemo(){
 }
 
 /* ================= 状态 ================= */
-var state = { view: 'records', filterType: 'all', filterEvent: 'all', filterY: 'all', filterM: 'all', filterD: 'all' };
+var state = { view: 'records', filterType: 'all', filterEvent: 'all', filterY: 'all', filterM: 'all', filterD: 'all', dispCur: 'CNY' };
 var form = null;      // 当前编辑的记录
 var editingEvent = null;
+
+/* 展示币种存在独立的 key 里：它是「看的方式」，不属于要备份的数据 */
+function loadDispPref(){
+  var v = '';
+  try { v = localStorage.getItem(CUR_KEY) || ''; } catch(e) {}
+  state.dispCur = v === 'USD' ? 'USD' : 'CNY';
+}
+function saveDispPref(){
+  try { localStorage.setItem(CUR_KEY, state.dispCur); } catch(e) {}
+}
+function setDispCur(c){
+  var next = c === 'USD' ? 'USD' : 'CNY';
+  if (next === dispCur()) return;
+  state.dispCur = next;
+  saveDispPref();
+  renderStats(); renderRecords(); renderData(); renderEvents();
+}
 
 /* ================= 主题 ================= */
 var THEME_KEY = 'matchledger.theme';
@@ -1636,7 +1784,9 @@ function applyTheme(k, persist){
 }
 
 /* ================= 计算 ================= */
-function recNet(r){ return money(r.income) - money(r.cost); }
+/* 净收益：recNet 折成展示币种（汇总口径），recNetRaw 保留原币（记录卡口径） */
+function recNet(r){ return toDisp(money(r.income) - money(r.cost), curOf(r)); }
+function recNetRaw(r){ return money(r.income) - money(r.cost); }
 
 /* 时间三件套：年 / 月 / 日各自独立，值为 'all' 表示不限 */
 function dateBits(r){
@@ -1718,7 +1868,8 @@ function stageLabel(r){
 function statsOf(list){
   var s = { n: list.length, cost: 0, income: 0, net: 0, roi: null, itm: 0, ft: 0, best: null };
   list.forEach(function(r){
-    var c = money(r.cost), i = money(r.income);
+    // 混币种时先折成展示币种再相加，否则数字是把美元当人民币在加
+    var c = toDisp(r.cost, curOf(r)), i = toDisp(r.income, curOf(r));
     s.cost += c; s.income += i;
     // 进圈是记录时手动选的，不能用收益判断（赏金赛圈外也可能拿到钱）
     var st = stageOf(r);
@@ -1737,7 +1888,8 @@ function eventById(id){
 }
 
 /* 期初结余：开始记账前已经累计的盈亏。只进累计金额，不进任何按场的统计 */
-function openingOf(){ return money(db.opening); }
+function openingOf(){ return toDisp(db.opening, db.openingCur || 'CNY'); }
+function openingRaw(){ return money(db.opening); }
 function openingSet(){
   var raw = String(db.opening == null ? '' : db.opening).trim();
   return raw !== '' && openingOf() !== 0;
@@ -1756,6 +1908,10 @@ function renderStats(){
   var netEl = $('#heroNet');
   netEl.textContent = signed(net);
   netEl.className = 'hero-value ' + cls(net);
+
+  // 一条记录都没有时，切币种没有意义，先收起来
+  var curBox = $('#heroCur');
+  if (curBox) curBox.classList.toggle('hidden', db.records.length === 0);
 
   var parts = [];
   if (dateActive()) parts.push(dateScopeText());
@@ -1776,9 +1932,11 @@ function renderStats(){
   } else {
     scope = parts.length ? parts.join(' · ') : '全部记录';
   }
+  // 有跟展示币种不同的记录时，这里的数字就是折算出来的，明说一句
+  var fxNote = needsFx(list) ? (' · 含' + (dispCur() === 'USD' ? '人民币' : '美元') + '折算') : '';
   $('#heroNote').textContent = s.n > 0
-    ? scope + ' · ' + s.n + ' 场' + (s.n ? ' · 平均 ' + signed(s.net / s.n) : '')
-    : scope + ' · 还没有记录';
+    ? scope + ' · ' + s.n + ' 场' + (s.n ? ' · 平均 ' + signed(Math.round(s.net / s.n)) : '') + fxNote
+    : scope + ' · 还没有记录' + fxNote;
 
   $('#sCount').textContent = s.n;
   $('#sCost').textContent = fmtMoney(s.cost);
@@ -1788,7 +1946,9 @@ function renderStats(){
 }
 
 function recCardHTML(r){
-  var net = recNet(r);
+  // 记录卡讲「当时那一场」，一律用原币，不跟展示币种换算
+  var net = recNetRaw(r);
+  var cur = curOf(r);
   var rk = parseInt(r.rank, 10);
   var hasRank = isFinite(rk) && rk > 0;
   var st = stageOf(r);
@@ -1812,11 +1972,11 @@ function recCardHTML(r){
     + '<span class="rank' + rankCls + '">' + rankTxt + '</span>'
     + '<span class="rec-main">'
       + '<span class="rec-title">' + esc(r.eventName || '未命名比赛') + '</span>'
-      + '<span class="rec-meta">' + esc(fmtWhen(r.time)) + ' · 成本 ' + fmtMoney(money(r.cost)) + rankNote + '</span>'
+      + '<span class="rec-meta">' + esc(fmtWhen(r.time)) + ' · 成本 ' + fmtIn(money(r.cost), cur) + rankNote + '</span>'
     + '</span>'
     + '<span class="rec-right">'
-      + '<span class="rec-net ' + cls(net) + '">' + signed(net) + '</span>'
-      + '<span class="rec-sub">收益 ' + fmtMoney(money(r.income)) + '</span>'
+      + '<span class="rec-net ' + cls(net) + '">' + signedIn(net, cur) + '</span>'
+      + '<span class="rec-sub">收益 ' + fmtIn(money(r.income), cur) + '</span>'
     + '</span>'
   + '</button>';
 }
@@ -1855,8 +2015,10 @@ function renderRecords(){
   groups.forEach(function(k){
     var items = map[k];
     var s = statsOf(items);
+    // 这个月里有跟展示币种不同的记录，小计就是折算值，前面标个约等号
+    var fx = needsFx(items) ? '≈ ' : '';
     html += '<div class="month"><span>' + monthLabel(k) + '</span>'
-      + '<em class="' + cls(s.net) + '">' + items.length + ' 场 · ' + signed(s.net) + '</em></div>';
+      + '<em class="' + cls(s.net) + '">' + items.length + ' 场 · ' + fx + signed(s.net) + '</em></div>';
     items.forEach(function(r){ html += recCardHTML(r); });
   });
   box.innerHTML = html;
@@ -1957,24 +2119,34 @@ function openDatePicker(){
 
 /* ============ 期初结余 ============ */
 var openingSign = 1;
+var openingCurDraft = 'CNY';
 
 function syncOpeningUI(){
   var btn = $('#openingSign'), pv = $('#openingPreview');
   if (!btn || !pv) return;
   btn.textContent = openingSign < 0 ? '−' : '+';
   btn.classList.toggle('neg', openingSign < 0);
+  var sym = $('#openingSym');
+  if (sym) sym.textContent = curSym(openingCurDraft);
+  paintSeg($('#openingCurSeg'), openingCurDraft);
   var n = money($('#openingInput').value);
   if (!n) {
     pv.textContent = '填记账开始前已经累计的钱，亏了就点右边那颗「−」。';
   } else {
     var v = openingSign * n;
-    pv.innerHTML = '期初结余 <b class="' + cls(v) + '">' + signed(v) + '</b>，会加进累计净收益';
+    var extra = openingCurDraft !== dispCur()
+      ? '（约 ' + signedIn(conv(v, openingCurDraft, dispCur()), dispCur()) + '）'
+      : '';
+    pv.innerHTML = '期初结余 <b class="' + cls(v) + '">' + signedIn(v, openingCurDraft) + '</b>'
+      + extra + '，会加进累计净收益';
   }
 }
 
 function openOpening(){
-  var v = openingOf();
+  // 按记录时的原币打开，避免「显示值是折算过的、存回去又折一次」
+  var v = openingRaw();
   openingSign = v < 0 ? -1 : 1;
+  openingCurDraft = db.openingCur === 'USD' ? 'USD' : 'CNY';
   $('#openingInput').value = v ? String(Math.abs(v)) : '';
   syncOpeningUI();
   openModal('mOpening');
@@ -2239,13 +2411,50 @@ function dateFilteredRecords(){
   return db.records.filter(function(r){ return passDate(r, state); });
 }
 
+function num4(v){ return String(parseFloat(money(v).toFixed(4))); }
+function fxShort(){ return String(parseFloat(fxRate().toFixed(2))); }
+function fmtStamp(ms){
+  var d = new Date(money(ms));
+  if (!isFinite(d.getTime())) return '';
+  return (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+}
+function paintSeg(box, val){
+  if (!box) return;
+  $$('button', box).forEach(function(b){
+    var on = b.getAttribute('data-cur') === val;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+/* 所有币种切换器的高亮 + 汇率提示，统一刷 */
+function paintCurSegs(){
+  var d = dispCur();
+  paintSeg($('#heroCur'), d);
+  paintSeg($('#dataCur'), d);
+  if (form) paintSeg($('#fCur'), form.cur || 'CNY');
+  var txt = '1$ ≈ ¥' + fxShort();
+  var rateEl = $('#dataRate');
+  if (rateEl) rateEl.textContent = fxIsSet() ? txt : (txt + ' 默认');
+  var meta = $('#rateMeta');
+  if (meta) meta.textContent = fxIsSet() ? txt : ('默认 1 : ' + fxShort());
+}
+function rateSourceText(){
+  if (!fxIsSet()) return '还没取过，先用默认 1 : ' + fxShort() + '。可以点下面的按钮取，或者手动填一个你实际换汇的价。';
+  var when = db.rateAt ? fmtStamp(db.rateAt) : '';
+  if (db.rateSrc === 'manual') return '手动设定' + (when ? ' · ' + when : '') + '，改汇率不会改动任何一条记录的原始金额。';
+  return when ? (when + ' 自动更新，改汇率不会改动任何一条记录的原始金额。') : '自动更新，改汇率不会改动任何一条记录的原始金额。';
+}
+
 function renderDataScope(list){
   var btn = $('#btnDateData');
   if (!btn) return;
   var on = dateActive();
   btn.classList.toggle('on', on);
+  var box = $('#dataScope');
+  if (box) box.classList.toggle('on', on);
   $('#dateLabelData').textContent = on ? dateScopeText() : '全部时间';
   $('#dataScopeN').textContent = statsOf(list).n + ' 场';
+  paintCurSegs();
 }
 
 /* 数据管理里那行「期初结余」的右侧数值 */
@@ -2253,8 +2462,9 @@ function renderOpeningMeta(){
   var el = $('#openingMeta');
   if (!el) return;
   if (openingSet()) {
-    el.textContent = signed(openingOf());
-    el.className = 'lr-meta ' + cls(openingOf());
+    // 显示填进去的原币值，跟弹层里看到的一致
+    el.textContent = signedIn(openingRaw(), db.openingCur || 'CNY');
+    el.className = 'lr-meta ' + cls(openingRaw());
   } else {
     el.textContent = '未设置';
     el.className = 'lr-meta';
@@ -2310,6 +2520,7 @@ function renderAll(){
   renderRecords();
   renderEvents();
   renderData();
+  paintCurSegs();
 }
 
 /* ================= 视图切换 ================= */
@@ -2383,10 +2594,19 @@ $('#confirmBg').addEventListener('click', function(){
 
 /* ================= 记录表单 ================= */
 function updateNetPreview(){
+  var cur = (form && form.cur) || 'CNY';
   var n = money($('#fIncome').value) - money($('#fCost').value);
   var el = $('#netPreview');
-  el.textContent = signed(n);
+  el.textContent = signedIn(n, cur);
   el.className = cls(n);
+}
+/* 表单里的币种切换：只换符号，不动已经填的数字 */
+function setFormCur(c){
+  if (!form) return;
+  form.cur = c === 'USD' ? 'USD' : 'CNY';
+  paintSeg($('#fCur'), form.cur);
+  $$('[data-cursym]').forEach(function(el){ el.textContent = curSym(form.cur); });
+  updateNetPreview();
 }
 function paintForm(){
   var nameEl = $('#fEventName');
@@ -2406,7 +2626,7 @@ function paintForm(){
   syncItmUI();
   $('#recordTitle').textContent = form.id ? '编辑记录' : '记一笔';
   $('#btnDelete').classList.toggle('hidden', !form.id);
-  updateNetPreview();
+  setFormCur(form.cur);   // 顺带刷新净收益预览
 }
 
 /* 进圈档位的界面同步 */
@@ -2439,7 +2659,7 @@ function openRecordForm(id){
       time: r.time || nowStr(), rank: r.rank == null ? '' : String(r.rank),
       cost: r.cost == null ? '' : String(r.cost),
       income: r.income == null ? '' : String(r.income),
-      note: r.note || '', stage: stageOf(r)
+      note: r.note || '', stage: stageOf(r), cur: curOf(r)
     };
   } else {
     // 默认选中：当前筛选的比赛 > 最近一次用的比赛 > 唯一比赛
@@ -2451,9 +2671,13 @@ function openRecordForm(id){
     }
     if (!eid && db.events.length === 1) eid = db.events[0].id;
     var ev = eid ? eventById(eid) : null;
+    // 新记录默认跟上一次用的币种，没记过就跟着当前展示币种
+    var lastCur = db.records.length
+      ? curOf(db.records.slice().sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); })[0])
+      : dispCur();
     form = {
       id: null, eventId: eid, eventName: ev ? ev.name : '',
-      time: nowStr(), rank: '', cost: '', income: '', note: '', stage: 'out'
+      time: nowStr(), rank: '', cost: '', income: '', note: '', stage: 'out', cur: lastCur
     };
   }
   paintForm();
@@ -2480,13 +2704,14 @@ function saveRecord(){
     if (r) {
       r.eventId = form.eventId; r.eventName = form.eventName; r.time = form.time;
       r.rank = rankRaw; r.cost = cost; r.income = income; r.note = note;
-      r.stage = form.stage;
+      r.stage = form.stage; r.cur = form.cur || 'CNY';
       delete r.itm; delete r.demo;
     }
   } else {
     db.records.push({
       id: uid(), eventId: form.eventId, eventName: form.eventName, time: form.time,
       rank: rankRaw, cost: cost, income: income, note: note, stage: form.stage,
+      cur: form.cur || 'CNY',
       createdAt: Date.now()
     });
     // 如果比赛名库里还没有这条（理论上不会），补一条
@@ -2516,6 +2741,19 @@ $('#btnTheme').addEventListener('click', function(){
 
 $('#btnAdd').addEventListener('click', function(){ openRecordForm(null); });
 $('#btnSave').addEventListener('click', saveRecord);
+
+/* 币种切换：hero 与数据页顶卡是同一个「展示币种」，表单里的只属于这一场 */
+function bindCurSeg(sel, fn){
+  var box = $(sel);
+  if (!box) return;
+  box.addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('[data-cur]') : null;
+    if (b) fn(b.getAttribute('data-cur'));
+  });
+}
+bindCurSeg('#heroCur', setDispCur);
+bindCurSeg('#dataCur', setDispCur);
+bindCurSeg('#fCur', setFormCur);
 
 $('#fItm').addEventListener('click', function(e){
   var b = e.target.closest ? e.target.closest('[data-stage]') : null;
@@ -2836,11 +3074,12 @@ function download(content, filename, mime){
 $('#btnCsv').addEventListener('click', function(){
   var list = db.records.slice().sort(function(a, b){ return String(a.time || '').localeCompare(String(b.time || '')); });
   if (!list.length) { toast('还没有数据'); return; }
-  var rows = [['时间', '比赛', '进圈', '名次', '成本', '收益', '净收益', '备注']];
+  // 导出走原币：表格是原始事实，折算交给 Excel 或汇率列自己算
+  var rows = [['时间', '比赛', '进圈', '名次', '币种', '成本', '收益', '净收益', '备注']];
   list.forEach(function(r){
     rows.push([
-      fmtFull(r.time), r.eventName || '', stageLabel(r), r.rank || '',
-      num2(r.cost), num2(r.income), num2(recNet(r)), r.note || ''
+      fmtFull(r.time), r.eventName || '', stageLabel(r), r.rank || '', curName(curOf(r)),
+      num2(r.cost), num2(r.income), num2(recNetRaw(r)), r.note || ''
     ]);
   });
   var csv = '\ufeff' + rows.map(function(row){
@@ -2850,7 +3089,12 @@ $('#btnCsv').addEventListener('click', function(){
 });
 
 $('#btnJson').addEventListener('click', function(){
-  var data = JSON.stringify({ app: 'matchledger', version: 1, exportedAt: new Date().toISOString(), opening: db.opening || '', events: db.events, records: db.records }, null, 2);
+  var data = JSON.stringify({
+    app: 'matchledger', version: 2, exportedAt: new Date().toISOString(),
+    opening: db.opening || '', openingCur: db.openingCur || 'CNY',
+    rate: db.rate || '', rateAt: db.rateAt || 0, rateSrc: db.rateSrc || '',
+    events: db.events, records: db.records
+  }, null, 2);
   download(data, '赛场账本备份_' + stamp() + '.json', 'application/json;charset=utf-8');
 });
 
@@ -2875,6 +3119,10 @@ $('#fileInput').addEventListener('change', function(){
       db.events = parsed.events;
       db.records = parsed.records;
       db.opening = (parsed.opening === null || parsed.opening === undefined) ? '' : String(parsed.opening);
+      db.openingCur = parsed.openingCur === 'USD' ? 'USD' : 'CNY';
+      db.rate = (parsed.rate === null || parsed.rate === undefined) ? '' : String(parsed.rate);
+      db.rateAt = money(parsed.rateAt);
+      db.rateSrc = parsed.rateSrc ? String(parsed.rateSrc) : '';
       resetFilters();   // 新数据的年份可能和旧筛选对不上，别一恢复就是空列表
       saveDB(); renderAll(); toast('已恢复');
       switchView('records');
@@ -2894,13 +3142,103 @@ $('#openingInput').addEventListener('input', function(){
   this.value = this.value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
   syncOpeningUI();
 });
+bindCurSeg('#openingCurSeg', function(c){
+  openingCurDraft = c === 'USD' ? 'USD' : 'CNY';
+  syncOpeningUI();
+});
 $('#btnOpeningSave').addEventListener('click', function(){
   var n = money($('#openingInput').value);
   db.opening = n ? String(openingSign * n) : '';
+  db.openingCur = openingCurDraft;
   saveDB();
   closeModal('mOpening');
   renderStats(); renderData();
-  toast(db.opening ? '期初已设为 ' + signed(openingOf()) : '已清除期初');
+  toast(db.opening ? '期初已设为 ' + signedIn(money(db.opening), db.openingCur) : '已清除期初');
+});
+
+/* ============ 美元汇率 ============ */
+var RATE_TRY_KEY = 'matchledger.ratetry';
+
+function openRate(){
+  $('#rateInput').value = fxIsSet() ? num4(fxRate()) : '';
+  $('#rateHint').textContent = rateSourceText();
+  openModal('mRate');
+}
+
+function setRate(v, src){
+  var n = money(v);
+  db.rate = n > 0 ? String(n) : '';
+  db.rateAt = n > 0 ? Date.now() : 0;
+  db.rateSrc = n > 0 ? (src || 'manual') : '';
+  saveDB();
+  var inp = $('#rateInput');
+  if (inp) inp.value = fxIsSet() ? num4(fxRate()) : '';
+  paintCurSegs();
+  renderStats(); renderRecords(); renderData(); renderEvents();
+}
+
+/* 从网络取最新汇率：主源 open.er-api.com（每天更新一次），备源 frankfurter（欧洲央行）。
+   取不到就静默沿用旧值 —— 记账不能被网络卡住。 */
+function fetchRate(opts){
+  var silent = !opts || opts.silent !== false;
+  var hint = $('#rateHint'), btn = $('#btnRateFetch');
+  if (btn) btn.disabled = true;
+  if (hint && !silent) hint.textContent = '正在获取…';
+
+  var ctrl = window.AbortController ? new AbortController() : null;
+  var timer = setTimeout(function(){ if (ctrl) try { ctrl.abort(); } catch(e) {} }, 7000);
+
+  function pick(url, read){
+    return fetch(url, { mode: 'cors', cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
+      .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(j){
+        var v = read(j);
+        if (!(v > 0) || !isFinite(v)) throw new Error('bad rate');
+        return v;
+      });
+  }
+  function finish(v){
+    clearTimeout(timer);
+    if (btn) btn.disabled = false;
+    if (v > 0) {
+      setRate(v, 'auto');
+      if (!silent) toast('汇率已更新：1$ ≈ ¥' + fxShort());
+    } else if (!silent) {
+      toast('没连上汇率接口，沿用当前值');
+    }
+    if (hint) hint.textContent = rateSourceText();
+    paintCurSegs();
+  }
+
+  pick('https://open.er-api.com/v6/latest/USD', function(j){
+    return j && j.rates ? +j.rates.CNY : 0;
+  }).catch(function(){
+    return pick('https://api.frankfurter.dev/v1/latest?base=USD&symbols=CNY', function(j){
+      return j && j.rates ? +j.rates.CNY : 0;
+    });
+  }).then(finish).catch(function(){ finish(0); });
+}
+
+/* 打开应用时顺手更新一次；失败过就在一小时内不再试，别每次刷新都卡网络 */
+function maybeAutoRate(){
+  if (fxIsSet() && db.rateAt && Date.now() - db.rateAt < RATE_TTL) return;
+  var t = 0;
+  try { t = +localStorage.getItem(RATE_TRY_KEY) || 0; } catch(e) {}
+  if (Date.now() - t < 60 * 60 * 1000) return;
+  try { localStorage.setItem(RATE_TRY_KEY, String(Date.now())); } catch(e) {}
+  fetchRate({ silent: true });
+}
+
+$('#goRate').addEventListener('click', openRate);
+$('#btnRateFetch').addEventListener('click', function(){ fetchRate({ silent: false }); });
+$('#rateInput').addEventListener('input', function(){
+  this.value = this.value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
+});
+$('#btnRateSave').addEventListener('click', function(){
+  var v = money($('#rateInput').value);
+  setRate(v, 'manual');
+  closeModal('mRate');
+  toast(v > 0 ? '汇率已设为 1$ ≈ ¥' + fxShort() : '已恢复默认汇率 1 : ' + fxShort());
 });
 
 $('#btnClear').addEventListener('click', function(){
@@ -2910,7 +3248,7 @@ $('#btnClear').addEventListener('click', function(){
     ok: '全部清空', danger: true
   }).then(function(ok){
     if (!ok) return;
-    db.events = []; db.records = []; db.opening = '';
+    db.events = []; db.records = []; db.opening = ''; db.openingCur = 'CNY';
     resetFilters();
     saveDB(); renderAll(); toast('已清空');
   });
@@ -2967,7 +3305,7 @@ document.addEventListener('click', function(e){
   }
   var demoBtn = e.target.closest ? e.target.closest('#btnClearDemo') : null;
   if (demoBtn) {
-    db.events = []; db.records = []; db.opening = '';
+    db.events = []; db.records = []; db.opening = ''; db.openingCur = 'CNY';
     resetFilters();
     saveDB(); renderAll(); toast('已清空示例');
     return;
@@ -3011,7 +3349,9 @@ try { savedTheme = localStorage.getItem(THEME_KEY) || 'forest'; } catch(e) {}
 applyTheme(savedTheme, false);
 
 var firstRun = loadDB();
+loadDispPref();
 renderAll();
+maybeAutoRate();   // 后台顺手更新汇率，失败不影响任何操作
 if (firstRun) {
   // 首次进入给个轻提示
   setTimeout(function(){ toast('示例数据，可一键清空'); }, 600);
