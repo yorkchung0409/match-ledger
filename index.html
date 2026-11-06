@@ -1,0 +1,2340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="theme-color" content="#fbfaf5">
+<script>try{var _t=localStorage.getItem('matchledger.theme');if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>赛场账本 · 比赛记录</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b3a22'/%3E%3Cg fill='none' stroke='%23e8ba30' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 16h20v13a10 10 0 0 1-20 0z'/%3E%3Cpath d='M42 19h5a5 5 0 0 1 0 10h-5'/%3E%3Cpath d='M22 19h-5a5 5 0 0 0 0 10h5'/%3E%3Cpath d='M32 39v7'/%3E%3Cpath d='M24 50h16'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+*,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+/* ================= 主题配色 ================= */
+:root{
+  --bg:#f6f5f0;
+  --bg-1:#fcfbf7;
+  --bg-2:#f7f6f1;
+  --bg-3:#f4f3ec;
+  --glow-1:rgba(20,107,70,.10);
+  --glow-2:rgba(184,134,43,.09);
+  --hero-glow:rgba(184,134,43,.13);
+
+  --brand:#146b46;
+  --brand-rgb:20,107,70;
+  --brand-2:#0d5033;
+  --accent:#b8862b;
+  --accent-ink:#f4d998;
+
+  --text:#1a2b22;
+  --muted:#65746b;
+  --muted-2:#86948b;
+  --muted-3:#b0bab3;
+  --heading:#41544a;
+
+  --line-rgb:24,52,36;
+  --line:rgba(var(--line-rgb),.10);
+  --line-2:rgba(var(--line-rgb),.065);
+
+  --surface:#ffffff;
+  --surface-hi:#fcfcf8;
+  --surface-2:#f6f7f4;
+  --surface-3:#eef5f0;
+  --soft-line:#d7e7de;
+
+  --gain:#cf4636;
+  --loss:#12855a;
+
+  --danger-bg:#fdf2f0;
+  --danger-line:#f3d9d3;
+  --danger-ink:#bd4132;
+
+  --ph:#b3bdb6;
+  --chev:#c2cbc5;
+  --icon:#4f856c;
+
+  --logo-a:#1b7d51;
+  --logo-b:#0d5033;
+  --fab-a:#1c7f53;
+  --fab-b:#0d5033;
+
+  --toast-bg:rgba(26,52,38,.94);
+  --toast-line:rgba(255,255,255,.10);
+
+  --sh-rgb:22,45,32;
+  --shadow:0 1px 2px rgba(var(--sh-rgb),.05),0 8px 22px -16px rgba(var(--sh-rgb),.55);
+  --shadow-sm:0 1px 2px rgba(var(--sh-rgb),.05),0 6px 16px -13px rgba(var(--sh-rgb),.50);
+  --shadow-md:0 1px 2px rgba(var(--sh-rgb),.04),0 8px 20px -16px rgba(var(--sh-rgb),.50);
+  --shadow-lg:0 24px 70px rgba(var(--sh-rgb),.28);
+
+  --r-lg:20px;
+  --r-md:16px;
+  --r-sm:12px;
+}
+
+/* ---- 淡粉 ---- */
+:root[data-theme="sakura"]{
+  --bg:#fdf5f7;--bg-1:#fffbfc;--bg-2:#fdf5f7;--bg-3:#faeef2;
+  --glow-1:rgba(214,109,140,.12);--glow-2:rgba(228,166,132,.10);--hero-glow:rgba(214,109,140,.15);
+  --brand:#b8496b;--brand-rgb:184,73,107;--brand-2:#993a58;
+  --accent:#bd8a70;--accent-ink:#fbe6dd;
+  --text:#3a2430;--muted:#746169;--muted-2:#94828a;--muted-3:#bdaeb5;--heading:#5b3f4a;
+  --line-rgb:74,36,52;--line:rgba(var(--line-rgb),.10);--line-2:rgba(var(--line-rgb),.065);
+  --surface:#ffffff;--surface-hi:#fffafb;--surface-2:#fbf1f4;--surface-3:#fceaf0;--soft-line:#f4dbe4;
+  --gain:#d24a3a;--loss:#12855a;
+  --danger-bg:#fdeae3;--danger-line:#eeb4a4;--danger-ink:#a53125;
+  --ph:#cbb9c0;--chev:#d6c5cb;--icon:#b46e88;
+  --logo-a:#d4738f;--logo-b:#a84a68;--fab-a:#d07692;--fab-b:#a84a68;
+  --toast-bg:rgba(59,30,40,.94);
+  --sh-rgb:70,36,50;
+}
+
+/* ---- 雾蓝 ---- */
+:root[data-theme="ocean"]{
+  --bg:#f4f8fc;--bg-1:#fafcff;--bg-2:#f4f8fc;--bg-3:#edf4fa;
+  --glow-1:rgba(45,110,170,.12);--glow-2:rgba(90,160,190,.09);--hero-glow:rgba(45,110,170,.12);
+  --brand:#26608f;--brand-rgb:38,96,143;--brand-2:#1a4970;
+  --accent:#b8862b;--accent-ink:#f4d998;
+  --text:#172a3a;--muted:#5f7284;--muted-2:#8296a8;--muted-3:#adbdcc;--heading:#3b5368;
+  --line-rgb:22,50,74;--line:rgba(var(--line-rgb),.10);--line-2:rgba(var(--line-rgb),.065);
+  --surface:#ffffff;--surface-hi:#fafcff;--surface-2:#f2f6fa;--surface-3:#e9f1f8;--soft-line:#d3e2ef;
+  --ph:#b2c0cd;--chev:#c2cfda;--icon:#5b86a8;
+  --logo-a:#2f74a6;--logo-b:#1a4970;--fab-a:#2f74a6;--fab-b:#1a4970;
+  --toast-bg:rgba(24,43,60,.94);
+  --sh-rgb:20,40,58;
+}
+
+/* ---- 暖杏 ---- */
+:root[data-theme="apricot"]{
+  --bg:#fdf6ec;--bg-1:#fffaf4;--bg-2:#fdf6ec;--bg-3:#f9efe1;
+  --glow-1:rgba(200,120,60,.13);--glow-2:rgba(214,160,80,.11);--hero-glow:rgba(200,120,60,.14);
+  --brand:#b0623a;--brand-rgb:176,98,58;--brand-2:#8d4a28;
+  --accent:#a8792e;--accent-ink:#f6e2bd;
+  --text:#38261c;--muted:#7c6656;--muted-2:#9d897a;--muted-3:#c5b3a5;--heading:#5a4132;
+  --line-rgb:70,46,30;--line:rgba(var(--line-rgb),.11);--line-2:rgba(var(--line-rgb),.07);
+  --surface:#ffffff;--surface-hi:#fffaf4;--surface-2:#fbf4ea;--surface-3:#faeedd;--soft-line:#f0dcc4;
+  --ph:#cbb8a8;--chev:#d6c6b8;--icon:#a3765a;
+  --logo-a:#c07446;--logo-b:#8d4a28;--fab-a:#c07446;--fab-b:#8d4a28;
+  --toast-bg:rgba(56,36,24,.94);
+  --sh-rgb:60,42,28;
+}
+
+/* ---- 薰衣草 ---- */
+:root[data-theme="lavender"]{
+  --bg:#f6f4fd;--bg-1:#fcfbff;--bg-2:#f6f4fd;--bg-3:#efecf9;
+  --glow-1:rgba(112,88,190,.12);--glow-2:rgba(160,120,190,.10);--hero-glow:rgba(112,88,190,.13);
+  --brand:#5f4fa3;--brand-rgb:95,79,163;--brand-2:#473a80;
+  --accent:#ad8a5a;--accent-ink:#f5e7cf;
+  --text:#241f38;--muted:#6b6482;--muted-2:#8e86a4;--muted-3:#b8b1ca;--heading:#423a5e;
+  --line-rgb:46,38,74;--line:rgba(var(--line-rgb),.10);--line-2:rgba(var(--line-rgb),.065);
+  --surface:#ffffff;--surface-hi:#fcfbff;--surface-2:#f6f3fc;--surface-3:#efeafa;--soft-line:#ddd4f2;
+  --ph:#bcb4cd;--chev:#ccc5da;--icon:#7a6ba8;
+  --logo-a:#6f5cb5;--logo-b:#473a80;--fab-a:#6f5cb5;--fab-b:#473a80;
+  --toast-bg:rgba(38,32,58,.94);
+  --sh-rgb:40,34,66;
+}
+
+/* ---- 石墨 ---- */
+:root[data-theme="graphite"]{
+  --bg:#f5f5f6;--bg-1:#fbfbfb;--bg-2:#f5f5f6;--bg-3:#eeeff0;
+  --glow-1:rgba(70,80,90,.07);--glow-2:rgba(140,140,140,.06);--hero-glow:rgba(96,106,116,.09);
+  --brand:#33414d;--brand-rgb:51,65,77;--brand-2:#202b34;
+  --accent:#a08447;--accent-ink:#efe3ca;
+  --text:#1b2026;--muted:#616a73;--muted-2:#868e96;--muted-3:#b0b6bc;--heading:#3a424a;
+  --line-rgb:28,35,42;--line:rgba(var(--line-rgb),.10);--line-2:rgba(var(--line-rgb),.065);
+  --surface:#ffffff;--surface-hi:#fbfbfb;--surface-2:#f4f5f6;--surface-3:#eceff2;--soft-line:#dde2e7;
+  --ph:#b4bac0;--chev:#c4cad0;--icon:#6b7a86;
+  --logo-a:#4a5b69;--logo-b:#202b34;--fab-a:#4a5b69;--fab-b:#202b34;
+  --toast-bg:rgba(28,34,40,.94);
+  --sh-rgb:26,30,36;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  touch-action:manipulation;
+  overflow-x:hidden;
+  transition:background-color .25s ease;
+}
+body.lock{overflow:hidden}
+body::before{
+  content:'';position:fixed;inset:0;z-index:-1;transition:background .25s ease;
+  background:
+    radial-gradient(80% 38% at 50% -6%, var(--glow-1), transparent 70%),
+    radial-gradient(46% 28% at 104% 2%, var(--glow-2), transparent 70%),
+    linear-gradient(180deg,var(--bg-1) 0%,var(--bg-2) 42%,var(--bg-3) 100%);
+}
+button{font-family:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input,textarea,select{font-family:inherit;color:inherit}
+.hidden{display:none!important}
+.gain{color:var(--gain)}
+.loss{color:var(--loss)}
+.zero{color:var(--muted)}
+
+/* ---------- layout ---------- */
+.app{max-width:480px;margin:0 auto;padding:0 16px calc(112px + env(safe-area-inset-bottom));}
+.app.nopad{padding-bottom:0}
+
+/* ---------- brand header ---------- */
+.brand{display:flex;align-items:center;gap:12px;padding:calc(18px + env(safe-area-inset-top)) 2px 18px}
+.logo{
+  width:42px;height:42px;border-radius:14px;display:grid;place-items:center;flex:0 0 auto;
+  background:linear-gradient(160deg,var(--logo-a),var(--logo-b));
+  border:1px solid rgba(var(--brand-rgb),.16);
+  box-shadow:0 6px 16px -6px rgba(var(--brand-rgb),.55);
+  color:var(--accent-ink);
+  transition:background .25s ease;
+}
+.brand h1{margin:0;font-size:17px;font-weight:650;letter-spacing:.06em}
+.brand p{margin:3px 0 0;font-size:11px;color:var(--muted-2);letter-spacing:.14em}
+.brand-spacer{flex:1}
+.iconbtn{
+  flex:0 0 auto;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;
+  background:var(--surface);border:1px solid var(--line-2);color:var(--muted);
+  box-shadow:0 1px 2px rgba(var(--sh-rgb),.05);transition:.16s;
+}
+.iconbtn:active{transform:scale(.94);color:var(--brand);border-color:rgba(var(--brand-rgb),.30)}
+
+/* ---------- hero ---------- */
+.hero{
+  position:relative;overflow:hidden;
+  border-radius:var(--r-lg);
+  padding:20px 18px 16px;
+  background:linear-gradient(180deg,var(--surface),var(--surface-hi));
+  border:1px solid var(--line-2);
+  box-shadow:var(--shadow);
+  transition:background .25s ease;
+}
+.hero::after{
+  content:'';position:absolute;width:190px;height:190px;right:-70px;top:-90px;border-radius:50%;
+  background:radial-gradient(circle,var(--hero-glow),transparent 66%);pointer-events:none;
+  transition:background .25s ease;
+}
+.hero-label{font-size:11px;letter-spacing:.20em;color:var(--muted-2)}
+.hero-value{
+  font-size:36px;font-weight:680;letter-spacing:-.02em;line-height:1.18;margin:8px 0 2px;
+  font-variant-numeric:tabular-nums;
+}
+.hero-note{font-size:11.5px;color:var(--muted);letter-spacing:.02em}
+.hero-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:6px;
+  margin-top:16px;padding-top:14px;border-top:1px solid var(--line-2);
+}
+.hero-grid>div{display:flex;flex-direction:column;gap:5px;min-width:0}
+.hero-grid span{font-size:10.5px;color:var(--muted-2);letter-spacing:.05em}
+.hero-grid b{font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+
+/* ---------- demo banner ---------- */
+.demo-banner{
+  display:flex;align-items:center;gap:10px;margin-top:12px;padding:11px 13px;border-radius:var(--r-md);
+  background:var(--surface-3);border:1px solid var(--soft-line);
+  font-size:12px;color:var(--brand);line-height:1.4;
+  transition:background .25s ease;
+}
+.demo-banner button{
+  margin-left:auto;flex:0 0 auto;font-size:12px;font-weight:600;color:#fff;
+  background:var(--brand);padding:6px 11px;border-radius:9px;
+}
+
+/* ---------- filters ---------- */
+.filters{display:flex;gap:8px;margin:18px 0 12px;align-items:center}
+.selwrap{position:relative;flex:0 0 auto;max-width:52%}
+.selwrap select{
+  appearance:none;-webkit-appearance:none;
+  width:100%;padding:9px 30px 9px 13px;border-radius:11px;
+  background:var(--surface);border:1px solid var(--line);
+  font-size:12.5px;color:var(--text);
+  text-overflow:ellipsis;
+  box-shadow:0 1px 2px rgba(var(--sh-rgb),.04);
+}
+.selwrap::after{
+  content:'';position:absolute;right:12px;top:50%;width:6px;height:6px;pointer-events:none;
+  border-right:1.4px solid var(--muted);border-bottom:1.4px solid var(--muted);
+  transform:translateY(-70%) rotate(45deg);
+}
+.seg{display:flex;margin-left:auto;background:rgba(var(--line-rgb),.055);border:1px solid rgba(var(--line-rgb),.05);border-radius:11px;padding:3px;gap:2px}
+.seg button{
+  padding:6px 11px;border-radius:8px;font-size:12.5px;color:var(--muted);
+  transition:.18s;white-space:nowrap;
+}
+.seg button.on{background:var(--surface);color:var(--brand);font-weight:600;box-shadow:0 1px 3px rgba(var(--sh-rgb),.14)}
+
+/* ---------- month group ---------- */
+.month{display:flex;align-items:baseline;justify-content:space-between;margin:18px 4px 9px}
+.month span{font-size:12px;letter-spacing:.10em;color:var(--muted)}
+.month em{font-style:normal;font-size:11.5px;font-variant-numeric:tabular-nums}
+
+/* ---------- record card ---------- */
+.rec{
+  display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  padding:13px 14px;margin-bottom:8px;border-radius:var(--r-md);
+  background:var(--surface);
+  border:1px solid var(--line-2);
+  box-shadow:var(--shadow-sm);
+  transition:transform .14s,border-color .18s,background .18s;
+}
+.rec:active{transform:scale(.985);border-color:rgba(var(--brand-rgb),.26)}
+.rank{
+  flex:0 0 auto;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;
+  font-size:13px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.02em;
+  background:var(--surface-2);color:var(--muted);border:1px solid var(--line-2);
+}
+.rank.r1{background:linear-gradient(160deg,#fdf3d6,#f9e6b4);color:#8a5f0d;border-color:#efd79a}
+.rank.r2{background:linear-gradient(160deg,#f2f5f8,#e7edf2);color:#5b6e7e;border-color:#dde5ec}
+.rank.r3{background:linear-gradient(160deg,#fbeee3,#f5dfcd);color:#a0653a;border-color:#eed5bf}
+.rank.in{background:var(--surface-3);color:var(--brand);border-color:rgba(var(--brand-rgb),.24)}
+.rank.out{background:transparent;color:var(--muted-2);border:1px dashed rgba(var(--line-rgb),.28);font-size:11px;font-weight:600;letter-spacing:.02em}
+.rank.ft{
+  display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1px;line-height:1;
+  background:linear-gradient(160deg,var(--brand),var(--brand-2));color:#fff;border-color:transparent;
+  box-shadow:0 3px 8px -4px rgba(var(--brand-rgb),.65);
+}
+.rank.ft b{font-size:12.5px;font-weight:700;letter-spacing:-.02em}
+.rank.ft i{font-style:normal;font-size:7.5px;font-weight:700;letter-spacing:.1em;opacity:.9}
+/* 进了 FT 又在前三：保留奖牌色，FT 小字仍标出来 */
+.rank.ft.r1{background:linear-gradient(160deg,#fdf3d6,#f7e3ac);color:#7d5606;border-color:#e8c983;box-shadow:none}
+.rank.ft.r2{background:linear-gradient(160deg,#f2f5f8,#e3eaf0);color:#54707f;border-color:#d5e0e8;box-shadow:none}
+.rank.ft.r3{background:linear-gradient(160deg,#fbeee3,#f3dac4);color:#96592f;border-color:#e5c8ad;box-shadow:none}
+.rec-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.rec-title{font-size:14.5px;font-weight:600;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-meta{font-size:11.5px;color:var(--muted-2);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-right{flex:0 0 auto;text-align:right;display:flex;flex-direction:column;gap:4px}
+.rec-net{font-size:16px;font-weight:680;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.rec-sub{font-size:11px;color:var(--muted-2);font-variant-numeric:tabular-nums}
+
+/* ---------- event card：名库 + 汇总合一 ---------- */
+.ev{
+  display:block;width:100%;text-align:left;
+  padding:14px;margin-bottom:8px;border-radius:var(--r-md);
+  background:var(--surface);
+  border:1px solid var(--line-2);
+  box-shadow:var(--shadow-sm);
+  transition:.15s;
+}
+.ev:active{transform:scale(.985);border-color:rgba(var(--brand-rgb),.26)}
+.ev-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.ev-name{min-width:0;font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-net{flex:0 0 auto;font-size:15px;font-weight:680;font-variant-numeric:tabular-nums}
+.ev-meta{
+  display:block;margin-top:6px;font-size:11.5px;color:var(--muted-2);
+  font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ev-foot{
+  display:block;margin-top:10px;padding-top:9px;border-top:1px solid var(--line-2);
+  font-size:11px;color:var(--muted-2);font-variant-numeric:tabular-nums;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ev-foot b{font-weight:600;color:var(--text)}
+.ev-foot b.gain{color:var(--gain)}
+.ev-foot b.loss{color:var(--loss)}
+.ev-foot b.zero{color:var(--muted)}
+
+/* ---------- section title ---------- */
+.sec{display:flex;align-items:center;gap:9px;margin:22px 0 12px}
+.sec h2{margin:0;font-size:13px;font-weight:600;letter-spacing:.10em;color:var(--heading)}
+.sec .bar{width:3px;height:13px;border-radius:2px;background:linear-gradient(180deg,var(--brand),rgba(var(--brand-rgb),.20))}
+.sec .spacer{flex:1}
+.sec .hint{font-size:11px;color:var(--muted-2)}
+
+/* ---------- 二级页导航 ---------- */
+body.subpage .brand{display:none}
+body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
+.subnav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin:4px 0 16px}
+.subnav h2{margin:0;font-size:14px;font-weight:650;letter-spacing:.05em;text-align:center;white-space:nowrap;color:var(--text)}
+.subback{
+  justify-self:start;display:inline-flex;align-items:center;gap:2px;
+  padding:7px 12px 7px 9px;border-radius:11px;
+  font-size:12.5px;color:var(--muted);
+  background:var(--surface);border:1px solid var(--line-2);box-shadow:var(--shadow);
+  transition:.15s;
+}
+.subback:active{transform:scale(.96);color:var(--brand)}
+.subnew{
+  justify-self:end;display:inline-flex;align-items:center;gap:5px;
+  padding:7px 12px;border-radius:11px;
+  font-size:12.5px;font-weight:600;color:var(--brand);
+  background:var(--surface-3);border:1px solid var(--soft-line);
+  transition:.15s;
+}
+.subnew:active{transform:scale(.96)}
+
+/* ---------- 入口行 ---------- */
+.linkrow{
+  display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  padding:13px 14px;border-radius:var(--r-md);
+  background:var(--surface);border:1px solid var(--line-2);box-shadow:var(--shadow);
+  transition:transform .15s,border-color .18s;
+}
+.linkrow:active{transform:scale(.99);border-color:rgba(var(--brand-rgb),.26)}
+.lr-ico{
+  flex:0 0 auto;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;
+  background:var(--surface-3);color:var(--brand);
+}
+.lr-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.lr-body b{font-size:14px;font-weight:600;letter-spacing:.01em}
+.lr-body em{font-style:normal;font-size:11.5px;color:var(--muted-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lr-meta{flex:0 0 auto;font-size:11.5px;color:var(--muted-2);font-variant-numeric:tabular-nums}
+.lr-chev{flex:0 0 auto;color:var(--muted-3);font-size:18px;line-height:1;margin-right:-3px}
+
+/* ---------- empty ---------- */
+.empty{text-align:center;padding:52px 20px 40px;color:var(--muted-2)}
+.empty .ico{width:64px;height:64px;margin:0 auto 16px;border-radius:20px;display:grid;place-items:center;
+  background:var(--surface);border:1px solid var(--line-2);color:var(--accent);
+  box-shadow:0 1px 2px rgba(var(--sh-rgb),.04),0 10px 24px -18px rgba(var(--sh-rgb),.5)}
+.empty h3{margin:0 0 7px;font-size:14.5px;font-weight:600;color:var(--heading)}
+.empty p{margin:0;font-size:12.5px;line-height:1.6}
+.empty .cta{margin-top:18px;display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:12px;
+  background:var(--surface-3);border:1px solid var(--soft-line);color:var(--brand);font-size:13px;font-weight:600}
+
+/* ---------- 走势图 ---------- */
+.chart{
+  padding:15px 15px 12px;border-radius:var(--r-lg);
+  background:linear-gradient(180deg,var(--surface),var(--surface-hi));
+  border:1px solid var(--line-2);box-shadow:var(--shadow);
+  transition:background .25s ease;
+}
+.chart-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.chart-head b{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--heading)}
+.chart-head em{font-style:normal;font-size:11px;color:var(--muted-2);font-variant-numeric:tabular-nums}
+.chart-body{height:110px;margin:10px -4px 0}
+.chart-body svg{display:block;width:100%;height:100%}
+.g-area{fill:url(#gFade)}
+.g-line{fill:none;stroke:var(--brand);stroke-width:1.9;stroke-linejoin:round;stroke-linecap:round}
+.g-zero{stroke:rgba(var(--line-rgb),.20);stroke-width:1;stroke-dasharray:3 4}
+.g-halo{fill:rgba(var(--brand-rgb),.13)}
+.g-dot{fill:var(--brand)}
+.g-pt{fill:var(--surface);stroke:rgba(var(--brand-rgb),.50);stroke-width:1.4}
+#gFade .s1{stop-color:var(--brand);stop-opacity:.20}
+#gFade .s2{stop-color:var(--brand);stop-opacity:0}
+.chart-empty{
+  height:110px;display:grid;place-items:center;border-radius:12px;
+  background:var(--surface-2);font-size:12px;color:var(--muted-2);
+}
+.chart-axis{display:flex;justify-content:space-between;margin-top:4px;font-size:10.5px;color:var(--muted-3);font-variant-numeric:tabular-nums}
+.chart-foot{display:flex;gap:20px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line-2);font-size:11px;color:var(--muted-2)}
+.chart-foot b{font-weight:650;font-variant-numeric:tabular-nums;margin-left:5px}
+
+/* ---------- 成绩结构 ---------- */
+.panel{padding:14px 15px;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--line-2);box-shadow:var(--shadow-md)}
+.share{display:flex;gap:3px;height:7px;margin-bottom:13px}
+.share i{display:block;border-radius:99px;min-width:6px}
+.s-ft{background:var(--brand)}
+.s-itm{background:rgba(var(--brand-rgb),.38)}
+.s-out{background:rgba(var(--line-rgb),.22)}
+.stagelist{list-style:none;margin:0;padding:0}
+.stagelist li{display:flex;align-items:center;gap:9px;padding:11px 0;border-top:1px solid var(--line-2)}
+.stagelist li:first-child{border-top:0;padding-top:0}
+.sd{flex:0 0 auto;width:7px;height:7px;border-radius:2.5px}
+.sn{flex:0 0 auto;font-size:12.5px;font-weight:600}
+.sc{font-size:11.5px;color:var(--muted-2);font-variant-numeric:tabular-nums}
+.sv{margin-left:auto;font-size:13px;font-weight:680;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+
+/* ---------- 个人纪录 ---------- */
+.recbook{
+  display:grid;grid-template-columns:1fr 1fr;gap:1px;overflow:hidden;
+  background:var(--line-2);border:1px solid var(--line-2);border-radius:var(--r-md);
+  box-shadow:var(--shadow-md);
+}
+.recbook>div{background:var(--surface);padding:13px 14px;min-width:0}
+.rb-l{font-size:10.5px;letter-spacing:.08em;color:var(--muted-2)}
+.rb-v{margin:7px 0 3px;font-size:17px;font-weight:680;letter-spacing:-.01em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rb-s{font-size:10.5px;color:var(--muted-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- totals ---------- */
+.totals{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:13px 15px;
+  border-radius:var(--r-md);background:var(--surface-3);border:1px solid var(--soft-line);transition:background .25s ease}
+.totals span{font-size:12px;color:var(--muted)}
+.totals b{font-size:17px;font-weight:680;font-variant-numeric:tabular-nums}
+
+/* ---------- action buttons ---------- */
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+.btn{
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  padding:12px;border-radius:13px;font-size:13px;font-weight:550;
+  background:var(--surface);border:1px solid var(--line);color:var(--text);
+  box-shadow:0 1px 2px rgba(var(--sh-rgb),.04);
+  transition:.15s;
+}
+.btn:active{transform:scale(.98);background:var(--surface-2)}
+.btn.gold{background:var(--surface-3);border-color:var(--soft-line);color:var(--brand)}
+.btn.danger{background:var(--danger-bg);border-color:var(--danger-line);color:var(--danger-ink);grid-column:1/-1}
+.note{margin-top:12px;font-size:11px;color:var(--muted-2);line-height:1.65}
+.note b{color:var(--muted);font-weight:550}
+
+/* ---------- tabbar ---------- */
+.tabbar{
+  position:fixed;left:0;right:0;bottom:0;z-index:30;
+  display:flex;justify-content:center;
+  padding:0 0 env(safe-area-inset-bottom);
+  background:rgba(255,255,255,.90);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:1px solid var(--line-2);
+  box-shadow:0 -6px 24px -20px rgba(var(--sh-rgb),.6);
+}
+.tabs{display:grid;grid-template-columns:1fr 68px 1fr;align-items:stretch;width:100%;max-width:480px}
+.tab{
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;
+  padding:10px 0 9px;color:var(--muted-2);font-size:10.5px;letter-spacing:.04em;transition:.18s;
+}
+.tab svg{transition:.18s}
+.tab.on{color:var(--brand);font-weight:600}
+.tab:active{opacity:.62}
+
+/* 中间「记一笔」：从导航栏里凸起 */
+.addslot{display:flex;justify-content:center;align-items:flex-start}
+.addbtn{
+  width:56px;height:56px;border-radius:21px;display:grid;place-items:center;margin-top:-24px;
+  background:linear-gradient(155deg,var(--fab-a),var(--fab-b));
+  color:#fff;
+  box-shadow:0 0 0 4px var(--surface),0 9px 20px -8px rgba(var(--brand-rgb),.58),0 2px 6px rgba(var(--sh-rgb),.14);
+  transition:transform .16s,background .25s,box-shadow .25s;
+}
+.addbtn:active{transform:scale(.92)}
+.addbtn svg{transition:transform .18s}
+
+/* ---------- modal ---------- */
+.modal{position:fixed;inset:0;z-index:40;display:none}
+.modal.open{display:block}
+.modal-bg{position:absolute;inset:0;background:rgba(var(--sh-rgb),.42);animation:fade .22s ease;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.sheet{
+  position:absolute;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;
+  max-height:92vh;max-height:92dvh;display:flex;flex-direction:column;
+  background:var(--surface);
+  border-radius:24px 24px 0 0;
+  border-top:1px solid var(--line-2);
+  box-shadow:0 -20px 60px rgba(var(--sh-rgb),.22);
+  animation:slideUp .28s cubic-bezier(.22,1,.36,1);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-handle{width:38px;height:4px;border-radius:3px;background:rgba(var(--line-rgb),.15);margin:9px auto 0;flex:0 0 auto}
+.sheet-head{
+  display:flex;align-items:center;gap:12px;padding:12px 16px 12px;flex:0 0 auto;
+  border-bottom:1px solid var(--line-2);
+}
+.sheet-head h2{margin:0;font-size:14.5px;font-weight:600;letter-spacing:.04em;flex:1;text-align:center}
+.sheet-head .link{font-size:13.5px;color:var(--muted);padding:5px 2px;min-width:44px}
+.sheet-head .link.gold{color:var(--brand);font-weight:650;text-align:right}
+.sheet-body{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;flex:1;overscroll-behavior:contain}
+
+/* ---------- form ---------- */
+.flabel{display:block;font-size:11px;letter-spacing:.10em;color:var(--muted-2);margin:0 0 8px 3px}
+.flabel em{font-style:normal;font-size:10px;letter-spacing:.04em;margin-left:6px;padding:1.5px 5px;border-radius:5px;vertical-align:1px}
+.flabel em.req{background:var(--surface-3);color:var(--brand);border:1px solid var(--soft-line)}
+.flabel em.opt{background:var(--surface-2);color:var(--muted-2)}
+.fgroup{margin-bottom:14px}
+.fgroup-hint{margin-bottom:20px}
+.fhint{margin:9px 2px 0;font-size:11.5px;line-height:1.6;color:var(--muted)}
+
+/* 进圈分段 */
+.itmseg{display:flex;gap:5px;padding:4px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line-2)}
+.itmseg button{
+  flex:1;padding:9px 0;border-radius:10px;font-size:13.5px;font-weight:550;
+  color:var(--muted);transition:.18s;
+}
+.itmseg button.on{
+  background:var(--surface);color:var(--brand);font-weight:650;
+  box-shadow:0 1px 3px rgba(var(--sh-rgb),.16);
+}
+.itmseg button:active{transform:scale(.98)}
+.field{
+  display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+  padding:13px 14px;border-radius:14px;
+  background:var(--surface-2);border:1px solid rgba(var(--line-rgb),.055);
+  transition:.18s;
+}
+.field:active,.field:focus-within{border-color:rgba(var(--brand-rgb),.32);background:var(--surface);box-shadow:0 0 0 3px rgba(var(--brand-rgb),.07)}
+.field .fi{flex:0 0 auto;color:var(--icon);display:grid;place-items:center}
+.fbody{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.fcap{font-size:10.5px;color:var(--muted-2);letter-spacing:.05em}
+.fval{font-size:15px;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.fval.ph{color:var(--ph);font-weight:400}
+.fchev{flex:0 0 auto;color:var(--chev);font-size:17px;line-height:1}
+.finput{
+  width:100%;background:none;border:0;outline:none;padding:0;
+  font-size:16px;font-weight:550;letter-spacing:.01em;line-height:1.3;
+  font-variant-numeric:tabular-nums;
+}
+.finput::placeholder{color:var(--ph);font-weight:400}
+.fprefix{font-size:14px;color:var(--muted);flex:0 0 auto;font-weight:500}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.fta{
+  width:100%;background:var(--surface-2);border:1px solid rgba(var(--line-rgb),.055);
+  border-radius:14px;padding:12px 14px;font-size:14px;outline:none;resize:none;
+  line-height:1.5;min-height:64px;color:var(--text);
+}
+.fta::placeholder{color:var(--ph)}
+.fta:focus{border-color:rgba(var(--brand-rgb),.30);background:var(--surface);box-shadow:0 0 0 3px rgba(var(--brand-rgb),.07)}
+.nettag{
+  display:flex;align-items:center;justify-content:space-between;
+  margin:2px 0 4px;padding:12px 15px;border-radius:14px;
+  background:var(--surface-2);border:1px dashed rgba(var(--line-rgb),.14);
+}
+.nettag span{font-size:12px;color:var(--muted-2);letter-spacing:.04em}
+.nettag b{font-size:18px;font-weight:680;font-variant-numeric:tabular-nums}
+
+/* ---------- picker list ---------- */
+.picklist{margin-top:12px;display:flex;flex-direction:column;gap:7px}
+.pick{
+  display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+  padding:13px 14px;border-radius:13px;background:var(--surface-2);
+  border:1px solid transparent;transition:.15s;
+}
+.pick:active{background:var(--surface-3)}
+.pick .pname{flex:1;min-width:0;font-size:14px;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick .pmeta{flex:0 0 auto;font-size:11px;color:var(--muted-2);font-variant-numeric:tabular-nums}
+.pick.cur{border-color:rgba(var(--brand-rgb),.30);background:var(--surface-3)}
+.pick.cur .pname{color:var(--brand)}
+.pick.create{background:var(--surface-3);border-color:var(--soft-line);color:var(--brand)}
+.pick.create .pname{color:var(--brand);font-weight:600}
+.pick-empty{text-align:center;padding:26px 10px;font-size:12.5px;color:var(--muted-2)}
+
+/* ---------- theme picker ---------- */
+.themegrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.themecard{
+  display:flex;align-items:center;gap:10px;padding:10px;border-radius:14px;text-align:left;
+  background:var(--surface-2);border:1px solid transparent;transition:.16s;
+}
+.themecard:active{transform:scale(.97)}
+.themecard.cur{
+  border-color:rgba(var(--brand-rgb),.45);background:rgba(var(--brand-rgb),.06);
+  box-shadow:0 0 0 3px rgba(var(--brand-rgb),.06);
+}
+.tpv{position:relative;width:44px;height:44px;border-radius:13px;flex:0 0 auto;overflow:hidden;
+  border:1px solid rgba(20,26,30,.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}
+.tpv i{position:absolute;display:block;border-radius:2px}
+.tpv-card{left:5px;top:6px;width:23px;height:28px;border-radius:6px;background:#fff;
+  box-shadow:0 1px 3px rgba(20,26,30,.16)}
+.tpv-bar{left:8px;top:11px;width:10px;height:3px}
+.tpv-line{left:8px;top:18px;width:15px;height:2px;border-radius:1px;background:rgba(20,26,30,.13)}
+.tpv-line2{left:8px;top:23px;width:9px;height:2px;border-radius:1px;background:rgba(20,26,30,.09)}
+.tpv-dot{right:4px;bottom:4px;width:13px;height:13px;border-radius:5px;box-shadow:0 2px 5px rgba(20,26,30,.18)}
+.tname{flex:1;min-width:0;font-size:13px;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tick{flex:0 0 auto;width:17px;height:17px;border-radius:50%;display:grid;place-items:center;
+  font-size:10px;line-height:1;background:var(--brand);color:#fff;font-weight:700}
+@media (min-width:520px){ .themegrid{grid-template-columns:repeat(3,1fr)} }
+
+/* ---------- time picker ---------- */
+.time-quick{display:flex;gap:8px;padding:14px 16px 4px;flex:0 0 auto;overflow-x:auto}
+.time-quick button{
+  flex:0 0 auto;padding:7px 13px;border-radius:10px;font-size:12.5px;
+  background:var(--surface-2);border:1px solid rgba(var(--line-rgb),.06);color:var(--muted);
+}
+.time-quick button:active{background:var(--surface-3);color:var(--brand)}
+.time-preview{
+  text-align:center;padding:10px 16px 0;font-size:13px;color:var(--brand);
+  letter-spacing:.04em;font-variant-numeric:tabular-nums;flex:0 0 auto;font-weight:600;
+}
+.wheel-head{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;padding:10px 16px 4px;flex:0 0 auto}
+.wheel-head span{text-align:center;font-size:10.5px;color:var(--muted-2);letter-spacing:.08em}
+.wheels{
+  position:relative;display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;
+  height:200px;margin:0 12px 4px;flex:0 0 auto;
+  overflow:hidden;
+}
+.wheels::before,.wheels::after{
+  content:'';position:absolute;left:0;right:0;height:62px;z-index:3;pointer-events:none;
+}
+.wheels::before{top:0;background:linear-gradient(180deg,var(--surface) 8%,rgba(255,255,255,0))}
+.wheels::after{bottom:0;background:linear-gradient(0deg,var(--surface) 8%,rgba(255,255,255,0))}
+.wheel{
+  position:relative;z-index:1;overflow-y:auto;scroll-snap-type:y mandatory;
+  padding:80px 0;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.wheel::-webkit-scrollbar{display:none}
+.w-item{
+  height:40px;display:flex;align-items:center;justify-content:center;
+  scroll-snap-align:center;font-size:15px;color:var(--muted-3);
+  font-variant-numeric:tabular-nums;transition:color .1s,font-size .1s;
+  white-space:nowrap;
+}
+.w-item.active{color:var(--brand);font-weight:680;font-size:16.5px}
+.band{
+  position:absolute;left:0;right:0;top:50%;height:40px;transform:translateY(-50%);z-index:2;pointer-events:none;
+  border-top:1px solid rgba(var(--brand-rgb),.22);border-bottom:1px solid rgba(var(--brand-rgb),.22);
+  background:linear-gradient(90deg,rgba(var(--brand-rgb),.03),rgba(var(--brand-rgb),.07),rgba(var(--brand-rgb),.03));
+  border-radius:10px;
+}
+
+/* ---------- confirm ---------- */
+.cmodal{position:absolute;left:16px;right:16px;top:50%;transform:translateY(-50%);max-width:340px;margin:0 auto;
+  background:var(--surface);border:1px solid var(--line-2);
+  border-radius:20px;padding:22px 20px 18px;box-shadow:var(--shadow-lg);
+  animation:pop .2s cubic-bezier(.22,1,.36,1);
+}
+@keyframes pop{from{transform:translateY(-50%) scale(.94);opacity:0}to{transform:translateY(-50%) scale(1);opacity:1}}
+.cmodal h3{margin:0 0 8px;font-size:15.5px;font-weight:650;letter-spacing:.02em}
+.cmodal p{margin:0;font-size:12.5px;line-height:1.65;color:var(--muted)}
+.cact{display:flex;gap:9px;margin-top:18px}
+.cact button{flex:1;padding:11px;border-radius:12px;font-size:13.5px;font-weight:550;background:var(--surface-2);border:1px solid rgba(var(--line-rgb),.07);color:var(--text)}
+.cact button.ok{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+.cact button.ok.danger{background:#bd4132;border-color:#bd4132;color:#fff}
+
+/* ---------- toast ---------- */
+#toast{
+  position:fixed;left:50%;top:calc(58px + env(safe-area-inset-top));transform:translate(-50%,-12px);
+  z-index:80;padding:10px 18px;border-radius:12px;font-size:13px;
+  background:var(--toast-bg);border:1px solid var(--toast-line);color:#fff;
+  box-shadow:0 12px 30px rgba(var(--sh-rgb),.24);opacity:0;pointer-events:none;transition:.25s;
+  max-width:80vw;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- 窄屏适配 ---------- */
+@media (max-width:359px){
+  .app{padding-left:13px;padding-right:13px}
+  .rec{gap:10px;padding:12px}
+  .rank{width:36px;height:36px;border-radius:10px;font-size:12.5px}
+  .rec-net{font-size:15px}
+  .rec-sub{font-size:10.5px}
+  .hero-value{font-size:31px}
+  .hero{padding:18px 15px 14px}
+  .hero-grid b{font-size:12.5px}
+  .seg button{padding:6px 9px}
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <header class="brand">
+    <div class="logo">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/>
+        <path d="M17 5.5h2.2a1.8 1.8 0 0 1 0 3.6H17"/>
+        <path d="M7 5.5H4.8a1.8 1.8 0 0 0 0 3.6H7"/>
+        <path d="M12 15v4"/><path d="M8 21h8"/>
+      </svg>
+    </div>
+    <div>
+      <h1>赛场账本</h1>
+      <p>比赛 · 名次 · 盈亏</p>
+    </div>
+    <div class="brand-spacer"></div>
+    <button class="iconbtn" id="btnTheme" aria-label="主题配色">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3.2a8.8 8.8 0 0 0 0 17.6h1.5a1.9 1.9 0 0 0 1.4-3.2 1.9 1.9 0 0 1 1.4-3.2h1.5a3.1 3.1 0 0 0 3.1-3.1c0-4.5-4-8.1-8.9-8.1z"/>
+        <circle cx="8" cy="11.6" r=".9" fill="currentColor" stroke="none"/>
+        <circle cx="10.2" cy="7.6" r=".9" fill="currentColor" stroke="none"/>
+        <circle cx="15.2" cy="7.9" r=".9" fill="currentColor" stroke="none"/>
+      </svg>
+    </button>
+  </header>
+
+  <main>
+    <!-- ========== 记录 ========== -->
+    <section id="view-records">
+      <div class="hero">
+        <div class="hero-label">累计净收益</div>
+        <div class="hero-value" id="heroNet">¥0</div>
+        <div class="hero-note" id="heroNote">还没有记录</div>
+        <div class="hero-grid">
+          <div><span>场次</span><b id="sCount">0</b></div>
+          <div><span>总投入</span><b id="sCost">¥0</b></div>
+          <div><span>ROI</span><b id="sRoi">—</b></div>
+          <div><span>进圈率</span><b id="sItm">—</b></div>
+        </div>
+      </div>
+
+      <div id="demoBanner"></div>
+
+      <div class="filters">
+        <div class="selwrap">
+          <select id="filterEvent"></select>
+        </div>
+        <div class="seg" id="filterType">
+          <button data-type="all" class="on">全部</button>
+          <button data-type="win">盈利</button>
+          <button data-type="loss">亏损</button>
+        </div>
+      </div>
+
+      <div id="recordList"></div>
+    </section>
+
+    <!-- ========== 比赛（数据页的二级页） ========== -->
+    <section id="view-events" class="hidden">
+      <div class="subnav">
+        <button class="subback" id="btnBackData">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+          数据
+        </button>
+        <h2>比赛管理</h2>
+        <button class="subnew" id="btnNewEvent">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg>
+          新建
+        </button>
+      </div>
+      <div class="field" style="margin-bottom:12px">
+        <span class="fi">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        </span>
+        <div class="fbody"><input class="finput" id="eventSearch" placeholder="搜索比赛名"></div>
+      </div>
+      <div id="eventList"></div>
+      <div class="totals hidden" id="evTotals">
+        <span id="evTotalsLabel"></span>
+        <b id="evTotalsNet">¥0</b>
+      </div>
+      <p class="note">每张卡上的数字覆盖这个比赛的全部记录。比赛名可以反复使用；删除比赛名不会删除记录，历史记录会保留当时的名称。</p>
+    </section>
+
+    <!-- ========== 数据 ========== -->
+    <section id="view-data" class="hidden">
+      <div class="chart" id="trendCard">
+        <div class="chart-head">
+          <b>累计净收益走势</b>
+          <em id="trendCount"></em>
+        </div>
+        <div class="chart-body" id="chartBody"></div>
+        <div class="chart-axis" id="chartAxis"></div>
+        <div class="chart-foot" id="chartFoot"></div>
+      </div>
+
+      <div id="dataEmpty" class="panel hidden">
+        <div class="empty" style="padding:24px 6px 20px">
+          <h3>还没有可统计的数据</h3>
+          <p>记完一场，这里会长出走势、进圈结构和纪录</p>
+          <button class="cta" data-add>＋ 记一笔</button>
+        </div>
+      </div>
+
+      <div id="dataStats">
+        <div class="sec">
+          <span class="bar"></span><h2>成绩结构</h2>
+          <span class="spacer"></span><span class="hint">平均每场净收益</span>
+        </div>
+        <div class="panel">
+          <div class="share" id="stageShare"></div>
+          <ul class="stagelist" id="stageList"></ul>
+        </div>
+
+        <div class="sec"><span class="bar"></span><h2>个人纪录</h2></div>
+        <div class="recbook" id="recBook"></div>
+      </div>
+
+      <div class="sec"><span class="bar"></span><h2>比赛管理</h2></div>
+      <button class="linkrow" id="goEvents">
+        <span class="lr-ico">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M17 5.5h2.2a1.8 1.8 0 0 1 0 3.6H17"/><path d="M7 5.5H4.8a1.8 1.8 0 0 0 0 3.6H7"/><path d="M12 15v4"/><path d="M8 21h8"/></svg>
+        </span>
+        <span class="lr-body">
+          <b>全部比赛</b>
+          <em>每场的成绩与收支汇总</em>
+        </span>
+        <span class="lr-meta" id="evCount">0 个</span>
+        <span class="lr-chev">›</span>
+      </button>
+
+      <div class="sec"><span class="bar"></span><h2>数据管理</h2></div>
+      <div class="acts">
+        <button class="btn" id="btnCsv">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></svg>
+          导出表格
+        </button>
+        <button class="btn" id="btnJson">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h7l4.5 4.5v14.5H6z"/><path d="M13 2.5V7h4.5"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>
+          备份数据
+        </button>
+        <button class="btn" id="btnImport" style="grid-column:1/-1">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M4 15v5h16v-5"/></svg>
+          从备份文件恢复
+        </button>
+        <button class="btn danger" id="btnClear">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg>
+          清空全部数据
+        </button>
+      </div>
+      <p class="note">
+        <b>口径说明</b><br>
+        · 净收益 = 收益 − 成本；ROI = 净收益 ÷ 总成本。<br>
+        · 成绩结构按记录时选的档位分组，与收益多少无关 —— 赏金赛圈外也能拿到淘汰奖励。<br>
+        · 数据只保存在本机浏览器，换设备请先「备份数据」，再到新设备「恢复」。
+      </p>
+    </section>
+  </main>
+</div>
+
+<!-- ========== tabbar ========== -->
+<nav class="tabbar">
+  <div class="tabs">
+    <button class="tab on" data-view="records">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="3.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="3.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg>
+      记录
+    </button>
+    <div class="addslot">
+      <button class="addbtn" id="btnAdd" aria-label="记一笔">
+        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M12 5.5v13M5.5 12h13"/></svg>
+      </button>
+    </div>
+    <button class="tab" data-view="data">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11"/><path d="M12 20V4"/><path d="M19 20v-6"/></svg>
+      数据
+    </button>
+  </div>
+</nav>
+
+<!-- ========== 记录表单 ========== -->
+<div class="modal" id="mRecord">
+  <div class="modal-bg" data-close="mRecord"></div>
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <button class="link" data-close="mRecord">取消</button>
+      <h2 id="recordTitle">记一笔</h2>
+      <button class="link gold" id="btnSave">保存</button>
+    </div>
+    <div class="sheet-body">
+      <div class="fgroup">
+        <span class="flabel">比赛</span>
+        <button class="field" id="pickEvent">
+          <span class="fi">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M12 15v4"/><path d="M8 21h8"/></svg>
+          </span>
+          <span class="fbody"><span class="fcap">参加的比赛名称</span><span class="fval ph" id="fEventName">选择或新建比赛</span></span>
+          <span class="fchev">›</span>
+        </button>
+      </div>
+
+      <div class="fgroup">
+        <span class="flabel">时间</span>
+        <button class="field" id="pickTime">
+          <span class="fi">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.2 2"/></svg>
+          </span>
+          <span class="fbody"><span class="fcap">比赛开始时间</span><span class="fval" id="fTime">—</span></span>
+          <span class="fchev">›</span>
+        </button>
+      </div>
+
+      <div class="fgroup fgroup-hint">
+        <span class="flabel">进圈情况</span>
+        <div class="itmseg" id="fItm">
+          <button type="button" data-stage="out">圈外</button>
+          <button type="button" data-stage="itm">进圈</button>
+          <button type="button" data-stage="ft">进 FT</button>
+        </div>
+        <p class="fhint" id="itmHint"></p>
+      </div>
+
+      <div class="fgroup">
+        <span class="flabel" id="rankLabel">最终名次</span>
+        <div class="field">
+          <span class="fi">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M6 4h12v5a6 6 0 0 1-12 0V4z"/></svg>
+          </span>
+          <div class="fbody"><input class="finput" id="fRank" placeholder="第几名，如 12" inputmode="numeric" autocomplete="off"></div>
+          <span class="fprefix">名</span>
+        </div>
+      </div>
+
+      <div class="fgroup">
+        <span class="flabel">成本 / 收益</span>
+        <div class="row2">
+          <div class="field">
+            <div class="fbody"><span class="fcap">成本（买入）</span>
+              <div style="display:flex;align-items:center;gap:4px"><span class="fprefix">¥</span><input class="finput" id="fCost" placeholder="0" inputmode="decimal" autocomplete="off"></div>
+            </div>
+          </div>
+          <div class="field">
+            <div class="fbody"><span class="fcap">收益（奖金）</span>
+              <div style="display:flex;align-items:center;gap:4px"><span class="fprefix">¥</span><input class="finput" id="fIncome" placeholder="0" inputmode="decimal" autocomplete="off"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nettag"><span>本场净收益</span><b id="netPreview" class="zero">¥0</b></div>
+
+      <div class="fgroup" style="margin-top:14px">
+        <span class="flabel">备注（可选）</span>
+        <textarea class="fta" id="fNote" placeholder="比如：第 3 级别出局 / 泡沫期被 BB / 现场赛"></textarea>
+      </div>
+
+      <button class="btn danger hidden" id="btnDelete" style="margin-top:4px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg>
+        删除这条记录
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 比赛选择 ========== -->
+<div class="modal" id="mPicker" style="z-index:50">
+  <div class="modal-bg" data-close="mPicker"></div>
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <button class="link" data-close="mPicker">关闭</button>
+      <h2>选择比赛</h2>
+      <span class="link" style="visibility:hidden">关闭</span>
+    </div>
+    <div class="sheet-body">
+      <div class="field">
+        <span class="fi">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        </span>
+        <div class="fbody"><input class="finput" id="pickerSearch" placeholder="搜索，或直接输入新比赛名" autocomplete="off"></div>
+      </div>
+      <div class="picklist" id="pickerList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 比赛编辑 ========== -->
+<div class="modal" id="mEvent" style="z-index:55">
+  <div class="modal-bg" data-close="mEvent"></div>
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <button class="link" data-close="mEvent">取消</button>
+      <h2 id="eventTitle">新建比赛</h2>
+      <button class="link gold" id="btnEventSave">保存</button>
+    </div>
+    <div class="sheet-body">
+      <div class="fgroup">
+        <span class="flabel">比赛名称</span>
+        <div class="field">
+          <div class="fbody"><input class="finput" id="fEventInput" placeholder="如 周末深筹赛 / 周日快速赛" autocomplete="off"></div>
+        </div>
+      </div>
+      <div class="fgroup">
+        <span class="flabel">备注（可选）</span>
+        <textarea class="fta" id="fEventNote" placeholder="场地、买入档位、赛事类型等"></textarea>
+      </div>
+      <button class="btn danger hidden" id="btnEventDelete" style="margin-top:4px">删除这个比赛</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 时间选择 ========== -->
+<div class="modal" id="mTime" style="z-index:60">
+  <div class="modal-bg" data-close="mTime"></div>
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <button class="link" data-close="mTime">取消</button>
+      <h2>选择时间</h2>
+      <button class="link gold" id="btnTimeOk">确定</button>
+    </div>
+    <div class="time-quick">
+      <button data-quick="now">此刻</button>
+      <button data-quick="today20">今天 20:00</button>
+      <button data-quick="yest20">昨天 20:00</button>
+      <button data-quick="today15">今天 15:00</button>
+    </div>
+    <div class="time-preview" id="timePreview">—</div>
+    <div class="wheel-head"><span>年</span><span>月</span><span>日</span><span>时</span><span>分</span></div>
+    <div class="wheels" id="wheels">
+      <div class="wheel" data-k="y"></div>
+      <div class="wheel" data-k="mo"></div>
+      <div class="wheel" data-k="d"></div>
+      <div class="wheel" data-k="h"></div>
+      <div class="wheel" data-k="mi"></div>
+      <div class="band"></div>
+    </div>
+    <div style="height:10px"></div>
+  </div>
+</div>
+
+<!-- ========== 主题配色 ========== -->
+<div class="modal" id="mTheme" style="z-index:65">
+  <div class="modal-bg" data-close="mTheme"></div>
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <button class="link" data-close="mTheme">关闭</button>
+      <h2>主题配色</h2>
+      <span class="link" style="visibility:hidden">关闭</span>
+    </div>
+    <div class="sheet-body">
+      <div class="themegrid" id="themeGrid"></div>
+      <p class="note">全部浅色系，点一下即时切换并自动记住。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 确认框 ========== -->
+<div class="modal" id="mConfirm" style="z-index:70">
+  <div class="modal-bg" id="confirmBg"></div>
+  <div class="cmodal">
+    <h3 id="cfTitle">确认</h3>
+    <p id="cfDesc"></p>
+    <div class="cact">
+      <button id="cfCancel">取消</button>
+      <button class="ok" id="cfOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept=".json,application/json" style="display:none">
+<div id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ================= 基础工具 ================= */
+var LS_KEY = 'matchledger.v1';
+var ITEM_H = 40;
+
+var $ = function(s, r){ return (r||document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+
+function uid(){
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+function pad2(n){ return n < 10 ? '0' + n : '' + n; }
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function money(v){
+  if (typeof v === 'number') return isFinite(v) ? v : 0;
+  var n = parseFloat(String(v == null ? '' : v).replace(/[^\d.\-]/g, ''));
+  return isFinite(n) ? n : 0;
+}
+function fmtMoney(v){
+  var n = money(v);
+  var neg = n < 0;
+  var abs = Math.abs(n);
+  var parts = abs.toFixed(2).split('.');
+  var int = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  var dec = parts[1] === '00' ? '' : '.' + parts[1].replace(/0+$/, '');
+  return (neg ? '-' : '') + '¥' + int + dec;
+}
+function signed(v){
+  var n = money(v);
+  if (n > 0) return '+' + fmtMoney(n);
+  if (n < 0) return '-' + fmtMoney(Math.abs(n));
+  return '¥0';
+}
+function cls(v){
+  var n = money(v);
+  return n > 0 ? 'gain' : (n < 0 ? 'loss' : 'zero');
+}
+function num2(v){ return money(v).toFixed(2); }
+
+/* 时间：存储 'YYYY-MM-DDTHH:mm' */
+function nowStr(){
+  var d = new Date();
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate())
+    + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+}
+function parseLocal(s){
+  var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(String(s || ''));
+  if (!m) return new Date();
+  return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+}
+function fmtWhen(s){
+  if (!s) return '未填时间';
+  var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(s);
+  if (!m) return '未填时间';
+  return m[3] + '日 ' + m[4] + ':' + m[5];
+}
+function fmtFull(s){
+  var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(String(s || ''));
+  if (!m) return '—';
+  return m[1] + '年' + (+m[2]) + '月' + m[3] + '日 ' + m[4] + ':' + m[5];
+}
+function monthLabel(k){
+  var m = /^(\d{4})-(\d{2})$/.exec(k);
+  if (!m) return '更早';
+  return m[1] + '年' + (+m[2]) + '月';
+}
+function stamp(){
+  var d = new Date();
+  return d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '_' + pad2(d.getHours()) + pad2(d.getMinutes());
+}
+
+/* ================= 数据层 ================= */
+var db = { events: [], records: [] };
+
+function loadDB(){
+  var raw = null;
+  try { raw = localStorage.getItem(LS_KEY); } catch(e) {}
+  if (raw) {
+    try {
+      var p = JSON.parse(raw);
+      db.events = Array.isArray(p.events) ? p.events : [];
+      db.records = Array.isArray(p.records) ? p.records : [];
+    } catch(e) { console.warn('数据解析失败', e); }
+    migrateRecords();
+    return false;
+  }
+  // 首次打开：写入示例数据
+  seed();
+  return true;
+}
+
+/* 老版本没有 stage 字段：按 itm 布尔迁一次；再没有就按"有收益且记了名次"给初值。
+   进圈必然有名次，所以没名次的一律先归圈外，之后可在表单里改。 */
+function migrateRecords(){
+  var changed = false;
+  db.records.forEach(function(r){
+    if (r.stage !== 'ft' && r.stage !== 'itm' && r.stage !== 'out') {
+      var guess = (r.itm !== undefined)
+        ? !!r.itm
+        : (money(r.income) > 0 && String(r.rank || '').trim() !== '');
+      r.stage = guess ? 'itm' : 'out';
+      changed = true;
+    }
+    if (r.itm !== undefined) { delete r.itm; changed = true; }
+  });
+  if (changed) saveDB();
+}
+function saveDB(){
+  try { localStorage.setItem(LS_KEY, JSON.stringify(db)); }
+  catch(e) { toast('保存失败，浏览器存储不可用'); }
+}
+function seed(){
+  var y = new Date().getFullYear();
+  var e1 = { id: uid(), name: '周末深筹赛', note: '买入 500', createdAt: Date.now() };
+  var e2 = { id: uid(), name: '周日快速赛', note: '买入 200', createdAt: Date.now() - 1000 };
+  var e3 = { id: uid(), name: '周中赏金赛', note: '买入 500，赏金制', createdAt: Date.now() - 2000 };
+  db.events = [e1, e2, e3];
+  var base = Date.now();
+  db.records = [
+    { id: uid(), eventId: e1.id, eventName: e1.name, time: y + '-11-01T20:00', rank: '18', cost: '500', income: '0', note: '', stage: 'out', createdAt: base - 5000, demo: true },
+    { id: uid(), eventId: e3.id, eventName: e3.name, time: y + '-11-02T20:00', rank: '', cost: '500', income: '800', note: '圈外靠淘汰拿了 4 个赏金', stage: 'out', createdAt: base - 4500, demo: true },
+    { id: uid(), eventId: e2.id, eventName: e2.name, time: y + '-11-03T15:00', rank: '3', cost: '200', income: '1400', note: '泡沫期翻倍', stage: 'itm', createdAt: base - 4000, demo: true },
+    { id: uid(), eventId: e1.id, eventName: e1.name, time: y + '-11-05T20:00', rank: '1', cost: '500', income: '5200', note: '9 人 FT，单挑赢下', stage: 'ft', createdAt: base - 3000, demo: true }
+  ];
+  saveDB();
+}
+function hasDemo(){
+  return db.records.some(function(r){ return r.demo; });
+}
+
+/* ================= 状态 ================= */
+var state = { view: 'records', filterType: 'all', filterEvent: 'all' };
+var form = null;      // 当前编辑的记录
+var editingEvent = null;
+
+/* ================= 主题 ================= */
+var THEME_KEY = 'matchledger.theme';
+var THEMES = [
+  { k: 'forest',   name: '墨绿',   bg: '#fcfbf7', brand: '#146b46' },
+  { k: 'sakura',   name: '淡粉',   bg: '#fffbfc', brand: '#b8496b' },
+  { k: 'ocean',    name: '雾蓝',   bg: '#fafcff', brand: '#26608f' },
+  { k: 'apricot',  name: '暖杏',   bg: '#fffaf4', brand: '#b0623a' },
+  { k: 'lavender', name: '薰衣草', bg: '#fcfbff', brand: '#5f4fa3' },
+  { k: 'graphite', name: '石墨',   bg: '#fbfbfb', brand: '#33414d' }
+];
+var curTheme = 'forest';
+
+function themeByKey(k){
+  for (var i = 0; i < THEMES.length; i++) if (THEMES[i].k === k) return THEMES[i];
+  return THEMES[0];
+}
+function renderThemes(){
+  var box = $('#themeGrid');
+  if (!box) return;
+  box.innerHTML = THEMES.map(function(t){
+    var on = t.k === curTheme;
+    return '<button class="themecard' + (on ? ' cur' : '') + '" data-theme-pick="' + t.k + '" aria-pressed="' + on + '">'
+      + '<span class="tpv" style="background:' + t.bg + '">'
+        + '<i class="tpv-card"></i>'
+        + '<i class="tpv-bar" style="background:' + t.brand + '"></i>'
+        + '<i class="tpv-line"></i>'
+        + '<i class="tpv-line2"></i>'
+        + '<i class="tpv-dot" style="background:' + t.brand + '"></i>'
+      + '</span>'
+      + '<span class="tname">' + esc(t.name) + '</span>'
+      + (on ? '<span class="tick">✓</span>' : '')
+    + '</button>';
+  }).join('');
+}
+function applyTheme(k, persist){
+  var t = themeByKey(k);
+  curTheme = t.k;
+  document.documentElement.setAttribute('data-theme', t.k);
+  var meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', t.bg);
+  if (persist !== false) { try { localStorage.setItem(THEME_KEY, t.k); } catch(e) {} }
+  renderThemes();
+}
+
+/* ================= 计算 ================= */
+function recNet(r){ return money(r.income) - money(r.cost); }
+
+function filtered(){
+  return db.records.filter(function(r){
+    if (state.filterType === 'win' && recNet(r) <= 0) return false;
+    if (state.filterType === 'loss' && recNet(r) >= 0) return false;
+    if (state.filterEvent !== 'all' && r.eventId !== state.filterEvent) return false;
+    return true;
+  }).sort(function(a, b){
+    var t = String(b.time || '').localeCompare(String(a.time || ''));
+    if (t !== 0) return t;
+    return (b.createdAt || 0) - (a.createdAt || 0);
+  });
+}
+/* 进圈档位：out 圈外 / itm 进圈 / ft 进决赛桌。
+   老记录没有 stage 字段，先按 itm 布尔，再退回到"有收益"给个初值。 */
+function stageOf(r){
+  if (!r) return 'out';
+  if (r.stage === 'ft' || r.stage === 'itm' || r.stage === 'out') return r.stage;
+  if (r.itm !== undefined) return r.itm ? 'itm' : 'out';
+  return (money(r.income) > 0 && String(r.rank || '').trim() !== '') ? 'itm' : 'out';
+}
+function stageLabel(r){
+  var st = stageOf(r);
+  return st === 'ft' ? '进FT' : st === 'itm' ? '进圈' : '圈外';
+}
+
+function statsOf(list){
+  var s = { n: list.length, cost: 0, income: 0, net: 0, roi: null, itm: 0, ft: 0, best: null };
+  list.forEach(function(r){
+    var c = money(r.cost), i = money(r.income);
+    s.cost += c; s.income += i;
+    // 进圈是记录时手动选的，不能用收益判断（赏金赛圈外也可能拿到钱）
+    var st = stageOf(r);
+    if (st === 'itm' || st === 'ft') s.itm++;
+    if (st === 'ft') s.ft++;
+    var rk = parseInt(r.rank, 10);
+    if (isFinite(rk) && rk > 0 && (s.best === null || rk < s.best)) s.best = rk;
+  });
+  s.net = s.income - s.cost;
+  if (s.cost > 0) s.roi = s.net / s.cost;
+  return s;
+}
+function eventById(id){
+  for (var i = 0; i < db.events.length; i++) if (db.events[i].id === id) return db.events[i];
+  return null;
+}
+
+/* ================= 渲染：记录 ================= */
+function renderStats(){
+  var list = filtered();
+  var s = statsOf(list);
+  var netEl = $('#heroNet');
+  netEl.textContent = signed(s.net);
+  netEl.className = 'hero-value ' + cls(s.net);
+
+  var scope = '全部记录';
+  if (state.filterEvent !== 'all') {
+    var ev = eventById(state.filterEvent);
+    scope = ev ? ev.name : '已删除的比赛';
+  }
+  $('#heroNote').textContent = s.n > 0
+    ? scope + ' · ' + s.n + ' 场' + (s.n ? ' · 平均 ' + signed(s.net / s.n) : '')
+    : scope + ' · 还没有记录';
+
+  $('#sCount').textContent = s.n;
+  $('#sCost').textContent = fmtMoney(s.cost);
+  $('#sRoi').textContent = s.roi === null ? '—' : (s.roi >= 0 ? '+' : '') + (s.roi * 100).toFixed(1) + '%';
+  $('#sRoi').className = s.roi === null ? '' : cls(s.roi);
+  $('#sItm').textContent = s.n ? Math.round(s.itm / s.n * 100) + '%' : '—';
+}
+
+function recCardHTML(r){
+  var net = recNet(r);
+  var rk = parseInt(r.rank, 10);
+  var hasRank = isFinite(rk) && rk > 0;
+  var st = stageOf(r);
+
+  // 徽章三档：FT 实心品牌色（最高）、进圈浅品牌底、圈外虚线灰
+  var rankTxt, rankCls;
+  if (st === 'ft') {
+    rankTxt = '<b>' + (hasRank ? '#' + rk : '#—') + '</b><i>FT</i>';
+    rankCls = ' ft' + (rk === 1 ? ' r1' : rk === 2 ? ' r2' : rk === 3 ? ' r3' : '');
+  } else if (st === 'itm') {
+    rankTxt = hasRank ? '#' + rk : '#—';
+    rankCls = rk === 1 ? ' r1' : rk === 2 ? ' r2' : rk === 3 ? ' r3' : ' in';
+  } else {
+    rankTxt = '圈外';
+    rankCls = ' out';
+  }
+  // 圈外但顺手记了名次，放到副行里，不丢信息
+  var rankNote = (st === 'out' && hasRank) ? ' · 第 ' + rk + ' 名' : '';
+
+  return '<button class="rec" data-open="' + r.id + '">'
+    + '<span class="rank' + rankCls + '">' + rankTxt + '</span>'
+    + '<span class="rec-main">'
+      + '<span class="rec-title">' + esc(r.eventName || '未命名比赛') + '</span>'
+      + '<span class="rec-meta">' + esc(fmtWhen(r.time)) + ' · 成本 ' + fmtMoney(money(r.cost)) + rankNote + '</span>'
+    + '</span>'
+    + '<span class="rec-right">'
+      + '<span class="rec-net ' + cls(net) + '">' + signed(net) + '</span>'
+      + '<span class="rec-sub">收益 ' + fmtMoney(money(r.income)) + '</span>'
+    + '</span>'
+  + '</button>';
+}
+
+function renderRecords(){
+  var box = $('#recordList');
+  var list = filtered();
+
+  if (!db.records.length) {
+    box.innerHTML = '<div class="empty">'
+      + '<div class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M12 15v4"/><path d="M8 21h8"/></svg></div>'
+      + '<h3>还没有比赛记录</h3>'
+      + '<p>记录每场比赛的名次与盈亏<br>慢慢就能看出哪个赛事值得打</p>'
+      + '<button class="cta" data-add="1">＋ 记第一笔</button>'
+      + '</div>';
+    return;
+  }
+  if (!list.length) {
+    box.innerHTML = '<div class="empty" style="padding:40px 20px">'
+      + '<h3>没有符合条件的记录</h3>'
+      + '<p>换个筛选条件试试</p>'
+      + '</div>';
+    return;
+  }
+
+  // 按月份分组
+  var groups = [];
+  var map = {};
+  list.forEach(function(r){
+    var k = String(r.time || '').slice(0, 7) || '0000-00';
+    if (!map[k]) { map[k] = []; groups.push(k); }
+    map[k].push(r);
+  });
+
+  var html = '';
+  groups.forEach(function(k){
+    var items = map[k];
+    var s = statsOf(items);
+    html += '<div class="month"><span>' + monthLabel(k) + '</span>'
+      + '<em class="' + cls(s.net) + '">' + items.length + ' 场 · ' + signed(s.net) + '</em></div>';
+    items.forEach(function(r){ html += recCardHTML(r); });
+  });
+  box.innerHTML = html;
+}
+
+function renderDemoBanner(){
+  var box = $('#demoBanner');
+  if (!hasDemo()) { box.innerHTML = ''; return; }
+  box.innerHTML = '<div class="demo-banner">'
+    + '<span>当前是示例数据，方便先看看效果。</span>'
+    + '<button id="btnClearDemo">清空开始</button>'
+    + '</div>';
+}
+
+function renderFilters(){
+  var bar = $('.filters');
+  if (bar) bar.classList.toggle('hidden', db.records.length === 0);
+  var sel = $('#filterEvent');
+  var opts = '<option value="all">全部比赛</option>';
+  var sorted = db.events.slice().sort(function(a, b){
+    return String(a.name).localeCompare(String(b.name), 'zh');
+  });
+  sorted.forEach(function(e){
+    opts += '<option value="' + e.id + '">' + esc(e.name) + '</option>';
+  });
+  if (state.filterEvent !== 'all' && !eventById(state.filterEvent)) {
+    opts += '<option value="' + state.filterEvent + '">已删除的比赛</option>';
+  }
+  sel.innerHTML = opts;
+  sel.value = state.filterEvent;
+
+  $$('#filterType button').forEach(function(b){
+    b.classList.toggle('on', b.getAttribute('data-type') === state.filterType);
+  });
+}
+
+/* ================= 渲染：比赛（名库 + 汇总一体） ================= */
+function renderEvents(){
+  var kw = ($('#eventSearch').value || '').trim().toLowerCase();
+  var box = $('#eventList');
+  var tot = $('#evTotals');
+  var cnt = $('#evCount');
+  if (cnt) cnt.textContent = db.events.length + ' 个';
+
+  var list = db.events.filter(function(e){
+    if (!kw) return true;
+    return String(e.name).toLowerCase().indexOf(kw) >= 0;
+  }).sort(function(a, b){
+    var na = statsOf(db.records.filter(function(r){ return r.eventId === a.id; })).n;
+    var nb = statsOf(db.records.filter(function(r){ return r.eventId === b.id; })).n;
+    if (na !== nb) return nb - na;
+    return String(a.name).localeCompare(String(b.name), 'zh');
+  });
+
+  if (!db.events.length) {
+    tot.classList.add('hidden');
+    box.innerHTML = '<div class="empty" style="padding:40px 20px">'
+      + '<h3>还没有比赛名</h3>'
+      + '<p>先把常打的比赛录进来<br>记成绩时就能直接选</p>'
+      + '<button class="cta" data-new-event>＋ 新建比赛</button>'
+      + '</div>';
+    return;
+  }
+  if (!list.length) {
+    tot.classList.add('hidden');
+    box.innerHTML = '<div class="empty" style="padding:36px 20px"><h3>没有找到</h3><p>换个关键词</p></div>';
+    return;
+  }
+
+  var sumN = 0, sumNet = 0;
+  box.innerHTML = list.map(function(e){
+    var rs = db.records.filter(function(r){ return r.eventId === e.id; });
+    var s = statsOf(rs);
+    sumN += s.n;
+    sumNet += s.net;
+
+    var bits = [];
+    if (s.n) {
+      bits.push(s.n + ' 场');
+      bits.push('进圈率 ' + Math.round(s.itm / s.n * 100) + '%');
+      if (s.best) bits.push('最好 #' + s.best);
+    } else {
+      bits.push('未记录过');
+    }
+    if (e.note) bits.push(esc(e.note));
+
+    var foot = s.n
+      ? '<span class="ev-foot">成本 <b>' + fmtMoney(s.cost) + '</b> · 收益 <b>' + fmtMoney(s.income) + '</b>'
+        + ' · 场均 <b class="' + cls(s.net / s.n) + '">' + signed(s.net / s.n) + '</b></span>'
+      : '';
+
+    return '<button class="ev" data-event="' + e.id + '">'
+      + '<span class="ev-top">'
+        + '<span class="ev-name">' + esc(e.name) + '</span>'
+        + '<span class="ev-net ' + (s.n ? cls(s.net) : 'zero') + '">' + (s.n ? signed(s.net) : '¥0') + '</span>'
+      + '</span>'
+      + '<span class="ev-meta">' + bits.join(' · ') + '</span>'
+      + foot
+    + '</button>';
+  }).join('');
+
+  tot.classList.remove('hidden');
+  $('#evTotalsLabel').textContent = list.length + ' 个比赛 · ' + sumN + ' 场';
+  var tn = $('#evTotalsNet');
+  tn.textContent = signed(sumNet);
+  tn.className = cls(sumNet);
+}
+
+/* ================= 渲染：数据 ================= */
+function byTimeAsc(a, b){
+  var t = String(a.time || '').localeCompare(String(b.time || ''));
+  if (t !== 0) return t;
+  return (a.createdAt || 0) - (b.createdAt || 0);
+}
+function shortDay(s){
+  var m = /^\d{4}-(\d{2})-(\d{2})/.exec(String(s || ''));
+  return m ? m[1] + '-' + m[2] : '—';
+}
+
+/* 累计净收益曲线：按时间顺序逐场累加，起点钉在 0，负值画到零线以下 */
+function renderTrend(){
+  var body = $('#chartBody'), axis = $('#chartAxis'), foot = $('#chartFoot');
+  var recs = db.records.slice().sort(byTimeAsc);
+  $('#trendCount').textContent = recs.length + ' 场';
+
+  if (!recs.length) {
+    body.innerHTML = '<div class="chart-empty">还没有记录</div>';
+    axis.innerHTML = '';
+    foot.innerHTML = '';
+    return;
+  }
+
+  var vals = [0], cum = 0, i;
+  recs.forEach(function(r){ cum += recNet(r); vals.push(cum); });
+
+  var hi = 0, lo = 0;
+  for (i = 0; i < vals.length; i++) {
+    if (vals[i] > hi) hi = vals[i];
+    if (vals[i] < lo) lo = vals[i];
+  }
+  if (hi === lo) { hi = 1; lo = -1; }
+
+  var W = Math.max(200, Math.round(body.clientWidth || 328));
+  var H = 110, padT = 15, padB = 15, padX = 9;
+  var range = hi - lo;
+  function X(k){ return padX + (W - padX * 2) * k / (vals.length - 1); }
+  function Y(v){ return padT + (hi - v) / range * (H - padT - padB); }
+  function p(k){ return X(k).toFixed(1) + ' ' + Y(vals[k]).toFixed(1); }
+
+  var line = 'M' + p(0);
+  for (i = 1; i < vals.length; i++) line += ' L' + p(i);
+  var last = vals.length - 1;
+  var area = line + ' L' + X(last).toFixed(1) + ' ' + H + ' L' + X(0).toFixed(1) + ' ' + H + ' Z';
+
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true">'
+    + '<defs><linearGradient id="gFade" x1="0" y1="0" x2="0" y2="1">'
+    + '<stop class="s1" offset="0"/><stop class="s2" offset="1"/>'
+    + '</linearGradient></defs>'
+    + '<path class="g-area" d="' + area + '"/>';
+
+  if (lo < 0 && hi > 0) {
+    var zy = Y(0).toFixed(1);
+    svg += '<line class="g-zero" x1="0" y1="' + zy + '" x2="' + W + '" y2="' + zy + '"/>';
+  }
+  svg += '<path class="g-line" d="' + line + '"/>';
+  if (recs.length <= 16) {
+    for (i = 0; i < vals.length; i++) {
+      svg += '<circle class="g-pt" cx="' + X(i).toFixed(1) + '" cy="' + Y(vals[i]).toFixed(1) + '" r="2.3"/>';
+    }
+  }
+  svg += '<circle class="g-halo" cx="' + X(last).toFixed(1) + '" cy="' + Y(vals[last]).toFixed(1) + '" r="7"/>'
+    + '<circle class="g-dot" cx="' + X(last).toFixed(1) + '" cy="' + Y(vals[last]).toFixed(1) + '" r="3.1"/>'
+    + '</svg>';
+  body.innerHTML = svg;
+
+  var dFrom = shortDay(recs[0].time), dTo = shortDay(recs[recs.length - 1].time);
+  axis.innerHTML = '<span>' + dFrom + '</span>' + (dTo === dFrom ? '' : '<span>' + dTo + '</span>');
+
+  // 峰谷只看记录本身，不含起点那个 0
+  var peak = vals[1], trough = vals[1];
+  for (i = 2; i < vals.length; i++) {
+    if (vals[i] > peak) peak = vals[i];
+    if (vals[i] < trough) trough = vals[i];
+  }
+  var cur = vals[last];
+  var footHtml = '<span>累计<b class="' + cls(cur) + '">' + signed(cur) + '</b></span>';
+  if (peak > cur) footHtml += '<span>最高<b class="' + cls(peak) + '">' + signed(peak) + '</b></span>';
+  if (trough < cur) footHtml += '<span>最低<b class="' + cls(trough) + '">' + signed(trough) + '</b></span>';
+  foot.innerHTML = footHtml;
+}
+
+/* 成绩结构：圈外 / 进圈 / 进 FT 各占多少场、平均每场赚多少 */
+function renderStages(){
+  var box = $('#stageList'), share = $('#stageShare');
+  var total = db.records.length;
+  if (!total) { box.innerHTML = ''; share.innerHTML = ''; return; }
+
+  var defs = [
+    { k: 'ft',  name: '进 FT', keep: function(r){ return stageOf(r) === 'ft'; } },
+    { k: 'itm', name: '进圈',  keep: function(r){ return stageOf(r) === 'itm'; } },
+    { k: 'out', name: '圈外',  keep: function(r){ return stageOf(r) === 'out'; } }
+  ];
+  var rows = defs.map(function(d){
+    var list = db.records.filter(d.keep);
+    return { d: d, n: list.length, s: statsOf(list) };
+  });
+
+  share.innerHTML = rows.filter(function(r){ return r.n > 0; }).map(function(r){
+    return '<i class="s-' + r.d.k + '" style="flex:' + r.n + ' 1 0"></i>';
+  }).join('');
+
+  box.innerHTML = rows.map(function(r){
+    var avg = r.n ? r.s.net / r.n : 0;
+    return '<li>'
+      + '<i class="sd s-' + r.d.k + '"></i>'
+      + '<span class="sn">' + r.d.name + '</span>'
+      + '<span class="sc">' + r.n + ' 场' + (r.n ? ' · ' + Math.round(r.n / total * 100) + '%' : '') + '</span>'
+      + '<span class="sv ' + (r.n ? cls(avg) : 'zero') + '">' + (r.n ? signed(avg) : '—') + '</span>'
+    + '</li>';
+  }).join('');
+}
+
+/* 个人纪录：单场极值与连续战绩 */
+function renderBests(){
+  var recs = db.records.slice().sort(byTimeAsc);
+  var best = null, worst = null, wRun = 0, lRun = 0, curW = 0, curL = 0;
+
+  recs.forEach(function(r){
+    var n = recNet(r);
+    if (n > 0) { curW++; curL = 0; }
+    else if (n < 0) { curL++; curW = 0; }
+    else { curW = 0; curL = 0; }
+    if (curW > wRun) wRun = curW;
+    if (curL > lRun) lRun = curL;
+    if (n > 0 && (!best || n > recNet(best))) best = r;
+    if (n < 0 && (!worst || n < recNet(worst))) worst = r;
+  });
+
+  function cell(label, value, vcls, sub){
+    return '<div>'
+      + '<div class="rb-l">' + label + '</div>'
+      + '<div class="rb-v ' + vcls + '">' + value + '</div>'
+      + '<div class="rb-s">' + sub + '</div>'
+    + '</div>';
+  }
+  function where(r){
+    return r ? esc(r.eventName || '未命名比赛') + ' · ' + shortDay(r.time) : '';
+  }
+
+  $('#recBook').innerHTML =
+      cell('最大单场盈利', best ? signed(recNet(best)) : '—', best ? 'gain' : 'zero',
+        best ? where(best) : '还没有盈利的场次')
+    + cell('最大单场亏损', worst ? signed(recNet(worst)) : '—', worst ? 'loss' : 'zero',
+        worst ? where(worst) : '还没有亏损的场次')
+    + cell('最长连盈', wRun ? wRun + ' 场' : '—', wRun ? 'gain' : 'zero', '当前 ' + curW + ' 场')
+    + cell('最长连亏', lRun ? lRun + ' 场' : '—', lRun ? 'loss' : 'zero', '当前 ' + curL + ' 场');
+}
+
+function renderData(){
+  var has = db.records.length > 0;
+  $('#trendCard').classList.toggle('hidden', !has);
+  $('#dataStats').classList.toggle('hidden', !has);
+  $('#dataEmpty').classList.toggle('hidden', has);
+
+  var cnt = $('#evCount');
+  if (cnt) cnt.textContent = db.events.length + ' 个';
+
+  if (!has) return;
+  renderTrend();
+  renderStages();
+  renderBests();
+}
+
+function renderAll(){
+  renderFilters();
+  renderStats();
+  renderDemoBanner();
+  renderRecords();
+  renderEvents();
+  renderData();
+}
+
+/* ================= 视图切换 ================= */
+function switchView(v){
+  state.view = v;
+  ['records', 'events', 'data'].forEach(function(k){
+    $('#view-' + k).classList.toggle('hidden', k !== v);
+  });
+  // 比赛管理是「数据」的二级页，导航高亮仍落在「数据」上
+  var tabView = (v === 'events') ? 'data' : v;
+  $$('.tab').forEach(function(b){
+    b.classList.toggle('on', b.getAttribute('data-view') === tabView);
+  });
+  document.body.classList.toggle('subpage', v === 'events');
+  // 曲线宽度依赖真实布局，离开隐藏状态后重算一次
+  if (v === 'data') renderData();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ================= 弹层控制 ================= */
+function openModal(id){
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('open');
+  syncLock();
+}
+function closeModal(id){
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('open');
+  syncLock();
+}
+function syncLock(){
+  var any = $$('.modal.open').length > 0;
+  document.body.classList.toggle('lock', any);
+}
+
+/* ================= toast ================= */
+var toastTimer = null;
+function toast(msg){
+  var t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 1800);
+}
+
+/* ================= 确认框 ================= */
+var confirmResolve = null;
+function askConfirm(opt){
+  $('#cfTitle').textContent = opt.title || '确认';
+  $('#cfDesc').innerHTML = opt.desc || '';
+  var ok = $('#cfOk');
+  ok.textContent = opt.ok || '确定';
+  ok.classList.toggle('danger', !!opt.danger);
+  openModal('mConfirm');
+  return new Promise(function(resolve){ confirmResolve = resolve; });
+}
+$('#cfCancel').addEventListener('click', function(){
+  closeModal('mConfirm');
+  if (confirmResolve) { confirmResolve(false); confirmResolve = null; }
+});
+$('#cfOk').addEventListener('click', function(){
+  closeModal('mConfirm');
+  if (confirmResolve) { confirmResolve(true); confirmResolve = null; }
+});
+$('#confirmBg').addEventListener('click', function(){
+  closeModal('mConfirm');
+  if (confirmResolve) { confirmResolve(false); confirmResolve = null; }
+});
+
+/* ================= 记录表单 ================= */
+function updateNetPreview(){
+  var n = money($('#fIncome').value) - money($('#fCost').value);
+  var el = $('#netPreview');
+  el.textContent = signed(n);
+  el.className = cls(n);
+}
+function paintForm(){
+  var nameEl = $('#fEventName');
+  if (form.eventName) {
+    nameEl.textContent = form.eventName;
+    nameEl.classList.remove('ph');
+  } else {
+    nameEl.textContent = '选择或新建比赛';
+    nameEl.classList.add('ph');
+  }
+  $('#fTime').textContent = fmtFull(form.time);
+  $('#fTime').classList.remove('ph');
+  $('#fRank').value = form.rank || '';
+  $('#fCost').value = form.cost || '';
+  $('#fIncome').value = form.income || '';
+  $('#fNote').value = form.note || '';
+  syncItmUI();
+  $('#recordTitle').textContent = form.id ? '编辑记录' : '记一笔';
+  $('#btnDelete').classList.toggle('hidden', !form.id);
+  updateNetPreview();
+}
+
+/* 进圈档位的界面同步 */
+function syncItmUI(){
+  var st = (form && form.stage) || 'out';
+  $$('#fItm button').forEach(function(b){
+    b.classList.toggle('on', b.getAttribute('data-stage') === st);
+  });
+  var hint = $('#itmHint');
+  if (hint) {
+    hint.textContent = st === 'ft'
+      ? '进 FT 也算进圈，名次必填。'
+      : st === 'itm'
+        ? '会计入进圈率，所以名次必填。'
+        : '名次可以不填。赏金赛圈外靠淘汰拿的奖励，照样记在下面的「收益」里。';
+  }
+  var lab = $('#rankLabel');
+  if (lab) {
+    lab.innerHTML = st === 'out'
+      ? '最终名次<em class="opt">可选</em>'
+      : '最终名次<em class="req">必填</em>';
+  }
+}
+
+function openRecordForm(id){
+  var r = id ? db.records.filter(function(x){ return x.id === id; })[0] : null;
+  if (r) {
+    form = {
+      id: r.id, eventId: r.eventId || '', eventName: r.eventName || '',
+      time: r.time || nowStr(), rank: r.rank == null ? '' : String(r.rank),
+      cost: r.cost == null ? '' : String(r.cost),
+      income: r.income == null ? '' : String(r.income),
+      note: r.note || '', stage: stageOf(r)
+    };
+  } else {
+    // 默认选中：当前筛选的比赛 > 最近一次用的比赛 > 唯一比赛
+    var eid = '';
+    if (state.filterEvent !== 'all' && eventById(state.filterEvent)) eid = state.filterEvent;
+    if (!eid) {
+      var last = db.records.slice().sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); })[0];
+      if (last && eventById(last.eventId)) eid = last.eventId;
+    }
+    if (!eid && db.events.length === 1) eid = db.events[0].id;
+    var ev = eid ? eventById(eid) : null;
+    form = {
+      id: null, eventId: eid, eventName: ev ? ev.name : '',
+      time: nowStr(), rank: '', cost: '', income: '', note: '', stage: 'out'
+    };
+  }
+  paintForm();
+  openModal('mRecord');
+}
+
+function saveRecord(){
+  if (!form.eventName) { toast('先选一个比赛'); return; }
+  var rankRaw = ($('#fRank').value || '').replace(/[^\d]/g, '');
+  var cost = ($('#fCost').value || '').trim();
+  var income = ($('#fIncome').value || '').trim();
+  var note = ($('#fNote').value || '').trim();
+
+  // 只有进圈/进 FT 才强制名次；圈外可以不填
+  if (form.stage !== 'out' && !rankRaw) {
+    toast(form.stage === 'ft' ? '进 FT 要填最终名次' : '进圈要填最终名次');
+    var ri = $('#fRank');
+    if (ri) { ri.focus(); }
+    return;
+  }
+
+  if (form.id) {
+    var r = db.records.filter(function(x){ return x.id === form.id; })[0];
+    if (r) {
+      r.eventId = form.eventId; r.eventName = form.eventName; r.time = form.time;
+      r.rank = rankRaw; r.cost = cost; r.income = income; r.note = note;
+      r.stage = form.stage;
+      delete r.itm; delete r.demo;
+    }
+    toast('已更新');
+  } else {
+    db.records.push({
+      id: uid(), eventId: form.eventId, eventName: form.eventName, time: form.time,
+      rank: rankRaw, cost: cost, income: income, note: note, stage: form.stage,
+      createdAt: Date.now()
+    });
+    // 如果比赛名库里还没有这条（理论上不会），补一条
+    if (!eventById(form.eventId)) {
+      var ev = { id: form.eventId || uid(), name: form.eventName, note: '', createdAt: Date.now() };
+      form.eventId = ev.id;
+      db.events.push(ev);
+    }
+    toast('已记录');
+  }
+  saveDB();
+  renderAll();
+  closeModal('mRecord');
+}
+
+$('#btnTheme').addEventListener('click', function(){
+  renderThemes();
+  openModal('mTheme');
+});
+
+$('#btnAdd').addEventListener('click', function(){ openRecordForm(null); });
+$('#btnSave').addEventListener('click', saveRecord);
+
+$('#fItm').addEventListener('click', function(e){
+  var b = e.target.closest ? e.target.closest('[data-stage]') : null;
+  if (!b || !form) return;
+  form.stage = b.getAttribute('data-stage');
+  syncItmUI();
+});
+
+$('#pickEvent').addEventListener('click', function(){ openPicker(); });
+
+$('#pickTime').addEventListener('click', function(){ openTimePicker(form.time); });
+
+['#fCost', '#fIncome'].forEach(function(sel){
+  $(sel).addEventListener('input', function(){
+    this.value = this.value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
+    updateNetPreview();
+  });
+});
+$('#fRank').addEventListener('input', function(){
+  this.value = this.value.replace(/[^\d]/g, '').slice(0, 5);
+});
+
+$('#btnDelete').addEventListener('click', function(){
+  if (!form || !form.id) return;
+  askConfirm({
+    title: '删除这条记录？',
+    desc: '删除后无法恢复。',
+    ok: '删除', danger: true
+  }).then(function(ok){
+    if (!ok) return;
+    db.records = db.records.filter(function(x){ return x.id !== form.id; });
+    saveDB(); renderAll(); closeModal('mRecord'); toast('已删除');
+  });
+});
+
+/* ================= 比赛选择器 ================= */
+function openPicker(){
+  $('#pickerSearch').value = '';
+  renderPickerList('');
+  openModal('mPicker');
+  setTimeout(function(){ $('#pickerSearch').focus(); }, 260);
+}
+
+function renderPickerList(kw){
+  var box = $('#pickerList');
+  var q = String(kw || '').trim();
+  var list = db.events.filter(function(e){
+    return !q || String(e.name).toLowerCase().indexOf(q.toLowerCase()) >= 0;
+  });
+  list.sort(function(a, b){
+    var na = db.records.filter(function(r){ return r.eventId === a.id; }).length;
+    var nb = db.records.filter(function(r){ return r.eventId === b.id; }).length;
+    if (na !== nb) return nb - na;
+    return String(a.name).localeCompare(String(b.name), 'zh');
+  });
+
+  var html = '';
+  var exact = list.some(function(e){ return String(e.name) === q; });
+  if (q && !exact) {
+    html += '<button class="pick create" data-create="1">'
+      + '<span class="pname">＋ 新建「' + esc(q) + '」</span>'
+      + '</button>';
+  }
+  list.forEach(function(e){
+    var n = db.records.filter(function(r){ return r.eventId === e.id; }).length;
+    var cur = form && form.eventId === e.id ? ' cur' : '';
+    html += '<button class="pick' + cur + '" data-pick="' + e.id + '">'
+      + '<span class="pname">' + esc(e.name) + '</span>'
+      + '<span class="pmeta">' + (n ? n + ' 场' : '未使用') + '</span>'
+    + '</button>';
+  });
+  if (!html) {
+    html = '<div class="pick-empty">还没有比赛名，上面输入后点「新建」</div>';
+  }
+  box.innerHTML = html;
+
+  var createBtn = box.querySelector('[data-create]');
+  if (createBtn) {
+    createBtn.addEventListener('click', function(){
+      var name = q.trim();
+      if (!name) return;
+      var ev = { id: uid(), name: name, note: '', createdAt: Date.now() };
+      db.events.push(ev);
+      saveDB();
+      form.eventId = ev.id;
+      form.eventName = ev.name;
+      paintForm();
+      renderAll();
+      closeModal('mPicker');
+    });
+  }
+  $$('[data-pick]', box).forEach(function(b){
+    b.addEventListener('click', function(){
+      var ev = eventById(b.getAttribute('data-pick'));
+      if (!ev) return;
+      form.eventId = ev.id;
+      form.eventName = ev.name;
+      paintForm();
+      closeModal('mPicker');
+    });
+  });
+}
+
+$('#pickerSearch').addEventListener('input', function(){
+  renderPickerList(this.value);
+});
+
+/* ================= 比赛管理 ================= */
+function openEventEditor(id){
+  editingEvent = id ? eventById(id) : null;
+  $('#eventTitle').textContent = editingEvent ? '编辑比赛' : '新建比赛';
+  $('#fEventInput').value = editingEvent ? editingEvent.name : '';
+  $('#fEventNote').value = editingEvent ? (editingEvent.note || '') : '';
+  $('#btnEventDelete').classList.toggle('hidden', !editingEvent);
+  openModal('mEvent');
+  setTimeout(function(){ $('#fEventInput').focus(); }, 260);
+}
+$('#btnNewEvent').addEventListener('click', function(){ openEventEditor(null); });
+$('#goEvents').addEventListener('click', function(){ switchView('events'); });
+$('#btnBackData').addEventListener('click', function(){ switchView('data'); });
+
+$('#btnEventSave').addEventListener('click', function(){
+  var name = ($('#fEventInput').value || '').trim();
+  var note = ($('#fEventNote').value || '').trim();
+  if (!name) { toast('请填比赛名称'); return; }
+
+  var dup = db.events.filter(function(e){
+    return String(e.name) === name && (!editingEvent || e.id !== editingEvent.id);
+  });
+  if (dup.length) { toast('已有同名比赛'); return; }
+
+  if (editingEvent) {
+    editingEvent.name = name;
+    editingEvent.note = note;
+    // 同步历史记录里的名称快照
+    db.records.forEach(function(r){ if (r.eventId === editingEvent.id) r.eventName = name; });
+    toast('已保存');
+  } else {
+    db.events.push({ id: uid(), name: name, note: note, createdAt: Date.now() });
+    toast('已添加');
+  }
+  saveDB(); renderAll(); closeModal('mEvent');
+});
+
+$('#btnEventDelete').addEventListener('click', function(){
+  if (!editingEvent) return;
+  var n = db.records.filter(function(r){ return r.eventId === editingEvent.id; }).length;
+  askConfirm({
+    title: '删除比赛名？',
+    desc: n > 0
+      ? '这个比赛下有 ' + n + ' 条记录，删除比赛名后记录会保留，只是不再出现在比赛名库里。'
+      : '删除后可以重新新建。',
+    ok: '删除', danger: true
+  }).then(function(ok){
+    if (!ok) return;
+    db.events = db.events.filter(function(e){ return e.id !== editingEvent.id; });
+    if (state.filterEvent === editingEvent.id) state.filterEvent = 'all';
+    saveDB(); renderAll(); closeModal('mEvent'); toast('已删除');
+  });
+});
+
+$('#eventSearch').addEventListener('input', renderEvents);
+
+/* ================= 时间选择器 ================= */
+var wheelData = { y: [], mo: [], d: [], h: [], mi: [] };
+var timeSel = { y: 0, mo: 1, d: 1, h: 20, mi: 0 };
+
+function daysInMonth(y, mo){ return new Date(y, mo, 0).getDate(); }
+function range(a, b){ var r = []; for (var i = a; i <= b; i++) r.push(i); return r; }
+
+function wheelEl(k){ return $('.wheel[data-k="' + k + '"]'); }
+
+function fillWheel(k, values){
+  var el = wheelEl(k);
+  if (!el) return;
+  el.innerHTML = values.map(function(v){ return '<div class="w-item">' + v + '</div>'; }).join('');
+}
+function suffixOf(k, v){
+  if (k === 'y') return v + '年';
+  if (k === 'mo') return pad2(v) + '月';
+  if (k === 'd') return pad2(v) + '日';
+  if (k === 'h') return pad2(v) + '时';
+  return pad2(v) + '分';
+}
+function renderWheel(k){
+  fillWheel(k, wheelData[k].map(function(v){ return suffixOf(k, v); }));
+}
+function refreshDays(){
+  var n = daysInMonth(timeSel.y, timeSel.mo);
+  wheelData.d = range(1, n);
+  if (timeSel.d > n) timeSel.d = n;
+  renderWheel('d');
+}
+
+function buildWheels(){
+  var nowY = new Date().getFullYear();
+  wheelData.y = range(nowY - 6, nowY + 3);
+  wheelData.mo = range(1, 12);
+  wheelData.h = range(0, 23);
+  wheelData.mi = range(0, 59);
+  refreshDays();
+  renderWheel('y'); renderWheel('mo'); renderWheel('h'); renderWheel('mi');
+  if (buildWheels._bound) return;
+  buildWheels._bound = true;
+  $$('.wheel').forEach(function(w){
+    w.addEventListener('scroll', onWheelScroll, { passive: true });
+  });
+}
+
+function onWheelScroll(e){
+  var el = e.currentTarget;
+  clearTimeout(el._t);
+  el._t = setTimeout(function(){ commitWheel(el); }, 80);
+}
+function commitWheel(el){
+  var k = el.getAttribute('data-k');
+  var idx = Math.round(el.scrollTop / ITEM_H);
+  var max = wheelData[k].length - 1;
+  if (idx < 0) idx = 0;
+  if (idx > max) idx = max;
+  timeSel[k] = wheelData[k][idx];
+  markActive(el, idx);
+  if (k === 'y' || k === 'mo') {
+    var before = timeSel.d;
+    refreshDays();
+    if (timeSel.d !== before) { positionWheel('d'); markActive(wheelEl('d'), timeSel.d - 1); }
+  }
+  paintTimePreview();
+}
+function markActive(el, idx){
+  var kids = el.children;
+  for (var i = 0; i < kids.length; i++) kids[i].classList.toggle('active', i === idx);
+}
+function positionWheel(k){
+  var el = wheelEl(k);
+  if (!el) return;
+  var idx = wheelData[k].indexOf(timeSel[k]);
+  if (idx < 0) idx = 0;
+  el.scrollTop = idx * ITEM_H;
+  markActive(el, idx);
+}
+function positionAll(){
+  ['y', 'mo', 'd', 'h', 'mi'].forEach(positionWheel);
+  paintTimePreview();
+}
+function paintTimePreview(){
+  $('#timePreview').textContent = timeSel.y + '年' + pad2(timeSel.mo) + '月' + pad2(timeSel.d) + '日 '
+    + pad2(timeSel.h) + ':' + pad2(timeSel.mi);
+}
+function timeSelToString(){
+  return timeSel.y + '-' + pad2(timeSel.mo) + '-' + pad2(timeSel.d) + 'T' + pad2(timeSel.h) + ':' + pad2(timeSel.mi);
+}
+function setTimeFromString(s){
+  var d = parseLocal(s);
+  timeSel.y = d.getFullYear();
+  timeSel.mo = d.getMonth() + 1;
+  timeSel.d = d.getDate();
+  timeSel.h = d.getHours();
+  timeSel.mi = d.getMinutes();
+  refreshDays();
+  // 年份超范围时扩表
+  if (wheelData.y.indexOf(timeSel.y) < 0) {
+    var minY = Math.min(wheelData.y[0], timeSel.y);
+    var maxY = Math.max(wheelData.y[wheelData.y.length - 1], timeSel.y);
+    wheelData.y = range(minY, maxY);
+    renderWheel('y');
+  }
+}
+
+function openTimePicker(str){
+  buildWheels();
+  setTimeFromString(str || nowStr());
+  paintTimePreview();
+  openModal('mTime');
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      positionAll();
+    });
+  });
+}
+
+$$('.time-quick button').forEach(function(b){
+  b.addEventListener('click', function(){
+    var d = new Date();
+    var q = b.getAttribute('data-quick');
+    if (q === 'today20') { d.setHours(20, 0, 0, 0); }
+    if (q === 'yest20') { d.setDate(d.getDate() - 1); d.setHours(20, 0, 0, 0); }
+    if (q === 'today15') { d.setHours(15, 0, 0, 0); }
+    setTimeFromString(d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate())
+      + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()));
+    positionAll();
+  });
+});
+
+$('#btnTimeOk').addEventListener('click', function(){
+  if (form) { form.time = timeSelToString(); paintForm(); }
+  closeModal('mTime');
+});
+
+/* ================= 导出 / 导入 / 清空 ================= */
+function download(content, filename, mime){
+  try {
+    var blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
+    toast('已导出');
+  } catch(e) {
+    toast('导出失败');
+  }
+}
+
+$('#btnCsv').addEventListener('click', function(){
+  var list = db.records.slice().sort(function(a, b){ return String(a.time || '').localeCompare(String(b.time || '')); });
+  if (!list.length) { toast('还没有数据'); return; }
+  var rows = [['时间', '比赛', '进圈', '名次', '成本', '收益', '净收益', '备注']];
+  list.forEach(function(r){
+    rows.push([
+      fmtFull(r.time), r.eventName || '', stageLabel(r), r.rank || '',
+      num2(r.cost), num2(r.income), num2(recNet(r)), r.note || ''
+    ]);
+  });
+  var csv = '\ufeff' + rows.map(function(row){
+    return row.map(function(c){ return '"' + String(c).replace(/"/g, '""') + '"'; }).join(',');
+  }).join('\r\n');
+  download(csv, '比赛记录_' + stamp() + '.csv', 'text/csv;charset=utf-8');
+});
+
+$('#btnJson').addEventListener('click', function(){
+  var data = JSON.stringify({ app: 'matchledger', version: 1, exportedAt: new Date().toISOString(), events: db.events, records: db.records }, null, 2);
+  download(data, '赛场账本备份_' + stamp() + '.json', 'application/json;charset=utf-8');
+});
+
+$('#btnImport').addEventListener('click', function(){ $('#fileInput').click(); });
+
+$('#fileInput').addEventListener('change', function(){
+  var f = this.files && this.files[0];
+  if (!f) return;
+  var reader = new FileReader();
+  reader.onload = function(){
+    var parsed = null;
+    try { parsed = JSON.parse(String(reader.result)); } catch(e) {}
+    if (!parsed || !Array.isArray(parsed.records) || !Array.isArray(parsed.events)) {
+      toast('文件格式不对'); return;
+    }
+    askConfirm({
+      title: '恢复备份？',
+      desc: '将用备份中的 ' + parsed.records.length + ' 条记录覆盖当前全部数据，当前数据会被清掉。',
+      ok: '覆盖恢复', danger: true
+    }).then(function(ok){
+      if (!ok) return;
+      db.events = parsed.events;
+      db.records = parsed.records;
+      saveDB(); renderAll(); toast('已恢复');
+      switchView('records');
+    });
+  };
+  reader.readAsText(f);
+  this.value = '';
+});
+
+$('#btnClear').addEventListener('click', function(){
+  askConfirm({
+    title: '清空全部数据？',
+    desc: '所有比赛名（' + db.events.length + ' 个）和记录（' + db.records.length + ' 条）都会被删除，无法恢复。建议先导出备份。',
+    ok: '全部清空', danger: true
+  }).then(function(ok){
+    if (!ok) return;
+    db.events = []; db.records = [];
+    state.filterEvent = 'all'; state.filterType = 'all';
+    saveDB(); renderAll(); toast('已清空');
+  });
+});
+
+/* ================= 事件委托 ================= */
+document.addEventListener('click', function(e){
+  var el = e.target.closest ? e.target.closest('[data-close], [data-open], [data-add], [data-event]') : null;
+
+  var closeBtn = e.target.closest ? e.target.closest('[data-close]') : null;
+  if (closeBtn) {
+    closeModal(closeBtn.getAttribute('data-close'));
+    return;
+  }
+  var addBtn = e.target.closest ? e.target.closest('[data-add]') : null;
+  if (addBtn) { openRecordForm(null); return; }
+
+  var themePick = e.target.closest ? e.target.closest('[data-theme-pick]') : null;
+  if (themePick) { applyTheme(themePick.getAttribute('data-theme-pick')); return; }
+
+  var openBtn = e.target.closest ? e.target.closest('[data-open]') : null;
+  if (openBtn) { openRecordForm(openBtn.getAttribute('data-open')); return; }
+
+  var evBtn = e.target.closest ? e.target.closest('[data-event]') : null;
+  if (evBtn) { openEventEditor(evBtn.getAttribute('data-event')); return; }
+
+  var newEvBtn = e.target.closest ? e.target.closest('[data-new-event]') : null;
+  if (newEvBtn) { openEventEditor(null); return; }
+
+  var tab = e.target.closest ? e.target.closest('.tab') : null;
+  if (tab) { switchView(tab.getAttribute('data-view')); return; }
+
+  var segBtn = e.target.closest ? e.target.closest('#filterType button') : null;
+  if (segBtn) {
+    state.filterType = segBtn.getAttribute('data-type');
+    renderFilters(); renderStats(); renderRecords();
+    return;
+  }
+  var demoBtn = e.target.closest ? e.target.closest('#btnClearDemo') : null;
+  if (demoBtn) {
+    db.events = []; db.records = []; state.filterEvent = 'all';
+    saveDB(); renderAll(); toast('已清空示例');
+    return;
+  }
+});
+
+$('#filterEvent').addEventListener('change', function(){
+  state.filterEvent = this.value;
+  renderStats(); renderRecords();
+});
+
+/* 转屏 / 改窗宽时重画曲线 */
+var rzTimer = null;
+window.addEventListener('resize', function(){
+  clearTimeout(rzTimer);
+  rzTimer = setTimeout(function(){
+    if (state.view === 'data' && db.records.length) renderTrend();
+  }, 180);
+});
+
+/* ================= 启动 ================= */
+var savedTheme = 'forest';
+try { savedTheme = localStorage.getItem(THEME_KEY) || 'forest'; } catch(e) {}
+applyTheme(savedTheme, false);
+
+var firstRun = loadDB();
+renderAll();
+if (firstRun) {
+  // 首次进入给个轻提示
+  setTimeout(function(){ toast('示例数据，可一键清空'); }, 600);
+}
+
+})();
+</script>
+</body>
+</html>
