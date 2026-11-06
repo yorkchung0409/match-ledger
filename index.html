@@ -244,8 +244,8 @@ input,textarea,select{font-family:inherit;color:inherit}
 }
 
 /* ---------- filters ---------- */
-.filters{display:flex;gap:8px;margin:18px 0 12px;align-items:center}
-.selwrap{position:relative;flex:0 0 auto;max-width:52%}
+.filters{display:flex;gap:7px;margin:18px 0 12px;align-items:center}
+.selwrap{position:relative;flex:1 1 auto;min-width:0}
 .selwrap select{
   appearance:none;-webkit-appearance:none;
   width:100%;padding:9px 30px 9px 13px;border-radius:11px;
@@ -265,6 +265,63 @@ input,textarea,select{font-family:inherit;color:inherit}
   transition:.18s;white-space:nowrap;
 }
 .seg button.on{background:var(--surface);color:var(--brand);font-weight:600;box-shadow:0 1px 3px rgba(var(--sh-rgb),.14)}
+
+/* 时间筛选按钮 */
+.datebtn{
+  flex:0 0 auto;display:flex;align-items:center;gap:4px;
+  padding:9px 10px;border-radius:11px;white-space:nowrap;
+  background:var(--surface);border:1px solid var(--line);
+  font-size:12.5px;color:var(--muted);
+  font-variant-numeric:tabular-nums;
+  box-shadow:0 1px 2px rgba(var(--sh-rgb),.04);
+  transition:.16s;
+}
+.datebtn svg{flex:0 0 auto;opacity:.8}
+.datebtn:active{transform:scale(.97)}
+.datebtn.on{
+  background:rgba(var(--brand-rgb),.09);border-color:rgba(var(--brand-rgb),.30);
+  color:var(--brand);font-weight:600;
+}
+.datebtn.on svg{opacity:1}
+/* 350–379 单行很挤，去掉日历图标给下拉腾点地 */
+@media (min-width:350px) and (max-width:379px){
+  .datebtn svg{display:none}
+  .datebtn{gap:0;padding:9px 9px}
+  .seg button{padding:6px 8px}
+}
+/* 更窄的屏放不下三个控件：第一行 比赛+时间，第二行 赢亏分段拉满 */
+@media (max-width:349px){
+  .filters{flex-wrap:wrap;gap:6px}
+  .seg{flex:0 0 100%;margin-left:0;margin-top:2px}
+  .seg button{flex:1}
+  .datebtn{padding:8px 9px}
+  .selwrap select{padding:8px 26px 8px 11px;font-size:12px}
+  .selwrap::after{right:11px}
+}
+
+/* 时间筛选面板 */
+.dp-group{margin-bottom:15px}
+.dp-label{font-size:10.5px;letter-spacing:.10em;color:var(--muted-2);margin:0 0 8px 3px}
+.dp-chips{display:flex;flex-wrap:wrap;gap:6px}
+.dp-chips button{
+  min-width:40px;padding:7px 11px;border-radius:9px;
+  background:var(--surface-2);border:1px solid var(--line-2);
+  font-size:12.5px;color:var(--muted);
+  font-variant-numeric:tabular-nums;
+  transition:.15s;
+}
+.dp-chips button.on{
+  background:rgba(var(--brand-rgb),.10);border-color:rgba(var(--brand-rgb),.34);
+  color:var(--brand);font-weight:650;
+}
+.dp-chips button:active{transform:scale(.96)}
+.dp-preview{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:12px 14px;border-radius:12px;margin-bottom:12px;
+  background:var(--surface-2);border:1px solid var(--line-2);
+  font-size:12.5px;color:var(--muted);
+}
+.dp-preview em{font-style:normal;font-size:15px;font-weight:680;font-variant-numeric:tabular-nums}
 
 /* ---------- month group ---------- */
 .month{display:flex;align-items:baseline;justify-content:space-between;margin:18px 4px 9px}
@@ -752,6 +809,10 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         <div class="selwrap">
           <select id="filterEvent"></select>
         </div>
+        <button class="datebtn" id="btnDate">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3.2" y="5" width="17.6" height="15.6" rx="3"/><path d="M8 3v4M16 3v4M3.2 10.4h17.6"/></svg>
+          <span id="dateLabel">时间</span>
+        </button>
         <div class="seg" id="filterType">
           <button data-type="all" class="on">全部</button>
           <button data-type="win">盈利</button>
@@ -1064,6 +1125,38 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
   </div>
 </div>
 
+<!-- ========== 时间筛选 ========== -->
+<div class="modal" id="mDate" style="z-index:66">
+  <div class="modal-bg" data-close="mDate"></div>
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <button class="link" id="dpReset">重置</button>
+      <h2>时间筛选</h2>
+      <button class="link gold" id="dpDone">完成</button>
+    </div>
+    <div class="sheet-body">
+      <div class="dp-group">
+        <div class="dp-label">年</div>
+        <div class="dp-chips" id="dpYear"></div>
+      </div>
+      <div class="dp-group">
+        <div class="dp-label">月</div>
+        <div class="dp-chips" id="dpMonth"></div>
+      </div>
+      <div class="dp-group">
+        <div class="dp-label">日</div>
+        <div class="dp-chips" id="dpDay"></div>
+      </div>
+      <div class="dp-preview">
+        <span id="dpPreviewN">0 场</span>
+        <em id="dpPreviewNet">¥0</em>
+      </div>
+      <p class="note">只列出有记录的日期。月、日会跟着上一层收窄，点「不限」可以放开某一层。</p>
+    </div>
+  </div>
+</div>
+
 <!-- ========== 确认框 ========== -->
 <div class="modal" id="mConfirm" style="z-index:70">
   <div class="modal-bg" id="confirmBg"></div>
@@ -1218,7 +1311,7 @@ function hasDemo(){
 }
 
 /* ================= 状态 ================= */
-var state = { view: 'records', filterType: 'all', filterEvent: 'all' };
+var state = { view: 'records', filterType: 'all', filterEvent: 'all', filterY: 'all', filterM: 'all', filterD: 'all' };
 var form = null;      // 当前编辑的记录
 var editingEvent = null;
 
@@ -1269,11 +1362,63 @@ function applyTheme(k, persist){
 /* ================= 计算 ================= */
 function recNet(r){ return money(r.income) - money(r.cost); }
 
+/* 时间三件套：年 / 月 / 日各自独立，值为 'all' 表示不限 */
+function dateBits(r){
+  var t = String((r && r.time) || '');
+  return { y: t.slice(0, 4), m: t.slice(5, 7), d: t.slice(8, 10) };
+}
+function passDate(r, f){
+  var b = dateBits(r);
+  if (!b.y) return f.filterY === 'all' && f.filterM === 'all' && f.filterD === 'all';
+  if (f.filterY !== 'all' && b.y !== f.filterY) return false;
+  if (f.filterM !== 'all' && b.m !== f.filterM) return false;
+  if (f.filterD !== 'all' && b.d !== f.filterD) return false;
+  return true;
+}
+function dateActive(f){
+  f = f || state;
+  return f.filterY !== 'all' || f.filterM !== 'all' || f.filterD !== 'all';
+}
+/* 按钮上的短标签：26/11/05 这类，尽量短 */
+function dateLabelOf(f){
+  f = f || state;
+  var y = f.filterY, m = f.filterM, d = f.filterD;
+  var ss = function(v){ return v.length > 2 ? v.slice(2) : v; };
+  if (y !== 'all' && m !== 'all' && d !== 'all') return ss(y) + '/' + m + '/' + d;
+  if (y !== 'all' && m !== 'all') return ss(y) + '/' + m;
+  if (y !== 'all' && d !== 'all') return ss(y) + '年·' + (+d) + '日';
+  if (y !== 'all') return y + '年';
+  if (m !== 'all' && d !== 'all') return m + '/' + d;
+  if (m !== 'all') return (+m) + '月';
+  if (d !== 'all') return (+d) + '日';
+  return '时间';
+}
+/* 顶部那句口径说明也要跟着时间走 */
+function dateScopeText(f){
+  f = f || state;
+  var y = f.filterY, m = f.filterM, d = f.filterD;
+  if (y !== 'all' && m !== 'all' && d !== 'all') return y + '年' + (+m) + '月' + (+d) + '日';
+  if (y !== 'all' && m !== 'all') return y + '年' + (+m) + '月';
+  if (y !== 'all' && d !== 'all') return y + '年每月' + (+d) + '日';
+  if (y !== 'all') return y + '年';
+  if (m !== 'all' && d !== 'all') return '每月' + (+m) + '月' + (+d) + '日';
+  if (m !== 'all') return '每年' + (+m) + '月';
+  if (d !== 'all') return '每月' + (+d) + '日';
+  return '';
+}
+
+function resetFilters(){
+  state.filterEvent = 'all';
+  state.filterType = 'all';
+  state.filterY = 'all'; state.filterM = 'all'; state.filterD = 'all';
+}
+
 function filtered(){
   return db.records.filter(function(r){
     if (state.filterType === 'win' && recNet(r) <= 0) return false;
     if (state.filterType === 'loss' && recNet(r) >= 0) return false;
     if (state.filterEvent !== 'all' && r.eventId !== state.filterEvent) return false;
+    if (!passDate(r, state)) return false;
     return true;
   }).sort(function(a, b){
     var t = String(b.time || '').localeCompare(String(a.time || ''));
@@ -1328,6 +1473,7 @@ function renderStats(){
     var ev = eventById(state.filterEvent);
     scope = ev ? ev.name : '已删除的比赛';
   }
+  if (dateActive()) scope = dateScopeText() + (state.filterEvent !== 'all' ? ' · ' + scope : '');
   $('#heroNote').textContent = s.n > 0
     ? scope + ' · ' + s.n + ' 场' + (s.n ? ' · 平均 ' + signed(s.net / s.n) : '')
     : scope + ' · 还没有记录';
@@ -1443,6 +1589,68 @@ function renderFilters(){
   $$('#filterType button').forEach(function(b){
     b.classList.toggle('on', b.getAttribute('data-type') === state.filterType);
   });
+
+  var dbtn = $('#btnDate'), dlabel = $('#dateLabel');
+  if (dlabel) dlabel.textContent = dateLabelOf();
+  if (dbtn) dbtn.classList.toggle('on', dateActive());
+}
+
+/* ============ 时间筛选面板 ============ */
+var dpDraft = { filterY: 'all', filterM: 'all', filterD: 'all' };
+
+/* 候选池：月跟着年收窄，日跟着年月收窄，只保留真出现过的值 */
+function datePool(f){
+  var ys = {}, ms = {}, ds = {};
+  db.records.forEach(function(r){
+    var b = dateBits(r);
+    if (!b.y) return;
+    ys[b.y] = 1;
+    if (f.filterY !== 'all' && b.y !== f.filterY) return;
+    ms[b.m] = 1;
+    if (f.filterM !== 'all' && b.m !== f.filterM) return;
+    ds[b.d] = 1;
+  });
+  var keys = function(o){
+    return Object.keys(o).sort(function(a, b){ return a.localeCompare(b); });
+  };
+  return { years: keys(ys), months: keys(ms), days: keys(ds) };
+}
+
+function dpChipsHTML(field, pool, fmt){
+  var cur = dpDraft[field];
+  var html = '<button data-dpf="' + field + '" data-dpv="all" class="'
+    + (cur === 'all' ? 'on' : '') + '">不限</button>';
+  pool.forEach(function(v){
+    html += '<button data-dpf="' + field + '" data-dpv="' + v + '" class="'
+      + (cur === v ? 'on' : '') + '">' + fmt(v) + '</button>';
+  });
+  return html;
+}
+
+function renderDatePicker(){
+  // 先按现有草稿收窄一次，把已经不存在选择清掉
+  var pool = datePool(dpDraft);
+  if (dpDraft.filterY !== 'all' && pool.years.indexOf(dpDraft.filterY) < 0) dpDraft.filterY = 'all';
+  if (dpDraft.filterM !== 'all' && pool.months.indexOf(dpDraft.filterM) < 0) dpDraft.filterM = 'all';
+  if (dpDraft.filterD !== 'all' && pool.days.indexOf(dpDraft.filterD) < 0) dpDraft.filterD = 'all';
+  pool = datePool(dpDraft);
+
+  $('#dpYear').innerHTML = dpChipsHTML('filterY', pool.years, function(v){ return v; });
+  $('#dpMonth').innerHTML = dpChipsHTML('filterM', pool.months, function(v){ return +v; });
+  $('#dpDay').innerHTML = dpChipsHTML('filterD', pool.days, function(v){ return +v; });
+
+  var list = db.records.filter(function(r){ return passDate(r, dpDraft); });
+  var s = statsOf(list);
+  $('#dpPreviewN').textContent = s.n + ' 场 · ' + fmtMoney(s.cost) + ' 投入';
+  var net = $('#dpPreviewNet');
+  net.textContent = signed(s.net);
+  net.className = cls(s.net);
+}
+
+function openDatePicker(){
+  dpDraft = { filterY: state.filterY, filterM: state.filterM, filterD: state.filterD };
+  renderDatePicker();
+  openModal('mDate');
 }
 
 /* ================= 渲染：比赛（名库 + 汇总一体） ================= */
@@ -1862,7 +2070,6 @@ function saveRecord(){
       r.stage = form.stage;
       delete r.itm; delete r.demo;
     }
-    toast('已更新');
   } else {
     db.records.push({
       id: uid(), eventId: form.eventId, eventName: form.eventName, time: form.time,
@@ -1875,11 +2082,18 @@ function saveRecord(){
       form.eventId = ev.id;
       db.events.push(ev);
     }
-    toast('已记录');
   }
   saveDB();
   renderAll();
+
+  // 刚存的这笔如果落在当前时间筛选之外，会自动看不见 —— 直接放开时间筛选，别让人以为没存上
+  var off = dateActive() && !passDate({ time: form.time }, state);
+  if (off) {
+    state.filterY = 'all'; state.filterM = 'all'; state.filterD = 'all';
+    renderFilters(); renderStats(); renderRecords();
+  }
   closeModal('mRecord');
+  toast(off ? '已保存 · 已显示全部时间' : (form.id ? '已更新' : '已记录'));
 }
 
 $('#btnTheme').addEventListener('click', function(){
@@ -2247,6 +2461,7 @@ $('#fileInput').addEventListener('change', function(){
       if (!ok) return;
       db.events = parsed.events;
       db.records = parsed.records;
+      resetFilters();   // 新数据的年份可能和旧筛选对不上，别一恢复就是空列表
       saveDB(); renderAll(); toast('已恢复');
       switchView('records');
     });
@@ -2263,7 +2478,7 @@ $('#btnClear').addEventListener('click', function(){
   }).then(function(ok){
     if (!ok) return;
     db.events = []; db.records = [];
-    state.filterEvent = 'all'; state.filterType = 'all';
+    resetFilters();
     saveDB(); renderAll(); toast('已清空');
   });
 });
@@ -2301,9 +2516,17 @@ document.addEventListener('click', function(e){
     renderFilters(); renderStats(); renderRecords();
     return;
   }
+
+  var dpBtn = e.target.closest ? e.target.closest('.dp-chips button') : null;
+  if (dpBtn) {
+    dpDraft[dpBtn.getAttribute('data-dpf')] = dpBtn.getAttribute('data-dpv');
+    renderDatePicker();
+    return;
+  }
   var demoBtn = e.target.closest ? e.target.closest('#btnClearDemo') : null;
   if (demoBtn) {
-    db.events = []; db.records = []; state.filterEvent = 'all';
+    db.events = []; db.records = [];
+    resetFilters();
     saveDB(); renderAll(); toast('已清空示例');
     return;
   }
@@ -2312,6 +2535,22 @@ document.addEventListener('click', function(e){
 $('#filterEvent').addEventListener('change', function(){
   state.filterEvent = this.value;
   renderStats(); renderRecords();
+});
+
+/* 时间筛选 */
+$('#btnDate').addEventListener('click', openDatePicker);
+
+$('#dpReset').addEventListener('click', function(){
+  dpDraft = { filterY: 'all', filterM: 'all', filterD: 'all' };
+  renderDatePicker();
+});
+
+$('#dpDone').addEventListener('click', function(){
+  state.filterY = dpDraft.filterY;
+  state.filterM = dpDraft.filterM;
+  state.filterD = dpDraft.filterD;
+  closeModal('mDate');
+  renderFilters(); renderStats(); renderRecords();
 });
 
 /* 转屏 / 改窗宽时重画曲线 */
