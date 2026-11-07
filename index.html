@@ -547,6 +547,9 @@ input,textarea,select{font-family:inherit;color:inherit}
   border:var(--bw) solid var(--line-2);
   box-shadow:var(--shadow-sm);
   transition:transform .14s,border-color .18s,background .18s;
+  /* 屏幕外的卡片跳过渲染：2000 条记录时首屏少铺上万节点，滚动/搜索行为不变 */
+  content-visibility:auto;
+  contain-intrinsic-size:auto 68px;
 }
 .rec:active{transform:scale(.985);border-color:rgba(var(--brand-rgb),.26)}
 .rank{
@@ -1940,9 +1943,17 @@ function loadDB(){
   seed();
   return true;
 }
+/* 脏标记：数据或展示设置一变就标脏，切到那一页时才重画。
+   列表页、比赛页、数据页互不相干，没必要每次保存都把三页一起重算。 */
+var dirty = { records: true, events: true, data: true };
+function markAllDirty(){ dirty.records = true; dirty.events = true; dirty.data = true; }
+var dbRev = 0;    // 每次写盘自增，用来让筛选缓存失效
+
 function saveDB(){
   try { localStorage.setItem(LS_KEY, JSON.stringify(db)); }
   catch(e) { toast('保存失败，浏览器存储不可用'); }
+  dbRev++;
+  markAllDirty();
 }
 function seed(){
   var y = new Date().getFullYear();
@@ -1982,7 +1993,9 @@ function setDispCur(c){
   if (next === dispCur()) return;
   state.dispCur = next;
   saveDispPref();
-  renderStats(); renderRecords(); renderData(); renderEvents();
+  // 换算影响三页里的每一个数字，全部标脏，切过去时再画
+  markAllDirty();
+  renderAll();
 }
 
 /* ================= 主题 ================= */
@@ -2088,18 +2101,27 @@ function resetFilters(){
   state.filterY = 'all'; state.filterM = 'all'; state.filterD = 'all';
 }
 
+/* 筛选结果按「筛选条件 + 数据版本」缓存：一次渲染里 hero、列表、数据页都要用，
+   以前每次调都重新 filter + sort 一遍整份记录。 */
+var _fKey = '', _fList = null;
 function filtered(){
-  return db.records.filter(function(r){
+  var key = state.filterType + '|' + state.filterEvent + '|' + state.filterY + '|' + state.filterM
+    + '|' + state.filterD + '|' + db.records.length + '|' + dbRev;
+  if (_fKey === key && _fList) return _fList;
+  var out = db.records.filter(function(r){
     if (state.filterType === 'win' && recNet(r) <= 0) return false;
     if (state.filterType === 'loss' && recNet(r) >= 0) return false;
     if (state.filterEvent !== 'all' && r.eventId !== state.filterEvent) return false;
     if (!passDate(r, state)) return false;
     return true;
   }).sort(function(a, b){
-    var t = String(b.time || '').localeCompare(String(a.time || ''));
-    if (t !== 0) return t;
+    // 时间是定长的 'YYYY-MM-DDTHH:mm'，直接比字符串就等价于比先后，比 localeCompare 快一个量级
+    var ta = a.time || '', tb = b.time || '';
+    if (ta !== tb) return ta < tb ? 1 : -1;
     return (b.createdAt || 0) - (a.createdAt || 0);
   });
+  _fKey = key; _fList = out;
+  return out;
 }
 /* 进圈档位：out 圈外 / itm 进圈 / ft 进决赛桌。
    老记录没有 stage 字段，先按 itm 布尔，再退回到"有收益"给个初值。 */
@@ -2283,13 +2305,23 @@ function renderDemoBanner(){
     + '</div>';
 }
 
+/* 中文名排序：Intl.Collator 建一次复用，localeCompare 每次调用都要现建比较器 */
+var _collZh = null;
+function cmpName(a, b){
+  var sa = String(a == null ? '' : a), sb = String(b == null ? '' : b);
+  if (_collZh === null) {
+    try { _collZh = new Intl.Collator('zh'); } catch(e) { _collZh = false; }
+  }
+  return _collZh ? _collZh.compare(sa, sb) : sa.localeCompare(sb, 'zh');
+}
+
 function renderFilters(){
   var bar = $('.filters');
   if (bar) bar.classList.toggle('hidden', db.records.length === 0);
   var sel = $('#filterEvent');
   var opts = '<option value="all">全部比赛</option>';
   var sorted = db.events.slice().sort(function(a, b){
-    return String(a.name).localeCompare(String(b.name), 'zh');
+    return cmpName(a.name, b.name);
   });
   sorted.forEach(function(e){
     opts += '<option value="' + e.id + '">' + esc(e.name) + '</option>';
@@ -2403,6 +2435,18 @@ function openOpening(){
 }
 
 /* ================= 渲染：比赛（名库 + 汇总一体） ================= */
+/* 先把记录按比赛分一次组：以前排序比较器里现算 statsOf（每次 filter 一遍全部记录），
+   30 个比赛 × 2000 条就是 12 万次遍历，而且排序过程中反复重算。 */
+function groupByEvent(){
+  var map = {};
+  for (var i = 0; i < db.records.length; i++) {
+    var r = db.records[i];
+    var k = r.eventId || '';
+    (map[k] || (map[k] = [])).push(r);
+  }
+  return map;
+}
+
 function renderEvents(){
   var kw = ($('#eventSearch').value || '').trim().toLowerCase();
   var box = $('#eventList');
@@ -2410,14 +2454,15 @@ function renderEvents(){
   var cnt = $('#evCount');
   if (cnt) cnt.textContent = db.events.length + ' 个';
 
+  var byEvent = groupByEvent();
   var list = db.events.filter(function(e){
     if (!kw) return true;
     return String(e.name).toLowerCase().indexOf(kw) >= 0;
   }).sort(function(a, b){
-    var na = statsOf(db.records.filter(function(r){ return r.eventId === a.id; })).n;
-    var nb = statsOf(db.records.filter(function(r){ return r.eventId === b.id; })).n;
+    var na = (byEvent[a.id] || []).length;
+    var nb = (byEvent[b.id] || []).length;
     if (na !== nb) return nb - na;
-    return String(a.name).localeCompare(String(b.name), 'zh');
+    return cmpName(a.name, b.name);
   });
 
   if (!db.events.length) {
@@ -2437,7 +2482,7 @@ function renderEvents(){
 
   var sumN = 0, sumNet = 0;
   box.innerHTML = list.map(function(e){
-    var rs = db.records.filter(function(r){ return r.eventId === e.id; });
+    var rs = byEvent[e.id] || [];
     var s = statsOf(rs);
     var nBuy = 0;
     rs.forEach(function(r){ nBuy += buysOf(r); });
@@ -2480,8 +2525,8 @@ function renderEvents(){
 
 /* ================= 渲染：数据 ================= */
 function byTimeAsc(a, b){
-  var t = String(a.time || '').localeCompare(String(b.time || ''));
-  if (t !== 0) return t;
+  var ta = a.time || '', tb = b.time || '';
+  if (ta !== tb) return ta < tb ? -1 : 1;
   return (a.createdAt || 0) - (b.createdAt || 0);
 }
 function shortDay(s){
@@ -2741,7 +2786,7 @@ function rateSourceText(){
   return when ? (when + ' 自动更新，改汇率不会改动任何一条记录的原始金额。') : '自动更新，改汇率不会改动任何一条记录的原始金额。';
 }
 
-function renderDataScope(list){
+function renderDataScope(list, n){
   var btn = $('#btnDateData');
   if (!btn) return;
   var on = dateActive();
@@ -2749,7 +2794,7 @@ function renderDataScope(list){
   var box = $('#dataScope');
   if (box) box.classList.toggle('on', on);
   $('#dateLabelData').textContent = on ? dateScopeText() : '全部时间';
-  $('#dataScopeN').textContent = statsOf(list).n + ' 场';
+  $('#dataScopeN').textContent = (n === undefined ? statsOf(list).n : n) + ' 场';
   paintCurSegs();
 }
 
@@ -2796,7 +2841,7 @@ function renderData(){
   $('#trendCard').classList.toggle('hidden', !has);
   $('#dataStats').classList.toggle('hidden', !has);
   $('#dataEmpty').classList.toggle('hidden', has);
-  renderDataScope(list);
+  renderDataScope(list, list.length);
   renderOpeningMeta();
   renderDataEmpty();
 
@@ -2827,14 +2872,26 @@ function hideFatal(){
   if (box) box.classList.add('hidden');
 }
 
-function renderAll(){
-  try {
+/* 只画当前页。以前一次保存要把记录页、比赛页、数据页全部重算，
+   其中两页用户根本看不见（曲线还要先读一次隐藏元素的宽度，白画一张宽度错的图）。 */
+function paintView(v, force){
+  if (!force && !dirty[v]) return;
+  if (v === 'events') {
+    renderEvents();
+  } else if (v === 'data') {
+    renderData();
+  } else {
     renderFilters();
     renderStats();
     renderDemoBanner();
     renderRecords();
-    renderEvents();
-    renderData();
+  }
+  dirty[v] = false;
+}
+
+function renderAll(){
+  try {
+    paintView(state.view, true);
     paintCurSegs();
     hideFatal();
   } catch (err) {
@@ -2854,8 +2911,8 @@ function switchView(v){
     b.classList.toggle('on', b.getAttribute('data-view') === tabView);
   });
   document.body.classList.toggle('subpage', v === 'events');
-  // 曲线宽度依赖真实布局，离开隐藏状态后重算一次
-  if (v === 'data') renderData();
+  // 数据页的曲线宽度依赖真实布局，每次离开隐藏状态都要重算；其余页按脏标记补画
+  paintView(v, v === 'data');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -3097,7 +3154,8 @@ function saveRecord(){
   var off = dateActive() && !passDate({ time: form.time }, state);
   if (off) {
     state.filterY = 'all'; state.filterM = 'all'; state.filterD = 'all';
-    renderFilters(); renderStats(); renderRecords(); renderData();
+    dirty.data = true;
+    renderAll();
   }
   closeModal('mRecord');
   toast(off ? '已保存 · 已显示全部时间' : (form.id ? '已更新' : '已记录'));
@@ -3590,7 +3648,8 @@ $('#btnOpeningSave').addEventListener('click', function(){
   db.openingCur = openingCurDraft;
   saveDB();
   closeModal('mOpening');
-  renderStats(); renderData();
+  markAllDirty();
+  renderAll();
   toast(db.opening ? '期初已设为 ' + signedIn(money(db.opening), db.openingCur) : '已清除期初');
 });
 
@@ -3612,7 +3671,8 @@ function setRate(v, src){
   var inp = $('#rateInput');
   if (inp) inp.value = fxIsSet() ? num4(fxRate()) : '';
   paintCurSegs();
-  renderStats(); renderRecords(); renderData(); renderEvents();
+  markAllDirty();
+  renderAll();
 }
 
 /* 从网络取最新汇率：主源 open.er-api.com（每天更新一次），备源 frankfurter（欧洲央行）。
