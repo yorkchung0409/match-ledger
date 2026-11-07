@@ -2958,7 +2958,20 @@ function renderAll(){
 }
 
 /* ================= 视图切换 ================= */
-function switchView(v){
+/* ================= 返回手势（hash 路由） =================
+   安卓的返回键/侧滑默认直接退出页面。这里让「弹层」和「比赛管理」各压一条历史：
+   返回时先关弹层、再退二级页、再回记录页；已经在记录页就交给浏览器退出。
+   底部 tab 之间横跳不压历史 —— 否则按两次返回才退得出去，很烦。 */
+var navSelf = 0;   // 自己调 history.back() 的时间戳，用来吞掉随之而来的 popstate
+
+function pushNav(h){
+  try { history.pushState({ h: h }, '', '#/' + h); } catch(e) {}
+}
+function replaceNav(h){
+  try { history.replaceState({ h: h }, '', '#/' + h); } catch(e) {}
+}
+
+function switchView(v, fromPop){
   state.view = v;
   ['records', 'events', 'data'].forEach(function(k){
     $('#view-' + k).classList.toggle('hidden', k !== v);
@@ -2971,8 +2984,39 @@ function switchView(v){
   document.body.classList.toggle('subpage', v === 'events');
   // 数据页的曲线宽度依赖真实布局，每次离开隐藏状态都要重算；其余页按脏标记补画
   paintView(v, v === 'data');
+  if (!fromPop) {
+    var cur = (history.state && history.state.h) || '';
+    if (v === 'events') {
+      pushNav(v);
+    } else if (v === 'records' && (cur === 'data' || cur === 'events')) {
+      // 从子页面回记录页 = 后退一层，而不是再压一条（否则要按好几次才退得出去）
+      navSelf = Date.now();
+      try { history.back(); } catch(e) { replaceNav(v); }
+    } else {
+      pushNav(v);
+    }
+  }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+window.addEventListener('popstate', function(){
+  // 600ms 内的 popstate 基本是自己刚才 back() 引发的那一条，UI 已经处理过了
+  if (navSelf && Date.now() - navSelf < 600) { navSelf = 0; return; }
+  var open = $$('.modal.open');
+  if (open.length) { closeModal(open[open.length - 1].id); return; }
+  if (state.view !== 'records') {
+    switchView('records', true);
+    return;
+  }
+  // 已经在记录页：history 还有上一条就让它继续退，没有就什么都不做
+});
+
+/* 手改地址栏、从书签/外链跳到 #/data 时页面不会重载，这里补一次；
+   popstate 已经切好的情况 state.view 已经对上了，不会重复处理 */
+window.addEventListener('hashchange', function(){
+  var m = /^#\/(records|data|events)$/.exec(location.hash);
+  if (m && m[1] !== state.view) switchView(m[1], true);
+});
 
 /* ================= 弹层控制 ================= */
 /* 弹层：读屏软件要能认出这是对话框；键盘用户要能 Esc 退出；
@@ -2997,6 +3041,7 @@ function openModal(id){
   }
 
   el.classList.add('open');
+  pushNav(id);
   syncLock();
   // 焦点落在弹层容器本身，不落进输入框 —— 不然手机键盘会跟着弹起来
   if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
@@ -3008,6 +3053,12 @@ function closeModal(id){
   el.classList.remove('open');
   el.setAttribute('aria-hidden', 'true');
   syncLock();
+  // 主动关闭时把压进去的那条历史也退掉，别让返回键白按一次；
+  // 若这次关闭本身就是 popstate 触发的，history.state 已经不是它，不会再退
+  if (history.state && history.state.h === id) {
+    navSelf = Date.now();
+    try { history.back(); } catch(e) {}
+  }
   if (!$$('.modal.open').length && _lastFocus && _lastFocus.focus) {
     try { _lastFocus.focus({ preventScroll: true }); } catch(e) {}
     _lastFocus = null;
@@ -3982,6 +4033,12 @@ applyTheme(savedTheme, false);
 var firstRun = loadDB();
 loadDispPref();
 renderAll();
+/* 起始视图：URL 里带了 #/data 或 #/events 就照它开，否则把当前状态规范进历史 */
+(function bootView(){
+  var m = /^#\/(records|data|events)$/.exec(location.hash);
+  if (m && m[1] !== 'records') switchView(m[1], true);
+  else replaceNav('records');
+})();
 maybeAutoRate();   // 后台顺手更新汇率，失败不影响任何操作
 if (firstRun) {
   // 首次进入给个轻提示
