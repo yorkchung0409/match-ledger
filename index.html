@@ -354,6 +354,7 @@ input,textarea,select{font-family:inherit;color:inherit}
 .brand h1{margin:0;font-family:var(--font-display);font-size:17px;font-weight:650;letter-spacing:calc(.06em + var(--track-h))}
 .brand p{margin:3px 0 0;font-size:11px;color:var(--muted-2);letter-spacing:.14em}
 .brand-spacer{flex:1}
+.brand-acts{display:flex;align-items:center;gap:8px;flex:0 0 auto}
 .iconbtn{
   flex:0 0 auto;width:38px;height:38px;border-radius:var(--r-sm);display:grid;place-items:center;
   background:var(--surface);border:var(--bw) solid var(--line-2);color:var(--muted);
@@ -920,6 +921,28 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 .sheet-head .link.gold{color:var(--brand);font-weight:650;text-align:right}
 .sheet-body{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;flex:1;overscroll-behavior:contain}
 
+/* ---------- 口径与用法 ---------- */
+.help-lead{margin:0 0 4px;padding-bottom:12px;font-size:12.5px;line-height:1.72;color:var(--muted-2)}
+.help-lead b{color:var(--text);font-weight:600}
+.help-d{border-top:var(--bw) solid var(--line-2)}
+.help-d>summary{
+  display:flex;align-items:center;gap:9px;padding:13px 1px;cursor:pointer;
+  font-size:13px;font-weight:600;color:var(--text);list-style:none;
+}
+.help-d>summary::-webkit-details-marker{display:none}
+.help-d>summary::after{
+  content:'';margin-left:auto;flex:0 0 auto;width:6px;height:6px;position:relative;top:-1px;
+  border-right:1.5px solid var(--muted-3);border-bottom:1.5px solid var(--muted-3);
+  transform:rotate(45deg);transition:transform .18s ease,top .18s ease;
+}
+.help-d[open]>summary{color:var(--brand)}
+.help-d[open]>summary::after{transform:rotate(-135deg);top:1px;border-color:var(--brand)}
+.help-body{padding:0 1px 14px;font-size:12.5px;line-height:1.75;color:var(--muted-2)}
+.help-body ul{margin:0;padding-left:15px}
+.help-body li{margin:0 0 6px}
+.help-body li:last-child{margin-bottom:0}
+.help-body b{color:var(--text);font-weight:600}
+
 /* ---------- form ---------- */
 .flabel{display:block;font-size:11px;letter-spacing:.10em;color:var(--muted-2);margin:0 0 8px 3px}
 .flabel-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 3px 8px}
@@ -1178,14 +1201,23 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
       <p>比赛 · 名次 · 盈亏</p>
     </div>
     <div class="brand-spacer"></div>
-    <button class="iconbtn" id="btnTheme" aria-label="主题配色">
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 3.2a8.8 8.8 0 0 0 0 17.6h1.5a1.9 1.9 0 0 0 1.4-3.2 1.9 1.9 0 0 1 1.4-3.2h1.5a3.1 3.1 0 0 0 3.1-3.1c0-4.5-4-8.1-8.9-8.1z"/>
-        <circle cx="8" cy="11.6" r=".9" fill="currentColor" stroke="none"/>
-        <circle cx="10.2" cy="7.6" r=".9" fill="currentColor" stroke="none"/>
-        <circle cx="15.2" cy="7.9" r=".9" fill="currentColor" stroke="none"/>
-      </svg>
-    </button>
+    <div class="brand-acts">
+      <button class="iconbtn" id="btnHelp" aria-label="口径与用法" aria-haspopup="dialog">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9.3"/>
+          <path d="M9.4 9.3a2.7 2.7 0 0 1 5.2.8c0 1.8-2.6 2-2.6 3.5"/>
+          <circle cx="12" cy="17.2" r="1" fill="currentColor" stroke="none"/>
+        </svg>
+      </button>
+      <button class="iconbtn" id="btnTheme" aria-label="主题配色">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3.2a8.8 8.8 0 0 0 0 17.6h1.5a1.9 1.9 0 0 0 1.4-3.2 1.9 1.9 0 0 1 1.4-3.2h1.5a3.1 3.1 0 0 0 3.1-3.1c0-4.5-4-8.1-8.9-8.1z"/>
+          <circle cx="8" cy="11.6" r=".9" fill="currentColor" stroke="none"/>
+          <circle cx="10.2" cy="7.6" r=".9" fill="currentColor" stroke="none"/>
+          <circle cx="15.2" cy="7.9" r=".9" fill="currentColor" stroke="none"/>
+        </svg>
+      </button>
+    </div>
   </header>
 
   <main>
@@ -1260,7 +1292,6 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         <span id="evTotalsLabel"></span>
         <b id="evTotalsNet">¥0</b>
       </div>
-      <p class="note">每张卡上的数字覆盖这个比赛的全部记录。比赛名可以反复使用；删除比赛名不会删除记录，历史记录会保留当时的名称。</p>
     </section>
 
     <!-- ========== 数据 ========== -->
@@ -1410,16 +1441,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           清空全部数据
         </button>
       </div>
-      <p class="note">
-        <b>口径说明</b><br>
-        · 净收益 = 收益 − 成本；ROI = 净收益 ÷ 总成本。<br>
-        · 每场可以单独记人民币或美元。记录卡显示当时的原币，汇总按「数据管理 · 美元汇率」折成你选的统计币种，改汇率不会改动任何一条原始记录。整本账都记错币种时，用「记录币种」一次改过来 —— 只改标签，金额数字不变。<br>
-        · 进圈率、ROI、场均这些比率只看「已记录的场次」。没记住的场次不补、也不猜 —— 缺记录只会让样本有偏，不会把公式算错。<br>
-        · 累计金额会被缺记录影响。在「数据管理 · 期初结余」填一个记账前的总数，它只加进首页的累计净收益，不算场次、不进 ROI；走势曲线仍只画记账以来，卡片底部会把「记账以来 / 期初 / 合计」三个数对账。<br>
-        · 成绩结构按记录时选的档位分组，与收益多少无关 —— 赏金赛圈外也能拿到淘汰奖励。<br>
-        · 「买入手数」只是个标签：成本里请直接填总投入（含所有 rebuy / add-on），手数只用来统计你平均买几手、以及买多手的场次进圈率是不是更低。<br>
-        · 数据只保存在本机浏览器，换设备请先「备份数据」，再到新设备「恢复」。
-      </p>
+      <p class="note">净收益 = 收益 − 成本。完整口径与用法，点右上角的「?」查看。</p>
     </section>
   </main>
 </div>
@@ -1643,6 +1665,92 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
     <div class="sheet-body">
       <div class="themegrid" id="themeGrid"></div>
       <p class="note">每套换的不只是颜色 —— 圆角、描边、阴影、字体、背景纹理都会一起变，所以手感完全不同。点一下即时生效并自动记住。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 口径与用法（顶部 ? 打开） ========== -->
+<div class="modal" id="mHelp" style="z-index:66">
+  <div class="modal-bg" data-close="mHelp"></div>
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <span class="link" style="visibility:hidden">关闭</span>
+      <h2>口径与用法</h2>
+      <button class="link gold" data-close="mHelp">关闭</button>
+    </div>
+    <div class="sheet-body">
+      <p class="help-lead">一句话：<b>净收益 = 收益 − 成本</b>；所有汇总按你选的统计币种折算；数据只存在这台手机上。</p>
+
+      <details class="help-d" open>
+        <summary>一笔记录怎么填</summary>
+        <div class="help-body"><ul>
+          <li>「成本」填这一场的<b>总投入</b>（含所有 rebuy / add-on），不是单次买入。</li>
+          <li>「收益」填这一场拿到的钱，没进钱就填 <b>0</b>。</li>
+          <li>「名次」会据此自动判档（进 FT / 进圈 / 圈外），也可以手动改。</li>
+          <li>「手数」只是个标签，用来统计你平均买几手，<b>不影响任何金额</b>。</li>
+          <li>同一场比赛可以反复选，比赛管理里就是按它横向对比的。</li>
+        </ul></div>
+      </details>
+
+      <details class="help-d">
+        <summary>这些数字怎么算</summary>
+        <div class="help-body"><ul>
+          <li>净收益 = 收益 − 成本</li>
+          <li>ROI = 净收益 ÷ 总成本</li>
+          <li>进圈率 = 进圈场次 ÷ 已记录场次</li>
+          <li>场均净收益 = 净收益 ÷ 场次</li>
+          <li>比率只看<b>已记录的场次</b>。没记住的场次不补也不猜 —— 缺记录会让样本有偏，但不会把公式算错。</li>
+        </ul></div>
+      </details>
+
+      <details class="help-d">
+        <summary>累计净收益与期初结余</summary>
+        <div class="help-body"><ul>
+          <li>首页大数字是记账以来的累计。在「数据管理 · 期初结余」填一个记账之前已经累计的数，它会一起算进这个总账。</li>
+          <li>期初<b>不算场次、不进 ROI</b>，也不影响进圈率和连胜纪录。</li>
+          <li>走势曲线仍然只画记账以来 —— 一个大额期初塞进曲线会把后半段压成平线，所以曲线底部用「记账以来 / 期初 / 合计」三个数对账。</li>
+        </ul></div>
+      </details>
+
+      <details class="help-d">
+        <summary>美元与统计币种</summary>
+        <div class="help-body"><ul>
+          <li>每场可以单独记人民币或美元。记录卡永远显示<b>当时的原币</b>，因为那是这一场的事实。</li>
+          <li>所有汇总按「数据管理 · 美元汇率」折成你选的统计币种；<b>改汇率不会改动任何一条原始记录</b>。</li>
+          <li>没手动点过币种时，默认跟着账本走 —— 全美元账本打开就是 $，不会先折成一串人民币。</li>
+          <li>整本账记错币种：数据管理 →「记录币种」一次改过来，<b>只改标签，金额数字不变</b>。</li>
+        </ul></div>
+      </details>
+
+      <details class="help-d">
+        <summary>走势图三种切法</summary>
+        <div class="help-body"><ul>
+          <li><b>场次</b>：累计曲线，每个点按名次档着色（金＝进 FT、品牌色＝进圈、灰＝圈外）；超过 60 场只标 FT 的点。</li>
+          <li><b>月度</b>：每月一根柱，赚红亏绿，没打的月份是浅色短横线；「最差」「月均」只按有记录的月份算。</li>
+          <li><b>比赛</b>：按净收益排序的横条，中线是 0，往右赚往左亏；点一行跳到记录页，只看这个比赛。</li>
+          <li>成绩结构三行<b>整行可点</b>：点「进圈」就只看进圈场次，再点一次取消。</li>
+        </ul></div>
+      </details>
+
+      <details class="help-d">
+        <summary>档位与比赛管理</summary>
+        <div class="help-body"><ul>
+          <li>档位按记录时选的来，<b>与收益多少无关</b> —— 赏金赛圈外也可能拿到淘汰奖励。</li>
+          <li>比赛卡上的数字覆盖这个比赛的<b>全部记录</b>，不受页面顶部的筛选影响。</li>
+          <li>比赛名可以反复使用；改名会同步到引用它的记录，删除比赛名<b>不会删掉记录</b>，历史记录保留当时的名称。</li>
+        </ul></div>
+      </details>
+
+      <details class="help-d">
+        <summary>数据存在哪、怎么带走</summary>
+        <div class="help-body"><ul>
+          <li>只保存在这台手机的浏览器里，不上传任何服务器；换浏览器、清缓存都会丢。</li>
+          <li>换设备：旧设备「备份数据」导出 JSON → 新设备「从备份文件恢复」。</li>
+          <li>「导出表格」是 CSV，给 Excel 或表格软件用。</li>
+          <li>「清空全部数据」不可撤销，动手前先备份。</li>
+        </ul></div>
+      </details>
     </div>
   </div>
 </div>
@@ -3768,6 +3876,16 @@ function saveRecord(){
   closeModal('mRecord');
   toast(off ? '已保存 · 已显示全部时间' : (form.id ? '已更新' : '已记录'));
 }
+
+$('#btnHelp').addEventListener('click', function(){
+  // 点开前先拿到焦点：关掉弹层时 closeModal 会把焦点还给它，
+  // 否则键盘/读屏用户回来时焦点掉在 body 上
+  try { this.focus({ preventScroll: true }); } catch(e) {}
+  openModal('mHelp');
+  // 上次看到一半关掉的话，这次从顶部开始（展开过哪几组仍然留着）
+  var body = $('#mHelp .sheet-body');
+  if (body) body.scrollTop = 0;
+});
 
 $('#btnTheme').addEventListener('click', function(){
   renderThemes();
