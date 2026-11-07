@@ -1322,6 +1322,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         <div class="panel">
           <div class="share" id="stageShare"></div>
           <ul class="stagelist" id="stageList"></ul>
+          <div class="chart-note" id="stageNote"></div>
         </div>
 
         <div class="sec">
@@ -1379,6 +1380,18 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         <span class="lr-chev">›</span>
       </button>
 
+      <button class="linkrow" id="goLedgerCur">
+        <span class="lr-ico">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.8"/><path d="M12 6.6v10.8"/><path d="M14.6 9.2c-.6-.8-1.6-1.3-2.7-1.3-1.5 0-2.6.8-2.6 2s1 1.8 2.6 2c1.6.2 2.8.8 2.8 2.1 0 1.2-1.1 2-2.7 2-1.2 0-2.2-.5-2.8-1.3"/></svg>
+        </span>
+        <span class="lr-body">
+          <b>记录币种</b>
+          <em>整本记错币种可以改</em>
+        </span>
+        <span class="lr-meta" id="ledgerCurMeta">还没有记录</span>
+        <span class="lr-chev">›</span>
+      </button>
+
       <div class="acts">
         <button class="btn" id="btnCsv">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></svg>
@@ -1400,7 +1413,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
       <p class="note">
         <b>口径说明</b><br>
         · 净收益 = 收益 − 成本；ROI = 净收益 ÷ 总成本。<br>
-        · 每场可以单独记人民币或美元。记录卡显示当时的原币，汇总按「数据管理 · 美元汇率」折成你选的统计币种，改汇率不会改动任何一条原始记录。<br>
+        · 每场可以单独记人民币或美元。记录卡显示当时的原币，汇总按「数据管理 · 美元汇率」折成你选的统计币种，改汇率不会改动任何一条原始记录。整本账都记错币种时，用「记录币种」一次改过来 —— 只改标签，金额数字不变。<br>
         · 进圈率、ROI、场均这些比率只看「已记录的场次」。没记住的场次不补、也不猜 —— 缺记录只会让样本有偏，不会把公式算错。<br>
         · 累计金额会被缺记录影响。在「数据管理 · 期初结余」填一个记账前的总数，它只加进首页的累计净收益，不算场次、不进 ROI；走势曲线仍只画记账以来，卡片底部会把「记账以来 / 期初 / 合计」三个数对账。<br>
         · 成绩结构按记录时选的档位分组，与收益多少无关 —— 赏金赛圈外也能拿到淘汰奖励。<br>
@@ -1898,6 +1911,20 @@ function needsFx(list){
   var d = dispCur();
   return (list || []).some(function(r){ return curOf(r) !== d; });
 }
+/* 整本账只用一个币种时返回它，混币种返回 null。
+   「全是美元比赛」的账本，默认就该用美元看 —— 折算后的人民币既不是
+   他记的数，也不是他赚的钱，看着只会像算错。
+   示例数据（demo）不算：那只是首次打开送的几笔，不代表账本币种。 */
+function ledgerCur(){
+  var only = null;
+  for (var i = 0; i < db.records.length; i++){
+    if (db.records[i].demo) continue;
+    var k = curOf(db.records[i]);
+    if (only === null) only = k;
+    else if (only !== k) return null;
+  }
+  return only;
+}
 
 /* ================= 数据清洗 =================
    localStorage 里的东西一律不可信：手改过的备份、被同步工具截断的字符串、
@@ -2134,7 +2161,9 @@ var editingEvent = null;
 function loadDispPref(){
   var v = '';
   try { v = localStorage.getItem(CUR_KEY) || ''; } catch(e) {}
-  state.dispCur = v === 'USD' ? 'USD' : 'CNY';
+  // 手动选过就照手动选；没选过则跟着账本自身：全是美元比赛的账本
+  // 直接按美元看，别先给一串折算后的人民币
+  state.dispCur = (v === 'USD' || v === 'CNY') ? v : (ledgerCur() === 'USD' ? 'USD' : 'CNY');
 }
 function saveDispPref(){
   try { localStorage.setItem(CUR_KEY, state.dispCur); } catch(e) {}
@@ -3067,7 +3096,11 @@ function renderStages(list){
   var box = $('#stageList'), share = $('#stageShare');
   list = list || db.records;
   var total = list.length;
-  if (!total) { box.innerHTML = ''; share.innerHTML = ''; return; }
+  if (!total) {
+    box.innerHTML = ''; share.innerHTML = '';
+    var n0 = $('#stageNote'); if (n0) n0.innerHTML = '';
+    return;
+  }
 
   var defs = [
     { k: 'ft',  name: '进 FT', keep: function(r){ return stageOf(r) === 'ft'; } },
@@ -3098,6 +3131,20 @@ function renderStages(list){
       + (r.n ? '<i class="stage-chev">›</i>' : '')
     + '</button></li>';
   }).join('');
+
+  // 金额被折算过就说清楚：$1,000 买入的比赛，场均却写着 ¥8,238，
+  // 不解释的话看起来就是算错了
+  var note = $('#stageNote');
+  if (note) {
+    if (needsFx(list)) {
+      var d = dispCur();
+      note.innerHTML = '<div class="nl">金额按 1$ ≈ ¥' + fxShort() + ' 折算成' + curName(d) + '</div>'
+        + '<div class="nl">想看' + curName(d === 'USD' ? 'CNY' : 'USD') + '，点上面的<b>「'
+        + (d === 'USD' ? '¥ 人民币' : '$ 美元') + '」</b></div>';
+    } else {
+      note.innerHTML = '';
+    }
+  }
 }
 
 /* 买入习惯：场均手数 + 「1 手」和「2 手以上」分开算进圈率 */
@@ -3243,6 +3290,22 @@ function renderOpeningMeta(){
   }
 }
 
+/* 数据管理里那行「记录币种」的右侧：整本账是美元、人民币，还是混着 */
+function renderLedgerCurMeta(){
+  var el = $('#ledgerCurMeta');
+  if (!el) return;
+  var n = 0, usd = 0;
+  db.records.forEach(function(r){
+    if (r.demo) return;
+    n++;
+    if (curOf(r) === 'USD') usd++;
+  });
+  if (!n) { el.textContent = hasDemo() ? '只有示例数据' : '还没有记录'; return; }
+  var only = ledgerCur();
+  if (only) { el.textContent = '全部' + curName(only) + ' · ' + n + ' 条'; return; }
+  el.textContent = '$ ' + usd + ' · ¥ ' + (n - usd);
+}
+
 function renderDataEmpty(){
   var box = $('#dataEmpty');
   if (!db.records.length) {
@@ -3274,6 +3337,7 @@ function renderData(){
   $('#dataEmpty').classList.toggle('hidden', has);
   renderDataScope(list, list.length);
   renderOpeningMeta();
+  renderLedgerCurMeta();
   renderDataEmpty();
 
   var cnt = $('#evCount');
@@ -4271,7 +4335,34 @@ function maybeAutoRate(){
   fetchRate({ silent: true });
 }
 
+/* 整本账记错币种：只改记录上的币种标签，金额数字一个不动。
+   混币种的账本不给一键改 —— 那会把真有人民币的记录一起改错。 */
+function fixLedgerCur(){
+  var real = db.records.filter(function(r){ return !r.demo; });
+  if (!real.length) { toast(hasDemo() ? '现在只有示例数据，先记一笔' : '还没有记录'); return; }
+  var only = ledgerCur();
+  if (!only) { toast('记录里混着人民币和美元，只能进每条记录单独改'); return; }
+  var target = only === 'USD' ? 'CNY' : 'USD';
+  askConfirm({
+    title: '全部改成' + curName(target) + '？',
+    desc: '把 ' + real.length + ' 条记录的币种都改成' + curName(target)
+      + '。<br>只改币种标签，每条记录里的金额数字不变；改完所有汇总按'
+      + curName(target) + '重算。',
+    ok: '改成' + curName(target)
+  }).then(function(yes){
+    if (!yes) return;
+    real.forEach(function(r){ r.cur = target; });
+    saveDB();
+    state.dispCur = target;
+    saveDispPref();
+    markAllDirty();
+    renderAll();
+    toast(real.length + ' 条记录已改为' + curName(target));
+  });
+}
+
 $('#goRate').addEventListener('click', openRate);
+$('#goLedgerCur').addEventListener('click', fixLedgerCur);
 $('#btnRateFetch').addEventListener('click', function(){ fetchRate({ silent: false }); });
 $('#rateInput').addEventListener('input', function(){
   this.value = this.value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
