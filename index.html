@@ -443,6 +443,17 @@ input,textarea,select{font-family:inherit;color:inherit}
 }
 .seg button.on{background:var(--surface);color:var(--brand);font-weight:600;box-shadow:0 1px 3px rgba(var(--sh-rgb),.14)}
 
+/* 筛选条下面那行：当前生效但界面上没有控件的筛选（比如从成绩结构点进来的档位） */
+.chiprow{display:flex;align-items:center;gap:8px;margin:-4px 0 12px}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 9px 5px 11px;border-radius:var(--r-pill);
+  background:rgba(var(--brand-rgb),.09);border:var(--bw) solid rgba(var(--brand-rgb),.24);
+  color:var(--brand);font-size:11.5px;font-weight:600;
+}
+.chip:active{opacity:.7}
+.chip i{font-style:normal;font-size:13px;line-height:1;opacity:.6}
+.chip-note{font-size:11px;color:var(--muted-3);font-variant-numeric:tabular-nums}
+
 /* 时间筛选按钮 */
 .datebtn{
   flex:0 0 auto;display:flex;align-items:center;gap:4px;
@@ -682,7 +693,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
   border:var(--bw) solid var(--line-2);box-shadow:var(--shadow);
   transition:background .25s ease;
 }
-.chart-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .chart-head b{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--heading)}
 .chart-head em{font-style:normal;font-size:11px;color:var(--muted-2);font-variant-numeric:tabular-nums}
 .chart-body{height:110px;margin:10px -4px 0}
@@ -705,6 +716,63 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 .chart-note{margin-top:9px;font-size:12px;line-height:1.6;color:var(--muted-2)}
 .chart-note b{font-weight:650;white-space:nowrap;font-variant-numeric:tabular-nums}
 .chart-note span{display:inline-block;white-space:nowrap;margin-right:11px}
+.chart-note .nl{display:block;white-space:normal}
+.chart-note .nl + .nl{margin-top:3px}
+
+/* 维度切换：场次 / 月度 / 比赛 */
+.tseg{display:flex;flex:0 0 auto;background:rgba(var(--line-rgb),.055);
+  border:var(--bw) solid rgba(var(--line-rgb),.05);border-radius:10px;padding:2px;gap:1px}
+.tseg button{padding:4px 8px;border-radius:8px;font-size:11px;color:var(--muted);white-space:nowrap;transition:.16s}
+.tseg button.on{background:var(--surface);color:var(--brand);font-weight:620;box-shadow:0 1px 3px rgba(var(--sh-rgb),.14)}
+
+/* 按名次档着色的点：FT 金、进圈品牌色、圈外灰。
+   极简主题里 accent 与 brand 都是纯黑，所以 FT 另画成空心点区分 */
+.g-pt.ft{fill:var(--accent);stroke:var(--surface);stroke-width:1.1}
+.g-pt.itm{fill:var(--brand);stroke:var(--surface);stroke-width:.9}
+.g-pt.out{fill:var(--muted-3);stroke:var(--surface);stroke-width:.9}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font-size:10.5px;color:var(--muted-2)}
+.legend span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.legend i{display:inline-block;width:7px;height:7px;border-radius:50%}
+.legend i.ft{background:var(--accent)}
+.legend i.itm{background:var(--brand)}
+.legend i.out{background:var(--muted-3)}
+:root[data-theme="graphite"] .g-pt.ft{fill:var(--surface);stroke:#141414;stroke-width:1.8}
+:root[data-theme="graphite"] .legend i.ft{background:var(--surface);box-shadow:inset 0 0 0 1.6px #141414}
+
+/* 月度轴：按柱位百分比摆，不靠 12 等分网格，月数少时也准 */
+.chart-axis.mon{position:relative;display:block;height:13px}
+.chart-axis.mon span{position:absolute;top:0;left:50%;transform:translateX(-50%)}
+.chart-axis.mon span.first{left:0;transform:none}
+.chart-axis.mon span.last{left:auto;right:0;transform:none}
+
+/* 比赛维度：不用固定 110px 高度，列表自己撑开 */
+.chart[data-mode="ev"] .chart-body{height:auto;margin-top:2px}
+.chart[data-mode="ev"] .chart-axis{display:none}
+.evrow{display:block;width:100%;padding:9px 0;border-top:var(--bw) solid var(--line-2);text-align:left}
+.evrow:first-child{border-top:0;padding-top:2px}
+.evhead{display:flex;align-items:baseline;gap:6px;width:100%;text-align:left;font-size:12.5px}
+.evhead b{font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.evhead span{flex:0 0 auto;font-size:10.5px;color:var(--muted-3);white-space:nowrap}
+.evhead i{margin-left:auto;flex:0 0 auto;font-style:normal;font-size:12.5px;font-weight:680;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.evrow[data-evjump]:active b{color:var(--brand)}
+.evtrack{display:block;position:relative;height:7px;margin-top:6px;border-radius:4px;background:var(--surface-2)}
+.evtrack::before{content:'';position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:rgba(var(--line-rgb),.16)}
+.evbar{position:absolute;top:0;height:7px;border-radius:4px}
+.evbar.gain{background:var(--gain);opacity:.88}
+.evbar.loss{background:var(--loss);opacity:.86}
+.evsub{display:block;margin-top:5px;font-size:10.5px;color:var(--muted-3);font-variant-numeric:tabular-nums}
+.evmore{display:block;width:100%;margin-top:6px;padding:9px 0 2px;border-top:var(--bw) solid var(--line-2);
+  font-size:11.5px;color:var(--brand);text-align:center}
+.evmore:active{opacity:.6}
+
+/* 月度柱：颜色交给主题变量，空月只画一条浅横线 */
+.mbar{fill:var(--gain);fill-opacity:.88;transition:fill-opacity .15s}
+.mbar.loss{fill:var(--loss);fill-opacity:.86}
+.mbar.flat{fill:var(--muted-3)}
+.mbar-empty{fill:rgba(var(--line-rgb),.32)}
+.mzero{stroke:rgba(var(--line-rgb),.34);stroke-width:1}
+.legend .lg-note{color:var(--muted-3)}
 
 /* ---------- 成绩结构 ---------- */
 .panel{padding:14px 15px;border-radius:var(--r-md);background:var(--card-bg);border:var(--bw) solid var(--line-2);box-shadow:var(--shadow-md)}
@@ -714,8 +782,17 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 .s-itm{background:rgba(var(--brand-rgb),.38)}
 .s-out{background:rgba(var(--line-rgb),.22)}
 .stagelist{list-style:none;margin:0;padding:0}
-.stagelist li{display:flex;align-items:center;gap:9px;padding:11px 0;border-top:var(--bw) solid var(--line-2)}
-.stagelist li:first-child{border-top:0;padding-top:0}
+.stagelist li{border-top:var(--bw) solid var(--line-2)}
+.stagelist li:first-child{border-top:0}
+/* 三行整行可点：点了就跳记录页、只留这一档 */
+.stagerow{display:flex;align-items:center;gap:9px;width:100%;padding:11px 0;text-align:left;border-radius:0}
+.stagelist li:first-child .stagerow{padding-top:0}
+.stagerow:active{opacity:.62}
+.stagerow:disabled{cursor:default}
+.stagerow:disabled:active{opacity:1}
+.stagerow.on .sn{color:var(--brand)}
+.stagerow.on .stage-chev{color:var(--brand);opacity:1}
+.stage-chev{margin-left:2px;font-style:normal;font-size:15px;line-height:1;color:var(--muted-3);opacity:.65}
 .sd{flex:0 0 auto;width:7px;height:7px;border-radius:2.5px}
 .sn{flex:0 0 auto;font-size:12.5px;font-weight:600}
 .sc{font-size:11.5px;color:var(--muted-2);font-variant-numeric:tabular-nums}
@@ -1149,6 +1226,13 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         </div>
       </div>
 
+      <div class="chiprow hidden" id="stageChip">
+        <button class="chip" type="button" data-chipclear="1">
+          <span>只看 <b id="stageChipLabel">进 FT</b></span><i>×</i>
+        </button>
+        <span class="chip-note" id="stageChipN"></span>
+      </div>
+
       <div id="recordList"></div>
     </section>
 
@@ -1205,10 +1289,19 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
       <div class="chart" id="trendCard">
         <div class="chart-head">
           <b id="trendTitle">累计净收益走势</b>
-          <em id="trendCount"></em>
+          <div class="tseg" id="trendSeg" role="group" aria-label="走势图维度">
+            <button type="button" data-trend="seq" class="on">场次</button>
+            <button type="button" data-trend="mon">月度</button>
+            <button type="button" data-trend="ev">比赛</button>
+          </div>
         </div>
         <div class="chart-body" id="chartBody"></div>
         <div class="chart-axis" id="chartAxis"></div>
+        <div class="legend hidden" id="chartLegend">
+          <span><i class="ft"></i>进 FT</span>
+          <span><i class="itm"></i>进圈</span>
+          <span><i class="out"></i>圈外</span>
+        </div>
         <div class="chart-foot" id="chartFoot"></div>
         <div class="chart-note" id="chartNote"></div>
       </div>
@@ -2029,7 +2122,11 @@ function hasDemo(){
 }
 
 /* ================= 状态 ================= */
-var state = { view: 'records', filterType: 'all', filterEvent: 'all', filterY: 'all', filterM: 'all', filterD: 'all', dispCur: 'CNY' };
+var state = {
+  view: 'records', filterType: 'all', filterEvent: 'all', filterStage: 'all',
+  filterY: 'all', filterM: 'all', filterD: 'all', dispCur: 'CNY',
+  trend: 'seq'          // 走势图维度：seq 场次 / mon 月度 / ev 比赛
+};
 var form = null;      // 当前编辑的记录
 var editingEvent = null;
 
@@ -2041,6 +2138,32 @@ function loadDispPref(){
 }
 function saveDispPref(){
   try { localStorage.setItem(CUR_KEY, state.dispCur); } catch(e) {}
+}
+/* 图表维度同理：看惯了月度的人，下次进来还是月度 */
+var TREND_KEY = 'matchledger.trend';
+function loadTrendPref(){
+  var v = '';
+  try { v = localStorage.getItem(TREND_KEY) || ''; } catch(e) {}
+  state.trend = (v === 'mon' || v === 'ev') ? v : 'seq';
+}
+function saveTrendPref(){
+  try { localStorage.setItem(TREND_KEY, state.trend); } catch(e) {}
+}
+function paintTrendSeg(){
+  $$('#trendSeg button').forEach(function(b){
+    var on = b.getAttribute('data-trend') === state.trend;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+function setTrend(m){
+  var next = (m === 'mon' || m === 'ev') ? m : 'seq';
+  if (next === state.trend) return;
+  state.trend = next;
+  saveTrendPref();
+  paintTrendSeg();
+  // 宽度依赖布局，直接整页重画最稳；数据页本来就轻
+  if (state.view === 'data') renderData();
 }
 function setDispCur(c){
   var next = c === 'USD' ? 'USD' : 'CNY';
@@ -2152,6 +2275,7 @@ function dateScopeText(f){
 function resetFilters(){
   state.filterEvent = 'all';
   state.filterType = 'all';
+  state.filterStage = 'all';
   state.filterY = 'all'; state.filterM = 'all'; state.filterD = 'all';
 }
 
@@ -2159,13 +2283,14 @@ function resetFilters(){
    以前每次调都重新 filter + sort 一遍整份记录。 */
 var _fKey = '', _fList = null;
 function filtered(){
-  var key = state.filterType + '|' + state.filterEvent + '|' + state.filterY + '|' + state.filterM
-    + '|' + state.filterD + '|' + db.records.length + '|' + dbRev;
+  var key = state.filterType + '|' + state.filterEvent + '|' + state.filterStage + '|'
+    + state.filterY + '|' + state.filterM + '|' + state.filterD + '|' + db.records.length + '|' + dbRev;
   if (_fKey === key && _fList) return _fList;
   var out = db.records.filter(function(r){
     if (state.filterType === 'win' && recNet(r) <= 0) return false;
     if (state.filterType === 'loss' && recNet(r) >= 0) return false;
     if (state.filterEvent !== 'all' && r.eventId !== state.filterEvent) return false;
+    if (state.filterStage !== 'all' && stageOf(r) !== state.filterStage) return false;
     if (!passDate(r, state)) return false;
     return true;
   }).sort(function(a, b){
@@ -2221,7 +2346,8 @@ function hasOpening(){
 }
 /* 只有完全没筛选时，累计数才代表「记账以来的总账」，期初才有意义 */
 function noFilter(){
-  return state.filterType === 'all' && state.filterEvent === 'all' && !dateActive();
+  return state.filterType === 'all' && state.filterEvent === 'all'
+    && state.filterStage === 'all' && !dateActive();
 }
 
 /* ================= 渲染：记录 ================= */
@@ -2243,6 +2369,9 @@ function renderStats(){
   if (state.filterEvent !== 'all') {
     var ev = eventById(state.filterEvent);
     parts.push(ev ? ev.name : '已删除的比赛');
+  }
+  if (state.filterStage !== 'all') {
+    parts.push(state.filterStage === 'ft' ? '进 FT' : state.filterStage === 'itm' ? '进圈' : '圈外');
   }
   if (state.filterType === 'win') parts.push('盈利场');
   if (state.filterType === 'loss') parts.push('亏损场');
@@ -2373,6 +2502,19 @@ function cmpName(a, b){
   return _collZh ? _collZh.compare(sa, sb) : sa.localeCompare(sb, 'zh');
 }
 
+/* 档位筛选界面上没有独立控件，用一行 chip 说明「现在只看了哪一档」。
+   改比赛/盈亏筛选时场次数要跟着变，所以单独抽出来，几处一起调。 */
+function paintStageChip(){
+  var chip = $('#stageChip');
+  if (!chip) return;
+  var on = state.filterStage !== 'all' && db.records.length > 0;
+  chip.classList.toggle('hidden', !on);
+  if (!on) return;
+  $('#stageChipLabel').textContent =
+    state.filterStage === 'ft' ? '进 FT' : state.filterStage === 'itm' ? '进圈' : '圈外';
+  $('#stageChipN').textContent = filtered().length + ' 场';
+}
+
 function renderFilters(){
   var bar = $('.filters');
   if (bar) bar.classList.toggle('hidden', db.records.length === 0);
@@ -2397,6 +2539,8 @@ function renderFilters(){
   var dbtn = $('#btnDate'), dlabel = $('#dateLabel');
   if (dlabel) dlabel.textContent = dateLabelOf();
   if (dbtn) dbtn.classList.toggle('on', dateActive());
+
+  paintStageChip();
 }
 
 /* ============ 时间筛选面板 ============ */
@@ -2600,24 +2744,221 @@ function ymLabel(s){
   return m ? m[1] + '年' + (+m[2]) + '月' : '—';
 }
 
-/* 累计净收益曲线：按时间顺序逐场累加，起点钉在 0，负值画到零线以下 */
-function renderTrend(list){
-  var body = $('#chartBody'), axis = $('#chartAxis'), foot = $('#chartFoot');
-  var recs = (list || db.records).slice().sort(byTimeAsc);
-  // 曲线只画「记账以来」的累计：期初金额塞进同一条线会把后半段压成一条平线，
-  // 所以期初只进 hero 的总账，在这里用一行文案对账。
-  var base = dateActive() ? 0 : openingOf();
-  $('#trendCount').textContent = recs.length + ' 场';
+/* ================= 走势图：三种切法 =================
+   场次：一条累计曲线串起所有场次，点上按名次档着色
+   月度：每月一根柱，看哪段时间在输、哪个月没打
+   比赛：按比赛对比总净收益，看谁在养我、谁在放血
+   切法跟币种一样是「看的方式」，存本地，不进备份。 */
+function resetChart(){
+  var card = $('#trendCard'), body = $('#chartBody'), axis = $('#chartAxis'),
+      foot = $('#chartFoot'), note = $('#chartNote'), legend = $('#chartLegend');
+  card.setAttribute('data-mode', state.trend);
+  axis.className = 'chart-axis';
+  axis.innerHTML = '';
+  body.innerHTML = '';
+  foot.innerHTML = '';
+  note.innerHTML = '';
+  if (legend) { legend.classList.add('hidden'); legend.innerHTML = ''; }
+  paintTrendSeg();
+}
+/* 隐藏状态下 clientWidth 是 0，退化成 200 会把整张图横向拉歪 */
+function chartW(){
+  return Math.max(200, Math.round($('#chartBody').clientWidth || 328));
+}
 
+function renderTrend(list){
+  var recs = (list || db.records).slice().sort(byTimeAsc);
+  resetChart();
   if (!recs.length) {
-    body.innerHTML = '<div class="chart-empty">还没有记录</div>';
-    axis.innerHTML = '';
-    foot.innerHTML = '';
+    $('#chartBody').innerHTML = '<div class="chart-empty">还没有记录</div>';
+    $('#trendTitle').textContent = '累计净收益走势';
+    return;
+  }
+  if (state.trend === 'mon') renderTrendMon(recs);
+  else if (state.trend === 'ev') renderTrendEv(recs);
+  else renderTrendSeq(recs);
+}
+
+/* 'YYYY-MM' 逐月展开，用来补齐「那个月没打」的空槽 */
+function monthSpan(a, b){
+  var out = [], y = +a.slice(0, 4), m = +a.slice(5, 7);
+  var y2 = +b.slice(0, 4), m2 = +b.slice(5, 7);
+  var guard = 0;
+  while ((y < y2 || (y === y2 && m <= m2)) && guard++ < 600) {
+    out.push(y + '-' + pad2(m));
+    m++; if (m > 12) { m = 1; y++; }
+  }
+  return out;
+}
+
+/* 月度：最近 12 个月（记账不足就按实际跨度），没打的月份画浅色横线 */
+function renderTrendMon(recs){
+  var body = $('#chartBody'), axis = $('#chartAxis'), foot = $('#chartFoot');
+  var acc = {}, first = '', last = '';
+  recs.forEach(function(r){
+    var k = String(r.time || '').slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(k)) return;
+    acc[k] = (acc[k] || 0) + recNet(r);
+    if (!first || k < first) first = k;
+    if (!last || k > last) last = k;
+  });
+  $('#trendTitle').textContent = '每月净收益';
+  if (!first) {
+    body.innerHTML = '<div class="chart-empty">记录上没有日期</div>';
     return;
   }
 
-  var vals = [0], cum = 0, i;
-  recs.forEach(function(r){ cum += recNet(r); vals.push(cum); });
+  var all = monthSpan(first, last);
+  var keys = all.slice(-12);
+  var vals = keys.map(function(k){ return acc[k] || 0; });
+  var has = keys.map(function(k){ return k in acc; });
+
+  var W = chartW(), H = 110, padT = 16, padB = 14;
+  var hi = 0, lo = 0, i;
+  for (i = 0; i < vals.length; i++) {
+    if (vals[i] > hi) hi = vals[i];
+    if (vals[i] < lo) lo = vals[i];
+  }
+  if (hi === 0 && lo === 0) { hi = 1; lo = -1; }
+  var plotH = H - padT - padB;
+  var zero = padT + hi / (hi - lo) * plotH;
+  var slot = W / keys.length;
+  var bw = Math.min(18, Math.max(4, slot * 0.56));
+
+  var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true">'
+    + '<line class="mzero" x1="0" y1="' + zero.toFixed(1) + '" x2="' + W + '" y2="' + zero.toFixed(1) + '"/>';
+  keys.forEach(function(k, idx){
+    var v = vals[idx];
+    var cx = slot * idx + slot / 2;
+    var x = (cx - bw / 2).toFixed(1);
+    // 空月画一条比柱子窄的短横线，跟「打了但正好打平」区分开
+    if (!has[idx]) {
+      var ew = Math.max(3, bw * 0.5);
+      s += '<rect class="mbar-empty" x="' + (cx - ew / 2).toFixed(1) + '" y="' + (zero + 2.5).toFixed(1)
+        + '" width="' + ew.toFixed(1) + '" height="2.5" rx="1.2"/>';
+      return;
+    }
+    if (!v) {
+      s += '<rect class="mbar flat" x="' + x + '" y="' + (zero - 1.5).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="3" rx="1.5"/>';
+      return;
+    }
+    var h = Math.max(2.5, Math.abs(v) / (hi - lo) * plotH);
+    s += '<rect class="mbar' + (v > 0 ? '' : ' loss') + '" x="' + x + '" y="' + (v > 0 ? zero - h : zero).toFixed(1)
+      + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="3"/>';
+  });
+  s += '</svg>';
+  body.innerHTML = s;
+
+  /* 柱子少就一根一根标，多了只标首 / 中 / 尾 */
+  var lab = [];
+  if (keys.length <= 6) {
+    keys.forEach(function(k, idx){
+      lab.push('<span style="left:' + ((idx + 0.5) / keys.length * 100).toFixed(2) + '%">' + shortYm(k) + '</span>');
+    });
+  } else {
+    lab.push('<span class="first">' + shortYm(keys[0]) + '</span>');
+    lab.push('<span>' + shortYm(keys[Math.floor((keys.length - 1) / 2)]) + '</span>');
+    lab.push('<span class="last">' + shortYm(keys[keys.length - 1]) + '</span>');
+  }
+  axis.className = 'chart-axis mon';
+  axis.innerHTML = lab.join('');
+
+  /* 最好 / 最差 / 月均都只看有记录的月份：空月是 0，混进来会把「最差」拉平 */
+  var best = null, worst = null, sum = 0, n = 0, emptyN = 0;
+  keys.forEach(function(k, idx){
+    if (!has[idx]) { emptyN++; return; }
+    var v = vals[idx];
+    sum += v; n++;
+    if (!best || v > best.v) best = { k: k, v: v };
+    if (!worst || v < worst.v) worst = { k: k, v: v };
+  });
+  foot.innerHTML = '<span>最好<b class="' + cls(best.v) + '">' + signed(best.v) + '</b></span>'
+    + (worst.v < best.v
+      ? '<span>最差<b class="' + cls(worst.v) + '">' + signed(worst.v) + '</b></span>'
+      : '')
+    + '<span>月均<b class="' + cls(sum / n) + '">' + signed(Math.round(sum / n)) + '</b></span>';
+
+  var nl = [];
+  var spanWord = dateActive() ? '这段时间跨 ' : '记账跨 ';
+  if (all.length > keys.length) {
+    nl.push(spanWord + all.length + ' 个月，这里显示最近 ' + keys.length + ' 个'
+      + (emptyN ? '（其中 ' + emptyN + ' 个月没记录）' : '') + '；更早的用上面的「统计范围」看');
+  } else {
+    nl.push(spanWord + keys.length + ' 个月' + (emptyN ? '，其中 ' + emptyN + ' 个月没有记录' : ''));
+  }
+  nl.push('浅色横线是没记录的月份 · 月均只按有记录的 ' + n + ' 个月算');
+  $('#chartNote').innerHTML = nl.map(function(t){ return '<div class="nl">' + t + '</div>'; }).join('');
+}
+
+/* 比赛：横向条形，中线是 0，往右赚、往左亏 */
+function renderTrendEv(recs){
+  var body = $('#chartBody'), foot = $('#chartFoot');
+  var acc = {}, order = [];
+  recs.forEach(function(r){
+    var id = r.eventId || '';
+    var key = id ? 'i:' + id : 'n:' + (r.eventName || '');
+    if (!acc[key]) {
+      acc[key] = { id: id, name: r.eventName || '未命名比赛', n: 0, net: 0, cost: 0 };
+      order.push(key);
+    }
+    var a = acc[key];
+    a.n++;
+    a.net += recNet(r);
+    a.cost += toDisp(r.cost, curOf(r));
+  });
+
+  var rows = order.map(function(k){
+    var a = acc[k];
+    var ev = a.id ? eventById(a.id) : null;
+    if (ev) a.name = ev.name;   // 比赛改过名就显示新名字
+    return a;
+  }).sort(function(a, b){ return b.net - a.net; });
+
+  $('#trendTitle').textContent = '按比赛对比';
+
+  var max = 0;
+  rows.forEach(function(r){ if (Math.abs(r.net) > max) max = Math.abs(r.net); });
+  if (!max) max = 1;
+
+  var LIMIT = 12;
+  var shown = rows.length > LIMIT ? rows.slice(0, LIMIT) : rows;
+  body.innerHTML = shown.map(function(r){
+    var pc = Math.max(1.6, Math.abs(r.net) / max * 50);
+    var bar = r.net >= 0
+      ? 'left:50%;width:' + pc.toFixed(1) + '%'
+      : 'left:' + (50 - pc).toFixed(1) + '%;width:' + pc.toFixed(1) + '%';
+    var tag = r.id ? 'button' : 'div';
+    var attr = r.id ? ' type="button" data-evjump="' + esc(r.id) + '"' : '';
+    return '<' + tag + ' class="evrow"' + attr + '>'
+      + '<span class="evhead"><b>' + esc(r.name) + '</b><span>' + r.n + ' 场</span>'
+        + '<i class="' + cls(r.net) + '">' + signed(r.net) + '</i></span>'
+      + '<span class="evtrack"><span class="evbar ' + cls(r.net) + '" style="' + bar + '"></span></span>'
+      + '<span class="evsub">场均 ' + signed(Math.round(r.net / r.n)) + ' · 成本 ' + fmtMoney(r.cost) + '</span>'
+      + '</' + tag + '>';
+  }).join('')
+  + (rows.length > LIMIT
+    ? '<button class="evmore" type="button" data-evmore="1">还有 ' + (rows.length - LIMIT) + ' 个比赛，去比赛管理看全部 ›</button>'
+    : '');
+
+  var win = 0, lose = 0;
+  rows.forEach(function(r){ if (r.net > 0) win++; else if (r.net < 0) lose++; });
+  foot.innerHTML = '<span>共 ' + rows.length + ' 个比赛</span>'
+    + '<span>' + win + ' 个赚 · ' + lose + ' 个亏</span>';
+
+  var nl = ['条形是总净收益，小字是场均。总量高可能只是打得多，两个数一起看。'];
+  if (rows.some(function(r){ return r.id; })) nl.push('点一行跳到记录页，只看这个比赛。');
+  $('#chartNote').innerHTML = nl.map(function(t){ return '<div class="nl">' + t + '</div>'; }).join('');
+}
+
+/* 累计净收益曲线：按时间顺序逐场累加，起点钉在 0，负值画到零线以下 */
+function renderTrendSeq(recs){
+  var body = $('#chartBody'), axis = $('#chartAxis'), foot = $('#chartFoot');
+  // 曲线只画「记账以来」的累计：期初金额塞进同一条线会把后半段压成一条平线，
+  // 所以期初只进 hero 的总账，在这里用一行文案对账。
+  var base = dateActive() ? 0 : openingOf();
+
+  var vals = [0], stages = [''], cum = 0, i;
+  recs.forEach(function(r){ cum += recNet(r); vals.push(cum); stages.push(stageOf(r)); });
 
   var hi = 0, lo = 0;
   for (i = 0; i < vals.length; i++) {
@@ -2649,10 +2990,13 @@ function renderTrend(list){
     svg += '<line class="g-zero" x1="0" y1="' + zy + '" x2="' + W + '" y2="' + zy + '"/>';
   }
   svg += '<path class="g-line" d="' + line + '"/>';
-  if (recs.length <= 16) {
-    for (i = 0; i < vals.length; i++) {
-      svg += '<circle class="g-pt" cx="' + X(i).toFixed(1) + '" cy="' + Y(vals[i]).toFixed(1) + '" r="2.3"/>';
-    }
+  /* 点按名次档上色：金＝FT、品牌色＝进圈、灰＝圈外。
+     场次太多时全画会糊成一片，只留 FT 的金点 —— 那是最该被看见的。 */
+  var dense = recs.length > 60;
+  for (i = 1; i < vals.length; i++) {
+    if (dense && stages[i] !== 'ft') continue;
+    svg += '<circle class="g-pt ' + stages[i] + '" cx="' + X(i).toFixed(1) + '" cy="' + Y(vals[i]).toFixed(1)
+      + '" r="' + (stages[i] === 'ft' ? 3 : 2.3) + '"/>';
   }
   svg += '<circle class="g-halo" cx="' + X(last).toFixed(1) + '" cy="' + Y(vals[last]).toFixed(1) + '" r="7"/>'
     + '<circle class="g-dot" cx="' + X(last).toFixed(1) + '" cy="' + Y(vals[last]).toFixed(1) + '" r="3.1"/>'
@@ -2674,6 +3018,22 @@ function renderTrend(list){
   if (trough < cur) footHtml += '<span>最低<b class="' + cls(trough) + '">' + signed(trough) + '</b></span>';
   foot.innerHTML = footHtml;
 
+  // 图例：点的颜色是什么意思
+  var legend = $('#chartLegend');
+  if (legend) {
+    legend.classList.remove('hidden');
+    legend.innerHTML = dense
+      ? '<span><i class="ft"></i>进 FT</span><span class="lg-note">记录较多，只标了 FT 的点</span>'
+      : '<span><i class="ft"></i>进 FT</span><span><i class="itm"></i>进圈</span><span><i class="out"></i>圈外</span>';
+  }
+
+  // 三档各自的场次与净收益：用来回答「钱是 FT 赚的还是稳定进圈赚的」
+  var agg = { ft: [0, 0], itm: [0, 0], out: [0, 0] };
+  recs.forEach(function(r){
+    var a = agg[stageOf(r)] || agg.out;
+    a[0]++; a[1] += recNet(r);
+  });
+
   // 口径：这条线从哪算起、跟期初怎么对账
   var titleEl = $('#trendTitle');
   if (titleEl) {
@@ -2681,17 +3041,24 @@ function renderTrend(list){
   }
   var noteEl = $('#chartNote');
   if (noteEl) {
+    var nl = [];
     if (dateActive()) {
-      noteEl.textContent = '只累计 ' + dateScopeText() + '的 ' + recs.length + ' 场'
-        + (hasOpening() ? '，期初不参与' : '');
+      nl.push('只累计 ' + dateScopeText() + '的 ' + recs.length + ' 场' + (hasOpening() ? '，期初不参与' : ''));
     } else if (base !== 0) {
-      noteEl.innerHTML =
-          '<span>记账以来 <b class="' + cls(cur) + '">' + signed(cur) + '</b></span>'
-        + '<span>期初 <b class="' + cls(base) + '">' + signed(base) + '</b> 另计</span>'
-        + '<span>合计 <b class="' + cls(cur + base) + '">' + signed(cur + base) + '</b></span>';
+      nl.push('记账以来 <b class="' + cls(cur) + '">' + signed(cur) + '</b> · 期初 <b class="' + cls(base) + '">'
+        + signed(base) + '</b> 另计 · 合计 <b class="' + cls(cur + base) + '">' + signed(cur + base) + '</b>');
     } else {
-      noteEl.textContent = '自 ' + ymLabel(recs[0].time) + '起记账，之前的场次没有记录';
+      nl.push('自 ' + ymLabel(recs[0].time) + '起记账，之前的场次没有记录');
     }
+    var seg = [];
+    if (agg.ft[0]) seg.push('FT ' + agg.ft[0] + ' 次 <b class="' + cls(agg.ft[1]) + '">' + signed(agg.ft[1]) + '</b>');
+    if (agg.itm[0]) seg.push('进圈 ' + agg.itm[0] + ' 场 <b class="' + cls(agg.itm[1]) + '">' + signed(agg.itm[1]) + '</b>');
+    if (agg.out[0]) seg.push('圈外 ' + agg.out[0] + ' 场 <b class="' + cls(agg.out[1]) + '">' + signed(agg.out[1]) + '</b>');
+    if (seg.length) nl.push(seg.join(' · '));
+    if (agg.ft[0] && agg.itm[0] && agg.itm[1] > agg.ft[1]) {
+      nl.push('进圈场次的净收益比 FT 还高 —— 这组记录赢在稳定进圈，不是靠爆一场');
+    }
+    noteEl.innerHTML = nl.map(function(t){ return '<div class="nl">' + t + '</div>'; }).join('');
   }
 }
 
@@ -2717,13 +3084,19 @@ function renderStages(list){
   }).join('');
 
   box.innerHTML = rows.map(function(r){
-    var avg = r.n ? r.s.net / r.n : 0;
-    return '<li>'
+    // 场均取整：+¥1,176.92 这种小数在这么小的字号里既难读又假精确
+    var avg = r.n ? Math.round(r.s.net / r.n) : 0;
+    var on = state.filterStage === r.d.k;
+    // 整行可点：点了就跳记录页、只留这一档。没场次的那行点不动，别把人送进空列表
+    return '<li><button class="stagerow' + (on ? ' on' : '') + '" type="button"'
+      + ' data-stage="' + r.d.k + '"' + (r.n ? '' : ' disabled')
+      + ' aria-label="只看 ' + r.d.name + '，' + r.n + ' 场">'
       + '<i class="sd s-' + r.d.k + '"></i>'
       + '<span class="sn">' + r.d.name + '</span>'
       + '<span class="sc">' + r.n + ' 场' + (r.n ? ' · ' + Math.round(r.n / total * 100) + '%' : '') + '</span>'
       + '<span class="sv ' + (r.n ? cls(avg) : 'zero') + '">' + (r.n ? signed(avg) : '—') + '</span>'
-    + '</li>';
+      + (r.n ? '<i class="stage-chev">›</i>' : '')
+    + '</button></li>';
   }).join('');
 }
 
@@ -2945,6 +3318,14 @@ function paintView(v, force){
     renderRecords();
   }
   dirty[v] = false;
+}
+
+/* 从数据页的图里点进记录页：标脏 + 切页，列表按新条件重画 */
+function jumpToRecords(){
+  dirty.records = true;
+  if (state.view === 'records') paintView('records', true);
+  else switchView('records');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function renderAll(){
@@ -3955,6 +4336,43 @@ document.addEventListener('click', function(e){
   var tab = e.target.closest ? e.target.closest('.tab') : null;
   if (tab) { switchView(tab.getAttribute('data-view')); return; }
 
+  // 走势图切维度：只换「看的方式」，不动数据
+  var trendBtn = e.target.closest ? e.target.closest('[data-trend]') : null;
+  if (trendBtn) { setTrend(trendBtn.getAttribute('data-trend')); return; }
+
+  // 成绩结构整行点进记录页：再点一次同一档就取消
+  var stageBtn = e.target.closest ? e.target.closest('[data-stage]') : null;
+  if (stageBtn && !stageBtn.disabled) {
+    var sk = stageBtn.getAttribute('data-stage');
+    // 数据页的统计本来就不受记录页的这几个筛选影响，点进来时一并清掉，
+    // 否则「点进圈只看到 0 场」，因为上一次还留着某个比赛的筛选
+    state.filterEvent = 'all';
+    state.filterType = 'all';
+    state.filterStage = (state.filterStage === sk) ? 'all' : sk;
+    jumpToRecords();
+    return;
+  }
+
+  // 比赛条形点进记录页，只看这个比赛
+  var evJump = e.target.closest ? e.target.closest('[data-evjump]') : null;
+  if (evJump) {
+    state.filterEvent = evJump.getAttribute('data-evjump');
+    state.filterStage = 'all';
+    state.filterType = 'all';
+    jumpToRecords();
+    return;
+  }
+  var evMore = e.target.closest ? e.target.closest('[data-evmore]') : null;
+  if (evMore) { switchView('events'); return; }
+
+  // 清掉档位筛选，回全部
+  var chipClear = e.target.closest ? e.target.closest('[data-chipclear]') : null;
+  if (chipClear) {
+    state.filterStage = 'all';
+    renderFilters(); renderStats(); renderRecords();
+    return;
+  }
+
   var segBtn = e.target.closest ? e.target.closest('#filterType button') : null;
   if (segBtn) {
     state.filterType = segBtn.getAttribute('data-type');
@@ -3996,7 +4414,7 @@ document.addEventListener('click', function(e){
 
 $('#filterEvent').addEventListener('change', function(){
   state.filterEvent = this.value;
-  renderStats(); renderRecords();
+  renderStats(); renderRecords(); paintStageChip();
 });
 
 /* 时间筛选 */
@@ -4032,6 +4450,8 @@ applyTheme(savedTheme, false);
 
 var firstRun = loadDB();
 loadDispPref();
+loadTrendPref();
+paintTrendSeg();
 renderAll();
 /* 起始视图：URL 里带了 #/data 或 #/events 就照它开，否则把当前状态规范进历史 */
 (function bootView(){
