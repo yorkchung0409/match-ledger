@@ -721,6 +721,39 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 .rb-v{margin:7px 0 3px;font-family:var(--num-font);font-size:17px;font-weight:680;letter-spacing:-.01em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rb-s{font-size:10.5px;color:var(--muted-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+/* ---------- 买入手数 ---------- */
+.buyrow{display:flex;align-items:center;flex-wrap:wrap;gap:6px 9px;margin-top:10px;min-width:0}
+.buyrow-l{flex:0 0 auto;font-size:10.5px;letter-spacing:.05em;color:var(--muted-2)}
+.buychips{display:inline-flex;gap:4px;flex:0 0 auto}
+.buychips button{
+  appearance:none;-webkit-appearance:none;font:inherit;cursor:pointer;
+  min-width:33px;padding:6px 0;line-height:1.2;
+  border-radius:var(--r-xs);background:var(--surface-3);
+  border:var(--bw) solid var(--soft-line);color:var(--muted-2);
+  font-size:11px;font-weight:640;font-variant-numeric:tabular-nums;
+  transition:background .15s,color .15s,border-color .15s,box-shadow .15s;
+}
+.buychips button.on{background:var(--brand);border-color:var(--brand);color:var(--accent-ink);box-shadow:var(--shadow-sm)}
+.buychips button:active{opacity:.72}
+.buyrow-r{margin-left:auto;flex:0 1 auto;font-size:10.5px;color:var(--muted-3);
+  font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- 买入习惯 ---------- */
+.buy-head{display:flex;align-items:baseline;gap:6px}
+.buy-avg{font-family:var(--num-font);font-size:25px;font-weight:700;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums}
+.buy-avg em{font-family:var(--font-ui);font-style:normal;font-size:11px;font-weight:600;
+  letter-spacing:.04em;color:var(--muted-2);margin-left:5px}
+.buy-tot{margin-left:auto;font-size:10.5px;color:var(--muted-3);font-variant-numeric:tabular-nums}
+.buy-cmp{display:grid;grid-template-columns:1fr 1fr;gap:1px;margin-top:12px;overflow:hidden;
+  background:var(--line-2);border:var(--bw) solid var(--line-2);border-radius:var(--r-md)}
+.buy-cmp>div{background:var(--card-bg);padding:11px 12px;min-width:0}
+.bc-l{display:block;font-size:10.5px;letter-spacing:.06em;color:var(--muted-2);white-space:nowrap}
+.bc-n{display:block;margin:5px 0 4px;font-size:10.5px;color:var(--muted-2);letter-spacing:.04em;white-space:nowrap}
+.bc-n b{font-family:var(--num-font);font-size:15px;font-weight:680;letter-spacing:-.01em;margin-right:3px;font-variant-numeric:tabular-nums}
+.bc-s{display:block;font-size:10.5px;line-height:1.55;color:var(--muted-3);font-variant-numeric:tabular-nums}
+.bc-s b{font-weight:680;font-variant-numeric:tabular-nums}
+.buy-note{margin:10px 0 0;font-size:10.5px;line-height:1.6;color:var(--muted-3)}
+
 /* ---------- totals ---------- */
 .totals{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:13px 15px;
   border-radius:var(--r-md);background:var(--surface-3);border:var(--bw) solid var(--soft-line);transition:background .25s ease}
@@ -1002,6 +1035,11 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
   .hero{padding:18px 15px 14px}
   .hero-grid b{font-size:12.5px}
   .seg button{padding:6px 9px}
+  /* 手数这一行要在窄屏挤下「标签 + 5 个方块 + 单价」，方块收窄一点 */
+  .buyrow{gap:6px}
+  .buyrow-l{font-size:10px}
+  .buychips{gap:3px}
+  .buychips button{min-width:27px;font-size:10.5px}
 }
 </style>
 </head>
@@ -1152,6 +1190,19 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <ul class="stagelist" id="stageList"></ul>
         </div>
 
+        <div class="sec">
+          <span class="bar"></span><h2>买入习惯</h2>
+          <span class="spacer"></span><span class="hint">手数只是标签，成本填总投入</span>
+        </div>
+        <div class="panel" id="buyPanel">
+          <div class="buy-head">
+            <span class="buy-avg"><span id="buyAvg">1</span><em>手/场</em></span>
+            <span class="buy-tot" id="buyTot"></span>
+          </div>
+          <div class="buy-cmp" id="buyCmp"></div>
+          <p class="buy-note" id="buyNote"></p>
+        </div>
+
         <div class="sec"><span class="bar"></span><h2>个人纪录</h2></div>
         <div class="recbook" id="recBook"></div>
       </div>
@@ -1219,6 +1270,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         · 进圈率、ROI、场均这些比率只看「已记录的场次」。没记住的场次不补、也不猜 —— 缺记录只会让样本有偏，不会把公式算错。<br>
         · 累计金额会被缺记录影响。在「数据管理 · 期初结余」填一个记账前的总数，它只加进首页的累计净收益，不算场次、不进 ROI；走势曲线仍只画记账以来，卡片底部会把「记账以来 / 期初 / 合计」三个数对账。<br>
         · 成绩结构按记录时选的档位分组，与收益多少无关 —— 赏金赛圈外也能拿到淘汰奖励。<br>
+        · 「买入手数」只是个标签：成本里请直接填总投入（含所有 rebuy / add-on），手数只用来统计你平均买几手、以及买多手的场次进圈率是不是更低。<br>
         · 数据只保存在本机浏览器，换设备请先「备份数据」，再到新设备「恢复」。
       </p>
     </section>
@@ -1318,6 +1370,17 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
             </div>
           </div>
         </div>
+        <div class="buyrow">
+          <span class="buyrow-l">买入手数</span>
+          <div class="buychips" id="fBuys" role="group" aria-label="本场买入手数">
+            <button type="button" data-buys="1">×1</button>
+            <button type="button" data-buys="2">×2</button>
+            <button type="button" data-buys="3">×3</button>
+            <button type="button" data-buys="4">×4</button>
+            <button type="button" data-buys="5">×5</button>
+          </div>
+          <span class="buyrow-r" id="fBuyUnit"></span>
+        </div>
       </div>
 
       <div class="nettag"><span>本场净收益</span><b id="netPreview" class="zero">¥0</b></div>
@@ -1373,6 +1436,13 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         <div class="field">
           <div class="fbody"><input class="finput" id="fEventInput" placeholder="如 周末深筹赛 / 周日快速赛" autocomplete="off"></div>
         </div>
+      </div>
+      <div class="fgroup">
+        <span class="flabel">一手买入（可选）</span>
+        <div class="field">
+          <div class="fbody"><input class="finput" id="fEventBuyin" placeholder="如 500" inputmode="decimal" autocomplete="off"></div>
+        </div>
+        <p class="fhint">按记账时选的币种理解。填了之后，记一笔选这个比赛会自动带出成本，点「×2」就按两手算 —— 之后还能手动改。</p>
       </div>
       <div class="fgroup">
         <span class="flabel">备注（可选）</span>
@@ -1633,6 +1703,17 @@ var RATE_TTL = 12 * 60 * 60 * 1000;        // 自动更新的最小间隔
 function curOf(r){ return (r && r.cur === 'USD') ? 'USD' : 'CNY'; }
 function curSym(c){ return c === 'USD' ? '$' : '¥'; }
 function curName(c){ return c === 'USD' ? '美元' : '人民币'; }
+/* 买入手数：成本才是金额的唯一来源，手数只是一个标签。
+   老记录没有这个字段，一律当 1 手，所以不用做数据迁移。 */
+function buysOf(r){
+  var n = parseInt(r && r.buys, 10);
+  return (isFinite(n) && n > 0) ? Math.min(n, 99) : 1;
+}
+/* 比赛预设的一手买入价，没设过返回 0；币种跟随这一场记录，不单独存 */
+function buyinOf(e){
+  var n = e ? money(e.buyin) : 0;
+  return n > 0 ? n : 0;
+}
 function dispCur(){
   return (typeof state !== 'undefined' && state && state.dispCur === 'USD') ? 'USD' : 'CNY';
 }
@@ -1697,16 +1778,16 @@ function saveDB(){
 }
 function seed(){
   var y = new Date().getFullYear();
-  var e1 = { id: uid(), name: '周末深筹赛', note: '买入 500', createdAt: Date.now() };
-  var e2 = { id: uid(), name: '周日快速赛', note: '买入 200', createdAt: Date.now() - 1000 };
-  var e3 = { id: uid(), name: '周中赏金赛', note: '买入 500，赏金制', createdAt: Date.now() - 2000 };
+  var e1 = { id: uid(), name: '周末深筹赛', note: '买入 500', buyin: '500', createdAt: Date.now() };
+  var e2 = { id: uid(), name: '周日快速赛', note: '买入 200', buyin: '200', createdAt: Date.now() - 1000 };
+  var e3 = { id: uid(), name: '周中赏金赛', note: '买入 500，赏金制', buyin: '500', createdAt: Date.now() - 2000 };
   db.events = [e1, e2, e3];
   var base = Date.now();
   db.records = [
-    { id: uid(), eventId: e1.id, eventName: e1.name, time: y + '-11-01T20:00', rank: '18', cost: '500', income: '0', note: '', stage: 'out', createdAt: base - 5000, demo: true },
-    { id: uid(), eventId: e3.id, eventName: e3.name, time: y + '-11-02T20:00', rank: '', cost: '500', income: '800', note: '圈外靠淘汰拿了 4 个赏金', stage: 'out', createdAt: base - 4500, demo: true },
-    { id: uid(), eventId: e2.id, eventName: e2.name, time: y + '-11-03T15:00', rank: '3', cost: '200', income: '1400', note: '泡沫期翻倍', stage: 'itm', createdAt: base - 4000, demo: true },
-    { id: uid(), eventId: e1.id, eventName: e1.name, time: y + '-11-05T20:00', rank: '1', cost: '500', income: '5200', note: '9 人 FT，单挑赢下', stage: 'ft', createdAt: base - 3000, demo: true }
+    { id: uid(), eventId: e1.id, eventName: e1.name, time: y + '-11-01T20:00', rank: '18', cost: '1000', income: '0', note: 'rebuy 一次还是没进圈', stage: 'out', cur: 'CNY', buys: 2, createdAt: base - 5000, demo: true },
+    { id: uid(), eventId: e3.id, eventName: e3.name, time: y + '-11-02T20:00', rank: '', cost: '500', income: '800', note: '圈外靠淘汰拿了 4 个赏金', stage: 'out', cur: 'CNY', buys: 1, createdAt: base - 4500, demo: true },
+    { id: uid(), eventId: e2.id, eventName: e2.name, time: y + '-11-03T15:00', rank: '3', cost: '200', income: '1400', note: '泡沫期翻倍', stage: 'itm', cur: 'CNY', buys: 1, createdAt: base - 4000, demo: true },
+    { id: uid(), eventId: e1.id, eventName: e1.name, time: y + '-11-05T20:00', rank: '1', cost: '1000', income: '5200', note: '9 人 FT，单挑赢下', stage: 'ft', cur: 'CNY', buys: 2, createdAt: base - 3000, demo: true }
   ];
   saveDB();
 }
@@ -1972,7 +2053,8 @@ function recCardHTML(r){
     + '<span class="rank' + rankCls + '">' + rankTxt + '</span>'
     + '<span class="rec-main">'
       + '<span class="rec-title">' + esc(r.eventName || '未命名比赛') + '</span>'
-      + '<span class="rec-meta">' + esc(fmtWhen(r.time)) + ' · 成本 ' + fmtIn(money(r.cost), cur) + rankNote + '</span>'
+      + '<span class="rec-meta">' + esc(fmtWhen(r.time)) + ' · 成本 ' + fmtIn(money(r.cost), cur)
+        + (buysOf(r) > 1 ? ' · ' + buysOf(r) + ' 手' : '') + rankNote + '</span>'
     + '</span>'
     + '<span class="rec-right">'
       + '<span class="rec-net ' + cls(net) + '">' + signedIn(net, cur) + '</span>'
@@ -2189,6 +2271,8 @@ function renderEvents(){
   box.innerHTML = list.map(function(e){
     var rs = db.records.filter(function(r){ return r.eventId === e.id; });
     var s = statsOf(rs);
+    var nBuy = 0;
+    rs.forEach(function(r){ nBuy += buysOf(r); });
     sumN += s.n;
     sumNet += s.net;
 
@@ -2204,7 +2288,9 @@ function renderEvents(){
 
     var foot = s.n
       ? '<span class="ev-foot">成本 <b>' + fmtMoney(s.cost) + '</b> · 收益 <b>' + fmtMoney(s.income) + '</b>'
-        + ' · 场均 <b class="' + cls(s.net / s.n) + '">' + signed(s.net / s.n) + '</b></span>'
+        + ' · 场均 <b class="' + cls(s.net / s.n) + '">' + signed(s.net / s.n) + '</b>'
+        + (nBuy / s.n > 1.03 ? ' · <b>' + (nBuy / s.n).toFixed(1) + '</b> 手/场' : '')
+        + '</span>'
       : '';
 
     return '<button class="ev" data-event="' + e.id + '">'
@@ -2370,6 +2456,48 @@ function renderStages(list){
   }).join('');
 }
 
+/* 买入习惯：场均手数 + 「1 手」和「2 手以上」分开算进圈率 */
+function renderBuys(list){
+  var panel = $('#buyPanel'), cmp = $('#buyCmp'), noteEl = $('#buyNote');
+  if (!panel) return;
+  var n = list.length;
+  if (!n) { panel.classList.add('hidden'); return; }
+  panel.classList.remove('hidden');
+
+  var tot = 0, one = [], more = [];
+  list.forEach(function(r){
+    var b = buysOf(r);
+    tot += b;
+    if (b > 1) more.push(r); else one.push(r);
+  });
+
+  var avg = tot / n;
+  $('#buyAvg').textContent = (Math.abs(avg - Math.round(avg)) < 0.05) ? String(Math.round(avg)) : avg.toFixed(1);
+  $('#buyTot').textContent = n + ' 场共 ' + tot + ' 手';
+
+  function cell(label, arr){
+    var head = '<span class="bc-l">' + label + '</span>';
+    if (!arr.length) {
+      return '<div>' + head + '<span class="bc-n"><b>0</b>场</span>'
+        + '<span class="bc-s">还没有这样的场次</span></div>';
+    }
+    var s = statsOf(arr);
+    return '<div>' + head
+      + '<span class="bc-n"><b>' + arr.length + '</b>场</span>'
+      + '<span class="bc-s">进圈 ' + Math.round(s.itm / s.n * 100) + '%<br>'
+      + '场均 <b class="' + cls(s.net / s.n) + '">' + signed(s.net / s.n) + '</b></span></div>';
+  }
+  cmp.innerHTML = cell('1 手', one) + cell('2 手以上', more);
+
+  if (!more.length) {
+    noteEl.textContent = '还没有记录过 rebuy。下次买第二手时点一下「×2」，这里会把两种场次分开算进圈率。';
+  } else if (more.length < 3) {
+    noteEl.textContent = '2 手以上的场次只有 ' + more.length + ' 场，还看不出规律，先记着。';
+  } else {
+    noteEl.textContent = '多手场次往往本来就是被打崩、被迫续命的局，所以这组对比只能当参考，不能当结论。';
+  }
+}
+
 /* 个人纪录：单场极值与连续战绩 */
 function renderBests(list){
   var recs = (list || db.records).slice().sort(byTimeAsc);
@@ -2510,6 +2638,7 @@ function renderData(){
   if (!has) return;
   renderTrend(list);
   renderStages(list);
+  renderBuys(list);
   renderBests(list);
 }
 
@@ -2606,6 +2735,53 @@ function setFormCur(c){
   form.cur = c === 'USD' ? 'USD' : 'CNY';
   paintSeg($('#fCur'), form.cur);
   $$('[data-cursym]').forEach(function(el){ el.textContent = curSym(form.cur); });
+  syncBuyUI();
+  updateNetPreview();
+}
+
+/* 手数 chips：选中态 + 右侧的单价提示 */
+function syncBuyUI(){
+  var box = $('#fBuys');
+  if (!box || !form) return;
+  var n = buysOf({ buys: form.buys });
+  $$('#fBuys button').forEach(function(b){
+    b.classList.toggle('on', parseInt(b.getAttribute('data-buys'), 10) === Math.min(n, 5));
+  });
+  var hint = $('#fBuyUnit');
+  if (!hint) return;
+  var unit = buyinOf(form.eventId ? eventById(form.eventId) : null);
+  if (unit) {
+    hint.textContent = '单价 ' + fmtIn(unit, form.cur || 'CNY');
+  } else if (n > 1) {
+    hint.textContent = '成本请填总投入';
+  } else {
+    hint.textContent = '';
+  }
+}
+
+/* 选了比赛之后，如果设过一手买入价、而成本还空着（或上一次也是自动带出来的），就重新带出来。
+   用户手改过成本就不再覆盖 —— costAuto 就是记这件事的。 */
+function applyBuyin(){
+  if (!form) return;
+  var unit = buyinOf(form.eventId ? eventById(form.eventId) : null);
+  if (!unit) {
+    // 换到一个没设价钱的比赛：把上次自动带出来的成本清掉，别让人以为这场也是那个价
+    if (form.costAuto) {
+      form.cost = '';
+      form.costAuto = false;
+      var ce = $('#fCost');
+      if (ce) ce.value = '';
+      updateNetPreview();
+    }
+    syncBuyUI();
+    return;
+  }
+  if (money(form.cost) > 0 && !form.costAuto) { syncBuyUI(); return; }
+  form.cost = String(unit * buysOf({ buys: form.buys }));
+  form.costAuto = true;
+  var el = $('#fCost');
+  if (el) el.value = form.cost;
+  syncBuyUI();
   updateNetPreview();
 }
 function paintForm(){
@@ -2659,7 +2835,7 @@ function openRecordForm(id){
       time: r.time || nowStr(), rank: r.rank == null ? '' : String(r.rank),
       cost: r.cost == null ? '' : String(r.cost),
       income: r.income == null ? '' : String(r.income),
-      note: r.note || '', stage: stageOf(r), cur: curOf(r)
+      note: r.note || '', stage: stageOf(r), cur: curOf(r), buys: buysOf(r), costAuto: false
     };
   } else {
     // 默认选中：当前筛选的比赛 > 最近一次用的比赛 > 唯一比赛
@@ -2677,10 +2853,12 @@ function openRecordForm(id){
       : dispCur();
     form = {
       id: null, eventId: eid, eventName: ev ? ev.name : '',
-      time: nowStr(), rank: '', cost: '', income: '', note: '', stage: 'out', cur: lastCur
+      time: nowStr(), rank: '', cost: '', income: '', note: '', stage: 'out', cur: lastCur, buys: 1, costAuto: false
     };
   }
   paintForm();
+  // 新建时如果这场比赛设过一手买入价，顺手把成本带上，省得每周手打
+  if (!form.id) applyBuyin();
   openModal('mRecord');
 }
 
@@ -2705,13 +2883,14 @@ function saveRecord(){
       r.eventId = form.eventId; r.eventName = form.eventName; r.time = form.time;
       r.rank = rankRaw; r.cost = cost; r.income = income; r.note = note;
       r.stage = form.stage; r.cur = form.cur || 'CNY';
+      r.buys = buysOf({ buys: form.buys });
       delete r.itm; delete r.demo;
     }
   } else {
     db.records.push({
       id: uid(), eventId: form.eventId, eventName: form.eventName, time: form.time,
       rank: rankRaw, cost: cost, income: income, note: note, stage: form.stage,
-      cur: form.cur || 'CNY',
+      cur: form.cur || 'CNY', buys: buysOf({ buys: form.buys }),
       createdAt: Date.now()
     });
     // 如果比赛名库里还没有这条（理论上不会），补一条
@@ -2769,8 +2948,25 @@ $('#pickTime').addEventListener('click', function(){ openTimePicker(form.time); 
 ['#fCost', '#fIncome'].forEach(function(sel){
   $(sel).addEventListener('input', function(){
     this.value = this.value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
+    if (sel === '#fCost' && form) { form.cost = this.value; form.costAuto = false; }
     updateNetPreview();
   });
+});
+
+/* 手数：点了只改标签；设过一手买入价时顺手把成本算成单价 × 手数 */
+$('#fBuys').addEventListener('click', function(e){
+  var b = e.target.closest ? e.target.closest('button[data-buys]') : null;
+  if (!b || !form) return;
+  var n = parseInt(b.getAttribute('data-buys'), 10) || 1;
+  form.buys = n;
+  var unit = buyinOf(form.eventId ? eventById(form.eventId) : null);
+  if (unit) {
+    form.cost = String(unit * n);
+    form.costAuto = true;
+    $('#fCost').value = form.cost;
+  }
+  syncBuyUI();
+  updateNetPreview();
 });
 $('#fRank').addEventListener('input', function(){
   this.value = this.value.replace(/[^\d]/g, '').slice(0, 5);
@@ -2852,6 +3048,7 @@ function renderPickerList(kw){
       form.eventId = ev.id;
       form.eventName = ev.name;
       paintForm();
+      applyBuyin();
       closeModal('mPicker');
     });
   });
@@ -2867,6 +3064,7 @@ function openEventEditor(id){
   $('#eventTitle').textContent = editingEvent ? '编辑比赛' : '新建比赛';
   $('#fEventInput').value = editingEvent ? editingEvent.name : '';
   $('#fEventNote').value = editingEvent ? (editingEvent.note || '') : '';
+  $('#fEventBuyin').value = (editingEvent && money(editingEvent.buyin) > 0) ? String(money(editingEvent.buyin)) : '';
   $('#btnEventDelete').classList.toggle('hidden', !editingEvent);
   openModal('mEvent');
   setTimeout(function(){ $('#fEventInput').focus(); }, 260);
@@ -2878,6 +3076,7 @@ $('#btnBackData').addEventListener('click', function(){ switchView('data'); });
 $('#btnEventSave').addEventListener('click', function(){
   var name = ($('#fEventInput').value || '').trim();
   var note = ($('#fEventNote').value || '').trim();
+  var buyin = money(($('#fEventBuyin').value || '').replace(/[^\d.]/g, ''));
   if (!name) { toast('请填比赛名称'); return; }
 
   var dup = db.events.filter(function(e){
@@ -2888,11 +3087,12 @@ $('#btnEventSave').addEventListener('click', function(){
   if (editingEvent) {
     editingEvent.name = name;
     editingEvent.note = note;
+    editingEvent.buyin = buyin > 0 ? String(buyin) : '';
     // 同步历史记录里的名称快照
     db.records.forEach(function(r){ if (r.eventId === editingEvent.id) r.eventName = name; });
     toast('已保存');
   } else {
-    db.events.push({ id: uid(), name: name, note: note, createdAt: Date.now() });
+    db.events.push({ id: uid(), name: name, note: note, buyin: buyin > 0 ? String(buyin) : '', createdAt: Date.now() });
     toast('已添加');
   }
   saveDB(); renderAll(); closeModal('mEvent');
@@ -3075,11 +3275,11 @@ $('#btnCsv').addEventListener('click', function(){
   var list = db.records.slice().sort(function(a, b){ return String(a.time || '').localeCompare(String(b.time || '')); });
   if (!list.length) { toast('还没有数据'); return; }
   // 导出走原币：表格是原始事实，折算交给 Excel 或汇率列自己算
-  var rows = [['时间', '比赛', '进圈', '名次', '币种', '成本', '收益', '净收益', '备注']];
+  var rows = [['时间', '比赛', '进圈', '名次', '币种', '成本', '收益', '净收益', '手数', '备注']];
   list.forEach(function(r){
     rows.push([
       fmtFull(r.time), r.eventName || '', stageLabel(r), r.rank || '', curName(curOf(r)),
-      num2(r.cost), num2(r.income), num2(recNetRaw(r)), r.note || ''
+      num2(r.cost), num2(r.income), num2(recNetRaw(r)), String(buysOf(r)), r.note || ''
     ]);
   });
   var csv = '\ufeff' + rows.map(function(row){
