@@ -797,7 +797,8 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 .sd{flex:0 0 auto;width:7px;height:7px;border-radius:2.5px}
 .sn{flex:0 0 auto;font-size:12.5px;font-weight:600}
 .sc{font-size:11.5px;color:var(--muted-2);font-variant-numeric:tabular-nums}
-.sv{margin-left:auto;font-family:var(--num-font);font-size:13px;font-weight:680;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.sv{margin-left:auto;display:flex;align-items:baseline;gap:3px;font-family:var(--num-font);font-size:13px;font-weight:680;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.sv-k{flex:0 0 auto;font-style:normal;font-size:9.5px;font-weight:400;color:var(--muted-3);letter-spacing:0}
 
 /* ---------- 个人纪录 ---------- */
 .recbook{
@@ -1411,18 +1412,6 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         <span class="lr-chev">›</span>
       </button>
 
-      <button class="linkrow" id="goLedgerCur">
-        <span class="lr-ico">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.8"/><path d="M12 6.6v10.8"/><path d="M14.6 9.2c-.6-.8-1.6-1.3-2.7-1.3-1.5 0-2.6.8-2.6 2s1 1.8 2.6 2c1.6.2 2.8.8 2.8 2.1 0 1.2-1.1 2-2.7 2-1.2 0-2.2-.5-2.8-1.3"/></svg>
-        </span>
-        <span class="lr-body">
-          <b>记录币种</b>
-          <em>整本记错币种可以改</em>
-        </span>
-        <span class="lr-meta" id="ledgerCurMeta">还没有记录</span>
-        <span class="lr-chev">›</span>
-      </button>
-
       <div class="acts">
         <button class="btn" id="btnCsv">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></svg>
@@ -1700,6 +1689,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <li>ROI = 净收益 ÷ 总成本</li>
           <li>进圈率 = 进圈场次 ÷ 已记录场次</li>
           <li>场均净收益 = 净收益 ÷ 场次</li>
+          <li>成绩结构每行右边是<b>这一档的场均</b>，不是这一档的总和 —— 6 场一共亏 $6.08，场均就是 −$1.01；想看总数就在记录页把这一档筛出来看顶部。</li>
           <li>比率只看<b>已记录的场次</b>。没记住的场次不补也不猜 —— 缺记录会让样本有偏，但不会把公式算错。</li>
         </ul></div>
       </details>
@@ -1719,7 +1709,6 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <li>每场可以单独记人民币或美元。记录卡永远显示<b>当时的原币</b>，因为那是这一场的事实。</li>
           <li>所有汇总按「数据管理 · 美元汇率」折成你选的统计币种；<b>改汇率不会改动任何一条原始记录</b>。</li>
           <li>没手动点过币种时，默认跟着账本走 —— 全美元账本打开就是 $，不会先折成一串人民币。</li>
-          <li>整本账记错币种：数据管理 →「记录币种」一次改过来，<b>只改标签，金额数字不变</b>。</li>
         </ul></div>
       </details>
 
@@ -3225,17 +3214,19 @@ function renderStages(list){
   }).join('');
 
   box.innerHTML = rows.map(function(r){
-    // 场均取整：+¥1,176.92 这种小数在这么小的字号里既难读又假精确
-    var avg = r.n ? Math.round(r.s.net / r.n) : 0;
+    // 这里给的是「场均」，不是这一档的总和 —— 6 场 -$6.08 场均就是 -$1.01。
+    // 以前取整成 -$1，看着像「6 场总共只亏 1 刀」，照着顶部 -$6.08 一对就以为算错了。
+    var avg = r.n ? r.s.net / r.n : 0;
     var on = state.filterStage === r.d.k;
     // 整行可点：点了就跳记录页、只留这一档。没场次的那行点不动，别把人送进空列表
     return '<li><button class="stagerow' + (on ? ' on' : '') + '" type="button"'
       + ' data-stage="' + r.d.k + '"' + (r.n ? '' : ' disabled')
-      + ' aria-label="只看 ' + r.d.name + '，' + r.n + ' 场">'
+      + ' aria-label="只看 ' + r.d.name + '，' + r.n + ' 场，场均 ' + (r.n ? signed(avg) : '—') + '">'
       + '<i class="sd s-' + r.d.k + '"></i>'
       + '<span class="sn">' + r.d.name + '</span>'
       + '<span class="sc">' + r.n + ' 场' + (r.n ? ' · ' + Math.round(r.n / total * 100) + '%' : '') + '</span>'
-      + '<span class="sv ' + (r.n ? cls(avg) : 'zero') + '">' + (r.n ? signed(avg) : '—') + '</span>'
+      + '<span class="sv ' + (r.n ? cls(avg) : 'zero') + '">'
+        + (r.n ? '<i class="sv-k">场均</i>' + signed(avg) : '—') + '</span>'
       + (r.n ? '<i class="stage-chev">›</i>' : '')
     + '</button></li>';
   }).join('');
@@ -3398,22 +3389,6 @@ function renderOpeningMeta(){
   }
 }
 
-/* 数据管理里那行「记录币种」的右侧：整本账是美元、人民币，还是混着 */
-function renderLedgerCurMeta(){
-  var el = $('#ledgerCurMeta');
-  if (!el) return;
-  var n = 0, usd = 0;
-  db.records.forEach(function(r){
-    if (r.demo) return;
-    n++;
-    if (curOf(r) === 'USD') usd++;
-  });
-  if (!n) { el.textContent = hasDemo() ? '只有示例数据' : '还没有记录'; return; }
-  var only = ledgerCur();
-  if (only) { el.textContent = '全部' + curName(only) + ' · ' + n + ' 条'; return; }
-  el.textContent = '$ ' + usd + ' · ¥ ' + (n - usd);
-}
-
 function renderDataEmpty(){
   var box = $('#dataEmpty');
   if (!db.records.length) {
@@ -3445,7 +3420,6 @@ function renderData(){
   $('#dataEmpty').classList.toggle('hidden', has);
   renderDataScope(list, list.length);
   renderOpeningMeta();
-  renderLedgerCurMeta();
   renderDataEmpty();
 
   var cnt = $('#evCount');
@@ -4453,34 +4427,7 @@ function maybeAutoRate(){
   fetchRate({ silent: true });
 }
 
-/* 整本账记错币种：只改记录上的币种标签，金额数字一个不动。
-   混币种的账本不给一键改 —— 那会把真有人民币的记录一起改错。 */
-function fixLedgerCur(){
-  var real = db.records.filter(function(r){ return !r.demo; });
-  if (!real.length) { toast(hasDemo() ? '现在只有示例数据，先记一笔' : '还没有记录'); return; }
-  var only = ledgerCur();
-  if (!only) { toast('记录里混着人民币和美元，只能进每条记录单独改'); return; }
-  var target = only === 'USD' ? 'CNY' : 'USD';
-  askConfirm({
-    title: '全部改成' + curName(target) + '？',
-    desc: '把 ' + real.length + ' 条记录的币种都改成' + curName(target)
-      + '。<br>只改币种标签，每条记录里的金额数字不变；改完所有汇总按'
-      + curName(target) + '重算。',
-    ok: '改成' + curName(target)
-  }).then(function(yes){
-    if (!yes) return;
-    real.forEach(function(r){ r.cur = target; });
-    saveDB();
-    state.dispCur = target;
-    saveDispPref();
-    markAllDirty();
-    renderAll();
-    toast(real.length + ' 条记录已改为' + curName(target));
-  });
-}
-
 $('#goRate').addEventListener('click', openRate);
-$('#goLedgerCur').addEventListener('click', fixLedgerCur);
 $('#btnRateFetch').addEventListener('click', function(){ fetchRate({ silent: false }); });
 $('#rateInput').addEventListener('input', function(){
   this.value = this.value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');

@@ -2,7 +2,7 @@
    目标：断网也能打开并记账。页面只有 index.html 一份，其余是图标与 manifest。
    策略：导航请求 network-first（在线总拿最新，离线回缓存），静态资源 cache-first + 后台更新。 */
 
-const VERSION = 'v4';
+const VERSION = 'v5';
 const CACHE = 'matchledger-' + VERSION;
 
 /* 相对路径以 sw.js 所在目录为基准解析，换仓库名不用改这里 */
