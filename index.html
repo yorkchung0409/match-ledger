@@ -8,7 +8,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="赛场账本">
 <title>赛场账本 · 比赛记录</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b3a22'/%3E%3Cg fill='none' stroke='%23e8ba30' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 16h20v13a10 10 0 0 1-20 0z'/%3E%3Cpath d='M42 19h5a5 5 0 0 1 0 10h-5'/%3E%3Cpath d='M22 19h-5a5 5 0 0 0 0 10h5'/%3E%3Cpath d='M32 39v7'/%3E%3Cpath d='M24 50h16'/%3E%3C/g%3E%3C/svg%3E">
 <style>
 *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -3825,6 +3828,16 @@ if (firstRun) {
     }
     toast(msg);
   }, 600);
+}
+
+/* ================= 离线 ================= */
+/* 装到主屏后断网也能打开。file:// 打开时 register 会抛错，忽略即可。 */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){
+    try {
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function(){});
+    } catch(e) {}
+  });
 }
 
 })();
