@@ -1706,9 +1706,9 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
       <details class="help-d">
         <summary>美元与统计币种</summary>
         <div class="help-body"><ul>
-          <li>每场可以单独记人民币或美元。记录卡永远显示<b>当时的原币</b>，因为那是这一场的事实。</li>
-          <li>所有汇总按「数据管理 · 美元汇率」折成你选的统计币种；<b>改汇率不会改动任何一条原始记录</b>。</li>
-          <li>没手动点过币种时，默认跟着账本走 —— 全美元账本打开就是 $，不会先折成一串人民币。</li>
+          <li>每场可以单独记人民币或美元，<b>账本里两种混着记也没问题</b>。记录卡永远显示当时的原币，因为那是这一场的事实。</li>
+          <li>汇总必须有一个统一口径：先按「数据管理 · 美元汇率」把不同币种折成你选的统计币种，再加总；<b>改汇率不会改动任何一条原始记录</b>。</li>
+          <li>统计币种选过一次就记住，下次打开还是它。没选过时按人民币起手，折算过的数字下面会写明用的汇率。</li>
         </ul></div>
       </details>
 
@@ -2008,21 +2008,6 @@ function needsFx(list){
   var d = dispCur();
   return (list || []).some(function(r){ return curOf(r) !== d; });
 }
-/* 整本账只用一个币种时返回它，混币种返回 null。
-   「全是美元比赛」的账本，默认就该用美元看 —— 折算后的人民币既不是
-   他记的数，也不是他赚的钱，看着只会像算错。
-   示例数据（demo）不算：那只是首次打开送的几笔，不代表账本币种。 */
-function ledgerCur(){
-  var only = null;
-  for (var i = 0; i < db.records.length; i++){
-    if (db.records[i].demo) continue;
-    var k = curOf(db.records[i]);
-    if (only === null) only = k;
-    else if (only !== k) return null;
-  }
-  return only;
-}
-
 /* ================= 数据清洗 =================
    localStorage 里的东西一律不可信：手改过的备份、被同步工具截断的字符串、
    老版本的字段，甚至混进来一条 null —— 一条坏记录就能让 stageOf / statsOf
@@ -2258,9 +2243,10 @@ var editingEvent = null;
 function loadDispPref(){
   var v = '';
   try { v = localStorage.getItem(CUR_KEY) || ''; } catch(e) {}
-  // 手动选过就照手动选；没选过则跟着账本自身：全是美元比赛的账本
-  // 直接按美元看，别先给一串折算后的人民币
-  state.dispCur = (v === 'USD' || v === 'CNY') ? v : (ledgerCur() === 'USD' ? 'USD' : 'CNY');
+  // 统计币种只有「你选过的那一种」：账本里美元人民币混着记，没有
+  // 一个"账本币种"可以跟随，擅自按记录猜只会让同一笔钱忽而 ¥ 忽而 $。
+  // 没选过就按人民币起手，折算口径在成绩结构底部写明；点一次就一直记住。
+  state.dispCur = (v === 'USD') ? 'USD' : 'CNY';
 }
 function saveDispPref(){
   try { localStorage.setItem(CUR_KEY, state.dispCur); } catch(e) {}
