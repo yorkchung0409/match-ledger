@@ -1740,8 +1740,18 @@ function stamp(){
   return d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '_' + pad2(d.getHours()) + pad2(d.getMinutes());
 }
 
-/* ================= 数据层 ================= */
-var db = { events: [], records: [], opening: '', openingCur: 'CNY', rate: '', rateAt: 0, rateSrc: '' };
+/* ================= 数据层 =================
+   v2 形状约定：金额一律 number（不是字符串），「没填」一律 null（不是 '' 或 0）。
+   字段名带上单位或语义：unitPrice 是一手价、buyCount 是手数 —— v1 里 buyin / buys
+   只差一个字母、含义相反，改错一处就是金额错，所以整体重命名。
+   老备份（v1）在 sanitizeDB 里映射过来，不用用户做任何事。 */
+var SCHEMA_VERSION = 2;
+var db = {
+  schemaVersion: SCHEMA_VERSION,
+  events: [], records: [],
+  openingBalance: null, openingCur: 'CNY',
+  fxRate: null, fxUpdatedAt: null, fxSource: null
+};
 
 /* ---- 币种与汇率 ---- */
 var FX_FALLBACK = 7.0;                     // 拿不到网络汇率时的兜底值
@@ -1753,21 +1763,23 @@ function curOf(r){ return (r && r.cur === 'USD') ? 'USD' : 'CNY'; }
 function curSym(c){ return c === 'USD' ? '$' : '¥'; }
 function curName(c){ return c === 'USD' ? '美元' : '人民币'; }
 /* 买入手数：成本才是金额的唯一来源，手数只是一个标签。
-   老记录没有这个字段，一律当 1 手，所以不用做数据迁移。 */
+   老记录没有这个字段，一律当 1 手。仍兼容 v1 的 buys。 */
 function buysOf(r){
-  var n = parseInt(r && r.buys, 10);
+  var raw = (r && r.buyCount != null) ? r.buyCount : (r && r.buys);
+  var n = parseInt(raw, 10);
   return (isFinite(n) && n > 0) ? Math.min(n, 99) : 1;
 }
 /* 比赛预设的一手买入价，没设过返回 0；币种跟随这一场记录，不单独存 */
 function buyinOf(e){
-  var n = e ? money(e.buyin) : 0;
+  if (!e) return 0;
+  var n = money(e.unitPrice != null ? e.unitPrice : e.buyin);
   return n > 0 ? n : 0;
 }
 function dispCur(){
   return (typeof state !== 'undefined' && state && state.dispCur === 'USD') ? 'USD' : 'CNY';
 }
-function fxRate(){ var r = money(db.rate); return r > 0 ? r : FX_FALLBACK; }
-function fxIsSet(){ return money(db.rate) > 0; }
+function fxRate(){ var r = money(db.fxRate); return r > 0 ? r : FX_FALLBACK; }
+function fxIsSet(){ return money(db.fxRate) > 0; }
 function conv(v, from, to){
   var n = money(v);
   if (!from || !to || from === to) return n;
@@ -1821,7 +1833,7 @@ function cleanRec(r){
   // 金额：负数没有意义（成本记错了应该改记录，不是留个负成本参与统计）
   var cost = Math.max(0, money(r.cost));
   var income = Math.max(0, money(r.income));
-  if (String(r.cost) !== String(cost) || String(r.income) !== String(income)) fix = true;
+  if (r.cost !== cost || r.income !== income) fix = true;
 
   var note = (typeof r.note === 'string') ? r.note : '';
   if (note !== r.note) fix = true;
@@ -1829,8 +1841,8 @@ function cleanRec(r){
   var cur = (r.cur === 'USD') ? 'USD' : 'CNY';
   if (cur !== r.cur) fix = true;
 
-  var buys = buysOf(r);
-  if (buys !== r.buys) fix = true;
+  var buyCount = buysOf(r);
+  if (r.buyCount !== buyCount || 'buys' in r) fix = true;
 
   var created = money(r.createdAt);
   if (!(created > 0)) created = Date.now();
@@ -1843,7 +1855,7 @@ function cleanRec(r){
 
   var o = {
     id: id, eventId: eid, eventName: name, time: t, rank: rank, stage: stage,
-    cost: String(cost), income: String(income), cur: cur, buys: buys,
+    cost: cost, income: income, cur: cur, buyCount: buyCount,
     note: note, createdAt: created
   };
   if (r.demo === true) o.demo = true;
@@ -1862,18 +1874,41 @@ function cleanEvent(e){
   var note = (typeof e.note === 'string') ? e.note : '';
   var created = money(e.createdAt);
   if (!(created > 0)) created = Date.now();
-  var buyin = money(e.buyin);
+  var unitPrice = buyinOf(e);
   if (id !== e.id || name !== e.name || note !== e.note
-      || created !== e.createdAt || (buyin > 0) !== ('buyin' in e)) fix = true;
+      || created !== e.createdAt || (unitPrice > 0 ? unitPrice : null) !== e.unitPrice
+      || 'buyin' in e) fix = true;
 
-  var o = { id: id, name: name, note: note, createdAt: created };
-  if (buyin > 0) o.buyin = String(buyin);
+  var o = { id: id, name: name, note: note, createdAt: created, unitPrice: unitPrice > 0 ? unitPrice : null };
   return { e: o, fix: fix };
 }
 
+/* v1 → v2 只改名字，值交给下面的清洗统一规整。
+   v1: opening / rate / rateAt / rateSrc、events.buyin、records.buys
+   v2: openingBalance / fxRate / fxUpdatedAt / fxSource、events.unitPrice、records.buyCount */
+function upgraded(p){
+  var o = isObj(p) ? p : {};
+  if (o.schemaVersion === SCHEMA_VERSION) return o;
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    events: o.events,
+    records: o.records,
+    openingCur: o.openingCur,
+    openingBalance: ('openingBalance' in o) ? o.openingBalance : o.opening,
+    fxRate: ('fxRate' in o) ? o.fxRate : o.rate,
+    fxUpdatedAt: ('fxUpdatedAt' in o) ? o.fxUpdatedAt : o.rateAt,
+    fxSource: ('fxSource' in o) ? o.fxSource : o.rateSrc
+  };
+}
+
 function sanitizeDB(src){
-  var p = isObj(src) ? src : {};
-  var out = { events: [], records: [], opening: '', openingCur: 'CNY', rate: '', rateAt: 0, rateSrc: '' };
+  var p = upgraded(src);
+  var out = {
+    schemaVersion: SCHEMA_VERSION,
+    events: [], records: [],
+    openingBalance: null, openingCur: 'CNY',
+    fxRate: null, fxUpdatedAt: null, fxSource: null
+  };
   var dropped = 0, fixed = 0, seen = {};
 
   (Array.isArray(p.events) ? p.events : []).forEach(function(raw){
@@ -1892,30 +1927,36 @@ function sanitizeDB(src){
     out.records.push(c.r);
   });
 
-  var hasOpening = (p.opening !== null && p.opening !== undefined && String(p.opening).trim() !== '');
-  var ov = money(p.opening);
-  out.opening = (hasOpening && ov !== 0) ? String(ov) : '';
+  // 期初：0 等同于没设，免得 hero 上挂一句「含期初 +¥0」
+  var hasOv = (p.openingBalance !== null && p.openingBalance !== undefined && String(p.openingBalance).trim() !== '');
+  var ov = money(p.openingBalance);
+  out.openingBalance = (hasOv && ov !== 0) ? ov : null;
   out.openingCur = p.openingCur === 'USD' ? 'USD' : 'CNY';
 
-  var rv = money(p.rate);
-  out.rate = rv > 0 ? String(rv) : '';
-  out.rateAt = rv > 0 ? money(p.rateAt) : 0;
-  out.rateSrc = (rv > 0 && p.rateSrc) ? String(p.rateSrc) : '';
+  var rv = money(p.fxRate);
+  out.fxRate = rv > 0 ? rv : null;
+  out.fxUpdatedAt = rv > 0 ? (money(p.fxUpdatedAt) || null) : null;
+  out.fxSource = (rv > 0 && p.fxSource) ? String(p.fxSource) : null;
 
-  return { data: out, dropped: dropped, fixed: fixed };
+  return {
+    data: out, dropped: dropped, fixed: fixed,
+    upgraded: !(isObj(src) && src.schemaVersion === SCHEMA_VERSION)
+  };
 }
 
 /* 把清洗后的数据装进 db。persist=true 时无论如何落盘（导入用） */
 function adoptData(src, persist){
   var s = sanitizeDB(src);
+  db.schemaVersion = SCHEMA_VERSION;
   db.events = s.data.events;
   db.records = s.data.records;
-  db.opening = s.data.opening;
+  db.openingBalance = s.data.openingBalance;
   db.openingCur = s.data.openingCur;
-  db.rate = s.data.rate;
-  db.rateAt = s.data.rateAt;
-  db.rateSrc = s.data.rateSrc;
-  if (persist || s.dropped || s.fixed) saveDB();
+  db.fxRate = s.data.fxRate;
+  db.fxUpdatedAt = s.data.fxUpdatedAt;
+  db.fxSource = s.data.fxSource;
+  // 老版本数据读上来会顺手写成 v2，下次打开就不用再转
+  if (persist || s.upgraded || s.dropped || s.fixed) saveDB();
   return s;
 }
 
@@ -1934,7 +1975,9 @@ function loadDB(){
       p = {};
     }
     var s = adoptData(p, false);
-    if (!dbIssue && (s.dropped || s.fixed)) {
+    // 老版本升到 v2 时每条记录都会"被整理"（金额转 number、buys→buyCount），
+    // 这是格式升级不是数据损坏，不该弹「已整理 N 条」吓人
+    if (!dbIssue && (s.dropped || (s.fixed && !s.upgraded))) {
       dbIssue = { kind: 'fixed', dropped: s.dropped, fixed: s.fixed };
     }
     return false;
@@ -1957,16 +2000,16 @@ function saveDB(){
 }
 function seed(){
   var y = new Date().getFullYear();
-  var e1 = { id: uid(), name: '周末深筹赛', note: '买入 500', buyin: '500', createdAt: Date.now() };
-  var e2 = { id: uid(), name: '周日快速赛', note: '买入 200', buyin: '200', createdAt: Date.now() - 1000 };
-  var e3 = { id: uid(), name: '周中赏金赛', note: '买入 500，赏金制', buyin: '500', createdAt: Date.now() - 2000 };
+  var e1 = { id: uid(), name: '周末深筹赛', note: '买入 500', unitPrice: 500, createdAt: Date.now() };
+  var e2 = { id: uid(), name: '周日快速赛', note: '买入 200', unitPrice: 200, createdAt: Date.now() - 1000 };
+  var e3 = { id: uid(), name: '周中赏金赛', note: '买入 500，赏金制', unitPrice: 500, createdAt: Date.now() - 2000 };
   db.events = [e1, e2, e3];
   var base = Date.now();
   db.records = [
-    { id: uid(), eventId: e1.id, eventName: e1.name, time: y + '-11-01T20:00', rank: '18', cost: '1000', income: '0', note: 'rebuy 一次还是没进圈', stage: 'out', cur: 'CNY', buys: 2, createdAt: base - 5000, demo: true },
-    { id: uid(), eventId: e3.id, eventName: e3.name, time: y + '-11-02T20:00', rank: '', cost: '500', income: '800', note: '圈外靠淘汰拿了 4 个赏金', stage: 'out', cur: 'CNY', buys: 1, createdAt: base - 4500, demo: true },
-    { id: uid(), eventId: e2.id, eventName: e2.name, time: y + '-11-03T15:00', rank: '3', cost: '200', income: '1400', note: '泡沫期翻倍', stage: 'itm', cur: 'CNY', buys: 1, createdAt: base - 4000, demo: true },
-    { id: uid(), eventId: e1.id, eventName: e1.name, time: y + '-11-05T20:00', rank: '1', cost: '1000', income: '5200', note: '9 人 FT，单挑赢下', stage: 'ft', cur: 'CNY', buys: 2, createdAt: base - 3000, demo: true }
+    { id: uid(), eventId: e1.id, eventName: e1.name, time: y + '-11-01T20:00', rank: '18', cost: 1000, income: 0, note: 'rebuy 一次还是没进圈', stage: 'out', cur: 'CNY', buyCount: 2, createdAt: base - 5000, demo: true },
+    { id: uid(), eventId: e3.id, eventName: e3.name, time: y + '-11-02T20:00', rank: '', cost: 500, income: 800, note: '圈外靠淘汰拿了 4 个赏金', stage: 'out', cur: 'CNY', buyCount: 1, createdAt: base - 4500, demo: true },
+    { id: uid(), eventId: e2.id, eventName: e2.name, time: y + '-11-03T15:00', rank: '3', cost: 200, income: 1400, note: '泡沫期翻倍', stage: 'itm', cur: 'CNY', buyCount: 1, createdAt: base - 4000, demo: true },
+    { id: uid(), eventId: e1.id, eventName: e1.name, time: y + '-11-05T20:00', rank: '1', cost: 1000, income: 5200, note: '9 人 FT，单挑赢下', stage: 'ft', cur: 'CNY', buyCount: 2, createdAt: base - 3000, demo: true }
   ];
   saveDB();
 }
@@ -2159,11 +2202,11 @@ function eventById(id){
 }
 
 /* 期初结余：开始记账前已经累计的盈亏。只进累计金额，不进任何按场的统计 */
-function openingOf(){ return toDisp(db.opening, db.openingCur || 'CNY'); }
-function openingRaw(){ return money(db.opening); }
-function openingSet(){
-  var raw = String(db.opening == null ? '' : db.opening).trim();
-  return raw !== '' && openingOf() !== 0;
+function openingOf(){ return toDisp(db.openingBalance, db.openingCur || 'CNY'); }
+function openingRaw(){ return money(db.openingBalance); }
+/* 之前叫 hasOpening()，名字像设置器，其实是问「设过没有」 */
+function hasOpening(){
+  return db.openingBalance !== null && db.openingBalance !== undefined && openingOf() !== 0;
 }
 /* 只有完全没筛选时，累计数才代表「记账以来的总账」，期初才有意义 */
 function noFilter(){
@@ -2195,10 +2238,10 @@ function renderStats(){
   var scope;
   if (noFilter() && s.n > 0) {
     // 没筛选时先把口径说清楚：是含期初，还是从第一场记录起算
-    scope = openingSet()
+    scope = hasOpening()
       ? '含期初 ' + signed(base)
       : '自 ' + shortYm(list[list.length - 1].time) + ' 起';
-  } else if (noFilter() && s.n === 0 && openingSet()) {
+  } else if (noFilter() && s.n === 0 && hasOpening()) {
     scope = '含期初 ' + signed(base);
   } else {
     scope = parts.length ? parts.join(' · ') : '全部记录';
@@ -2625,7 +2668,7 @@ function renderTrend(list){
   if (noteEl) {
     if (dateActive()) {
       noteEl.textContent = '只累计 ' + dateScopeText() + '的 ' + recs.length + ' 场'
-        + (openingSet() ? '，期初不参与' : '');
+        + (hasOpening() ? '，期初不参与' : '');
     } else if (base !== 0) {
       noteEl.innerHTML =
           '<span>记账以来 <b class="' + cls(cur) + '">' + signed(cur) + '</b></span>'
@@ -2781,8 +2824,8 @@ function paintCurSegs(){
 }
 function rateSourceText(){
   if (!fxIsSet()) return '还没取过，先用默认 1 : ' + fxShort() + '。可以点下面的按钮取，或者手动填一个你实际换汇的价。';
-  var when = db.rateAt ? fmtStamp(db.rateAt) : '';
-  if (db.rateSrc === 'manual') return '手动设定' + (when ? ' · ' + when : '') + '，改汇率不会改动任何一条记录的原始金额。';
+  var when = db.fxUpdatedAt ? fmtStamp(db.fxUpdatedAt) : '';
+  if (db.fxSource === 'manual') return '手动设定' + (when ? ' · ' + when : '') + '，改汇率不会改动任何一条记录的原始金额。';
   return when ? (when + ' 自动更新，改汇率不会改动任何一条记录的原始金额。') : '自动更新，改汇率不会改动任何一条记录的原始金额。';
 }
 
@@ -2802,7 +2845,7 @@ function renderDataScope(list, n){
 function renderOpeningMeta(){
   var el = $('#openingMeta');
   if (!el) return;
-  if (openingSet()) {
+  if (hasOpening()) {
     // 显示填进去的原币值，跟弹层里看到的一致
     el.textContent = signedIn(openingRaw(), db.openingCur || 'CNY');
     el.className = 'lr-meta ' + cls(openingRaw());
@@ -2990,7 +3033,7 @@ function setFormCur(c){
 function syncBuyUI(){
   var box = $('#fBuys');
   if (!box || !form) return;
-  var n = buysOf({ buys: form.buys });
+  var n = buysOf({ buyCount: form.buys });
   $$('#fBuys button').forEach(function(b){
     b.classList.toggle('on', parseInt(b.getAttribute('data-buys'), 10) === Math.min(n, 5));
   });
@@ -3024,7 +3067,7 @@ function applyBuyin(){
     return;
   }
   if (money(form.cost) > 0 && !form.costAuto) { syncBuyUI(); return; }
-  form.cost = String(unit * buysOf({ buys: form.buys }));
+  form.cost = String(unit * buysOf({ buyCount: form.buys }));
   form.costAuto = true;
   var el = $('#fCost');
   if (el) el.value = form.cost;
@@ -3112,8 +3155,9 @@ function openRecordForm(id){
 function saveRecord(){
   if (!form.eventName) { toast('先选一个比赛'); return; }
   var rankRaw = ($('#fRank').value || '').replace(/[^\d]/g, '');
-  var cost = ($('#fCost').value || '').trim();
-  var income = ($('#fIncome').value || '').trim();
+  // 落盘的是 number：v1 存字符串，统计时要到处 parseFloat
+  var cost = Math.max(0, money($('#fCost').value));
+  var income = Math.max(0, money($('#fIncome').value));
   var note = ($('#fNote').value || '').trim();
 
   // 只有进圈/进 FT 才强制名次；圈外可以不填
@@ -3130,14 +3174,14 @@ function saveRecord(){
       r.eventId = form.eventId; r.eventName = form.eventName; r.time = form.time;
       r.rank = rankRaw; r.cost = cost; r.income = income; r.note = note;
       r.stage = form.stage; r.cur = form.cur || 'CNY';
-      r.buys = buysOf({ buys: form.buys });
+      r.buyCount = buysOf({ buyCount: form.buys });
       delete r.itm; delete r.demo;
     }
   } else {
     db.records.push({
       id: uid(), eventId: form.eventId, eventName: form.eventName, time: form.time,
       rank: rankRaw, cost: cost, income: income, note: note, stage: form.stage,
-      cur: form.cur || 'CNY', buys: buysOf({ buys: form.buys }),
+      cur: form.cur || 'CNY', buyCount: buysOf({ buyCount: form.buys }),
       createdAt: Date.now()
     });
     // 如果比赛名库里还没有这条（理论上不会），补一条
@@ -3312,7 +3356,7 @@ function openEventEditor(id){
   $('#eventTitle').textContent = editingEvent ? '编辑比赛' : '新建比赛';
   $('#fEventInput').value = editingEvent ? editingEvent.name : '';
   $('#fEventNote').value = editingEvent ? (editingEvent.note || '') : '';
-  $('#fEventBuyin').value = (editingEvent && money(editingEvent.buyin) > 0) ? String(money(editingEvent.buyin)) : '';
+  $('#fEventBuyin').value = (editingEvent && money(editingEvent.unitPrice) > 0) ? String(money(editingEvent.unitPrice)) : '';
   $('#btnEventDelete').classList.toggle('hidden', !editingEvent);
   openModal('mEvent');
   setTimeout(function(){ $('#fEventInput').focus(); }, 260);
@@ -3335,7 +3379,7 @@ $('#btnEventSave').addEventListener('click', function(){
   if (editingEvent) {
     editingEvent.name = name;
     editingEvent.note = note;
-    editingEvent.buyin = buyin > 0 ? String(buyin) : '';
+    editingEvent.unitPrice = buyin > 0 ? buyin : null;
     // 同步历史记录里的名称快照
     db.records.forEach(function(r){ if (r.eventId === editingEvent.id) r.eventName = name; });
     toast('已保存');
@@ -3534,7 +3578,7 @@ function download(content, filename, mime){
 }
 
 $('#btnCsv').addEventListener('click', function(){
-  var list = db.records.slice().sort(function(a, b){ return String(a.time || '').localeCompare(String(b.time || '')); });
+  var list = db.records.slice().sort(byTimeAsc);
   if (!list.length) { toast('还没有数据'); return; }
   // 导出走原币：表格是原始事实，折算交给 Excel 或汇率列自己算
   var rows = [['时间', '比赛', '进圈', '名次', '币种', '成本', '收益', '净收益', '手数', '备注']];
@@ -3562,9 +3606,9 @@ function plainRecords(list){
 
 function exportJSON(){
   var data = JSON.stringify({
-    app: 'matchledger', version: 2, exportedAt: new Date().toISOString(),
-    opening: db.opening || '', openingCur: db.openingCur || 'CNY',
-    rate: db.rate || '', rateAt: db.rateAt || 0, rateSrc: db.rateSrc || '',
+    app: 'matchledger', schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(),
+    openingBalance: db.openingBalance, openingCur: db.openingCur || 'CNY',
+    fxRate: db.fxRate, fxUpdatedAt: db.fxUpdatedAt, fxSource: db.fxSource,
     events: db.events, records: plainRecords(db.records)
   }, null, 2);
   download(data, '赛场账本备份_' + stamp() + '.json', 'application/json;charset=utf-8');
@@ -3644,13 +3688,13 @@ bindCurSeg('#openingCurSeg', function(c){
 });
 $('#btnOpeningSave').addEventListener('click', function(){
   var n = money($('#openingInput').value);
-  db.opening = n ? String(openingSign * n) : '';
+  db.openingBalance = n ? (openingSign * n) : null;
   db.openingCur = openingCurDraft;
   saveDB();
   closeModal('mOpening');
   markAllDirty();
   renderAll();
-  toast(db.opening ? '期初已设为 ' + signedIn(money(db.opening), db.openingCur) : '已清除期初');
+  toast(db.openingBalance !== null ? '期初已设为 ' + signedIn(money(db.openingBalance), db.openingCur) : '已清除期初');
 });
 
 /* ============ 美元汇率 ============ */
@@ -3664,9 +3708,9 @@ function openRate(){
 
 function setRate(v, src){
   var n = money(v);
-  db.rate = n > 0 ? String(n) : '';
-  db.rateAt = n > 0 ? Date.now() : 0;
-  db.rateSrc = n > 0 ? (src || 'manual') : '';
+  db.fxRate = n > 0 ? n : null;
+  db.fxUpdatedAt = n > 0 ? Date.now() : null;
+  db.fxSource = n > 0 ? (src || 'manual') : null;
   saveDB();
   var inp = $('#rateInput');
   if (inp) inp.value = fxIsSet() ? num4(fxRate()) : '';
@@ -3719,7 +3763,7 @@ function fetchRate(opts){
 
 /* 打开应用时顺手更新一次；失败过就在一小时内不再试，别每次刷新都卡网络 */
 function maybeAutoRate(){
-  if (fxIsSet() && db.rateAt && Date.now() - db.rateAt < RATE_TTL) return;
+  if (fxIsSet() && db.fxUpdatedAt && Date.now() - db.fxUpdatedAt < RATE_TTL) return;
   var t = 0;
   try { t = +localStorage.getItem(RATE_TRY_KEY) || 0; } catch(e) {}
   if (Date.now() - t < 60 * 60 * 1000) return;
@@ -3759,7 +3803,7 @@ $('#btnClear').addEventListener('click', function(){
     ok: '全部清空', danger: true
   }).then(function(ok){
     if (!ok) return;
-    db.events = []; db.records = []; db.opening = ''; db.openingCur = 'CNY';
+    db.events = []; db.records = []; db.openingBalance = null; db.openingCur = 'CNY';
     resetFilters();
     saveDB(); renderAll(); toast('已清空');
   });
@@ -3819,7 +3863,7 @@ document.addEventListener('click', function(e){
     // 全是示例数据就整库清空；混着你自己的记录时只摘掉示例，别误删
     var allDemo = db.records.length > 0 && db.records.every(function(r){ return r.demo; });
     if (allDemo) {
-      db.events = []; db.records = []; db.opening = ''; db.openingCur = 'CNY';
+      db.events = []; db.records = []; db.openingBalance = null; db.openingCur = 'CNY';
       resetFilters();
       saveDB(); renderAll(); toast('已清空示例');
     } else {
