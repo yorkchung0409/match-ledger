@@ -339,7 +339,6 @@ input,textarea,select{font-family:inherit;color:inherit}
 
 /* ---------- layout ---------- */
 .app{max-width:480px;margin:0 auto;padding:0 16px calc(112px + env(safe-area-inset-bottom));}
-.app.nopad{padding-bottom:0}
 
 /* ---------- brand header ---------- */
 .brand{display:flex;align-items:center;gap:12px;padding:calc(18px + env(safe-area-inset-top)) 2px 18px}
@@ -1629,7 +1628,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
     </div>
     <div class="time-preview" id="timePreview">—</div>
     <div class="wheel-head"><span>年</span><span>月</span><span>日</span><span>时</span><span>分</span></div>
-    <div class="wheels" id="wheels">
+    <div class="wheels">
       <div class="wheel" data-k="y"></div>
       <div class="wheel" data-k="mo"></div>
       <div class="wheel" data-k="d"></div>
@@ -1738,6 +1737,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <li>换设备：旧设备「备份数据」导出 JSON → 新设备「从备份文件恢复」。</li>
           <li>「导出表格」是 CSV，给 Excel 或表格软件用。</li>
           <li>「清空全部数据」不可撤销，动手前先备份。</li>
+          <li>万一账本文件读坏了，会弹出一页让你先把原始内容导出来留底，不会静默清空。</li>
         </ul></div>
       </details>
     </div>
@@ -2083,7 +2083,11 @@ function cleanEvent(e){
   if (!name) return null;                       // 没有名字的比赛名没有意义
   var fix = false;
 
-  var id = (typeof e.id === 'string' && e.id) ? e.id : uid();
+  // id 会进 <option value="…"> 和 [data-evjump]，必须是干净的 token。
+  // 备份被人手改过、或别的工具导出过，id 里可能带引号和属性 —— 只校验
+  // 「是非空字符串」拦不住 HTML 注入。不合规就重新分配，下面 sanitizeDB
+  // 会把引用它的记录一起改过去，不让关联断掉。
+  var id = (typeof e.id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(e.id)) ? e.id : uid();
   var note = (typeof e.note === 'string') ? e.note : '';
   var created = money(e.createdAt);
   if (!(created > 0)) created = Date.now();
@@ -2123,11 +2127,17 @@ function sanitizeDB(src){
     fxRate: null, fxUpdatedAt: null, fxSource: null
   };
   var dropped = 0, fixed = 0, seen = {};
+  // 比赛 id 被换掉时（非法字符 / 撞 id），把引用它的记录一起改过去，
+  // 否则「按比赛筛选」会串场、记录会变成找不到比赛名的孤儿。
+  // 用无原型的对象：备份里若把 "__proto__" 当 id，普通 {} 会被污染。
+  var renamed = Object.create(null);
 
   (Array.isArray(p.events) ? p.events : []).forEach(function(raw){
     var c = cleanEvent(raw);
     if (!c) { dropped++; return; }
+    var orig = (isObj(raw) && typeof raw.id === 'string') ? raw.id : '';
     if (seen[c.e.id]) { c.e.id = uid(); c.fix = true; }   // 撞 id 会让"按比赛筛选"串场
+    if (orig && orig !== c.e.id) renamed[orig] = c.e.id;
     seen[c.e.id] = 1;
     if (c.fix) fixed++;
     out.events.push(c.e);
@@ -2136,6 +2146,7 @@ function sanitizeDB(src){
   (Array.isArray(p.records) ? p.records : []).forEach(function(raw){
     var c = cleanRec(raw);
     if (!c) { dropped++; return; }
+    if (c.r.eventId && renamed[c.r.eventId]) { c.r.eventId = renamed[c.r.eventId]; c.fix = true; }
     if (c.fix) fixed++;
     out.records.push(c.r);
   });
@@ -2636,10 +2647,10 @@ function renderFilters(){
     return cmpName(a.name, b.name);
   });
   sorted.forEach(function(e){
-    opts += '<option value="' + e.id + '">' + esc(e.name) + '</option>';
+    opts += '<option value="' + esc(e.id) + '">' + esc(e.name) + '</option>';
   });
   if (state.filterEvent !== 'all' && !eventById(state.filterEvent)) {
-    opts += '<option value="' + state.filterEvent + '">已删除的比赛</option>';
+    opts += '<option value="' + esc(state.filterEvent) + '">已删除的比赛</option>';
   }
   sel.innerHTML = opts;
   sel.value = state.filterEvent;
@@ -2878,8 +2889,19 @@ function chartW(){
   return Math.max(200, Math.round($('#chartBody').clientWidth || 328));
 }
 
+/* 走势图的 SVG 是按 chartBody 的像素宽度算坐标的（不是 viewBox 自适应）。
+   记住上次画的时候多宽，宽度没变就不必重画 —— 以前每次进数据页都 force 一次，
+   2000 条时白花 11–14ms 重算一遍完全没变的图。 */
+var lastChartW = 0;
+function chartWidthChanged(){
+  var body = $('#chartBody');
+  var w = body ? (body.clientWidth || 0) : 0;
+  return w > 0 && w !== lastChartW;
+}
+
 function renderTrend(list){
   var recs = (list || db.records).slice().sort(byTimeAsc);
+  lastChartW = $('#chartBody').clientWidth || 0;
   resetChart();
   if (!recs.length) {
     $('#chartBody').innerHTML = '<div class="chart-empty">还没有记录</div>';
@@ -3421,14 +3443,26 @@ function renderData(){
 /* 渲染是「六块全量重画」，任何一块抛错都会让整页停在半成品状态：
    记录列表空着、hero 还是初始值、tabbar 点不动，偏偏没有任何入口能自救。
    所以这里兜一层，失败就把兜底页顶上来 —— 至少还能导出、修复、清空。 */
-function showFatal(err){
+function showFatal(err, mode){
   var box = $('#fatal');
   if (!box) return;
-  var msg = $('#fatalMsg');
-  if (msg) msg.textContent = String((err && (err.message || err)) || '未知错误').slice(0, 180);
+  var readMode = mode === 'read';
+  var h = box.querySelector('h3'), p = box.querySelector('p'), msg = $('#fatalMsg');
+  // 两种失败要给的出口不一样：渲染崩了还能靠清洗救；JSON 语法坏了洗不回来，
+  // 只能先把原文导出去。文案和按钮都按场景换，别给一个点了没用的「尝试修复」。
+  if (h) h.textContent = readMode ? '本机数据读取失败' : '界面没能正常显示';
+  if (p) p.innerHTML = readMode
+    ? '账本文件没能解析。<br><b>原始内容已另存</b>：先导出留底，再决定怎么恢复。'
+    : '数据里有一条格式不对，界面画到一半停了。<br><b>记录都还在</b>：先备份，再点「尝试修复」。';
+  if (msg) msg.textContent = readMode
+    ? '原文：matchledger.v1.broken'
+    : String((err && (err.message || err)) || '未知错误').slice(0, 180);
+  var fix = $('#fatalFix');
+  if (fix) fix.classList.toggle('hidden', readMode);
   box.classList.remove('hidden');
   document.body.classList.remove('lock');
-  try { console.error('渲染失败', err); } catch(e) {}
+  // 渲染异常留一条诊断；读取失败是已知状态，别每次启动都往 console 里扔红字
+  if (!readMode) { try { console.error('渲染失败', err); } catch(e) {} }
 }
 function hideFatal(){
   var box = $('#fatal');
@@ -3495,8 +3529,8 @@ function switchView(v, fromPop){
     b.classList.toggle('on', b.getAttribute('data-view') === tabView);
   });
   document.body.classList.toggle('subpage', v === 'events');
-  // 数据页的曲线宽度依赖真实布局，每次离开隐藏状态都要重算；其余页按脏标记补画
-  paintView(v, v === 'data');
+  // 数据页的曲线宽度依赖真实布局：宽度变了要重算，否则按脏标记收敛
+  paintView(v, v === 'data' && chartWidthChanged());
   if (!fromPop) {
     var cur = (history.state && history.state.h) || '';
     if (v === 'events') {
@@ -4293,8 +4327,10 @@ $('#fileInput').addEventListener('change', function(){
 /* ---------- 兜底页的三个出口 ---------- */
 /* 导出的是 localStorage 里的原文，不经过任何整理：这时候「原封不动」比「整齐」重要 */
 $('#fatalExport').addEventListener('click', function(){
+  // 坏 JSON 时 loadDB 会顺手写一份空库进 LS_KEY，原文只在 .broken 里 ——
+  // 先取 .broken，否则导出去的是空账本，等于把最后的线索也弄丢了。
   var raw = '';
-  try { raw = localStorage.getItem(LS_KEY) || localStorage.getItem(LS_KEY + '.broken') || ''; } catch(e) {}
+  try { raw = localStorage.getItem(LS_KEY + '.broken') || localStorage.getItem(LS_KEY) || ''; } catch(e) {}
   if (!raw) { toast('本机没有可导出的数据'); return; }
   download(raw, '赛场账本备份_' + stamp() + '.json', 'application/json;charset=utf-8');
 });
@@ -4332,9 +4368,8 @@ $('#btnOpeningSave').addEventListener('click', function(){
   var n = money($('#openingInput').value);
   db.openingBalance = n ? (openingSign * n) : null;
   db.openingCur = openingCurDraft;
-  saveDB();
+  saveDB();   // 内部已标脏，下面只需把当前视图立刻重画
   closeModal('mOpening');
-  markAllDirty();
   renderAll();
   toast(db.openingBalance !== null ? '期初已设为 ' + signedIn(money(db.openingBalance), db.openingCur) : '已清除期初');
 });
@@ -4357,7 +4392,6 @@ function setRate(v, src){
   var inp = $('#rateInput');
   if (inp) inp.value = fxIsSet() ? num4(fxRate()) : '';
   paintCurSegs();
-  markAllDirty();
   renderAll();
 }
 
@@ -4606,19 +4640,23 @@ if (firstRun) {
   // 首次进入给个轻提示
   setTimeout(function(){ toast('示例数据，可一键清空'); }, 600);
 } else if (dbIssue) {
-  setTimeout(function(){
-    var msg;
-    if (dbIssue.kind === 'read') {
-      msg = '本机数据读取失败，原始内容已另存';
-    } else if (dbIssue.dropped && dbIssue.fixed) {
-      msg = '已整理 ' + dbIssue.fixed + ' 条，跳过 ' + dbIssue.dropped + ' 条无法识别';
-    } else if (dbIssue.dropped) {
-      msg = '已跳过 ' + dbIssue.dropped + ' 条无法识别的数据';
-    } else {
-      msg = '已整理 ' + dbIssue.fixed + ' 条不完整的数据';
-    }
-    toast(msg);
-  }, 600);
+  if (dbIssue.kind === 'read') {
+    // 解析失败时空库已经落盘，光靠一句 toast 用户拿不回原文 —— 直接把
+    // 带「导出原始数据」的兜底页顶上来（手机 PWA 里也进不了 DevTools）
+    showFatal(null, 'read');
+  } else {
+    setTimeout(function(){
+      var msg;
+      if (dbIssue.dropped && dbIssue.fixed) {
+        msg = '已整理 ' + dbIssue.fixed + ' 条，跳过 ' + dbIssue.dropped + ' 条无法识别';
+      } else if (dbIssue.dropped) {
+        msg = '已跳过 ' + dbIssue.dropped + ' 条无法识别的数据';
+      } else {
+        msg = '已整理 ' + dbIssue.fixed + ' 条不完整的数据';
+      }
+      toast(msg);
+    }, 600);
+  }
 }
 
 /* ================= 离线 ================= */
