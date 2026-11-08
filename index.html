@@ -93,6 +93,9 @@ html{-webkit-text-size-adjust:100%}
   --hero-bg:linear-gradient(180deg,var(--surface),var(--surface-hi));
   --shadow-fab:0 9px 20px -8px rgba(var(--brand-rgb),.58),0 2px 6px rgba(var(--sh-rgb),.14);
   --tabbar-bg:rgba(255,255,255,.90);
+  /* ---- 底部导航选中项：图标后面的药丸底片 ---- */
+  --tab-pill:rgba(var(--brand-rgb),.13);
+  --tab-pill-edge:rgba(var(--brand-rgb),.17);
 
   /* ---- 排印 ---- */
   --font-ui:-apple-system,BlinkMacSystemFont,"SF Pro SC","Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
@@ -510,6 +513,14 @@ html{-webkit-text-size-adjust:100%}
   --track-h:.02em;
 
   --bg-tex:none;
+}
+
+/* 深色主题：13% 的品牌色铺在近黑底上会被吃掉大半，得给到 20%
+   （炭黑那套品牌色本身是白的，20% 落在纯黑上正好是一块浅灰药丸） */
+:root[data-theme="midnight"],:root[data-theme="abyss"],:root[data-theme="nebula"],
+:root[data-theme="ember"],:root[data-theme="carbon"]{
+  --tab-pill:rgba(var(--brand-rgb),.20);
+  --tab-pill-edge:rgba(var(--brand-rgb),.26);
 }
 
 /* ================= 主题特化：少数跳出变量体系的细节 ================= */
@@ -1167,11 +1178,24 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 }
 .tabs{display:grid;grid-template-columns:1fr 68px 1fr;align-items:stretch;width:100%;max-width:480px}
 .tab{
-  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;
-  padding:10px 0 9px;color:var(--muted-2);font-size:10.5px;letter-spacing:.04em;transition:.18s;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;
+  padding:7px 0 7px;color:var(--muted-2);font-size:10.5px;letter-spacing:.04em;transition:.18s;
 }
-.tab svg{transition:.18s}
-.tab.on{color:var(--brand);font-weight:600}
+/* 选中态：图标后面垫一块品牌色药丸，再配上更粗的描边。
+   原来只把颜色从灰换成品牌色、字重 600，10.5px 的字加 20px 的细线图标，
+   这点色差在一排灰里几乎看不出来 —— 深色主题下更淡。 */
+.tico{
+  display:grid;place-items:center;width:44px;height:26px;
+  border-radius:var(--r-pill);
+  transition:background .2s ease,box-shadow .2s ease;
+}
+.tab svg{display:block;transition:stroke-width .2s ease}
+.tab.on{color:var(--brand);font-weight:700}
+.tab.on .tico{
+  background:var(--tab-pill);
+  box-shadow:inset 0 0 0 1px var(--tab-pill-edge);
+}
+.tab.on svg{stroke-width:2.2}
 .tab:active{opacity:.62}
 
 /* 中间「记一笔」：从导航栏里凸起 */
@@ -1772,7 +1796,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 <nav class="tabbar">
   <div class="tabs">
     <button class="tab on" data-view="records">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="3.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="3.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg>
+      <span class="tico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="3.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="3.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg></span>
       记录
     </button>
     <div class="addslot">
@@ -1781,7 +1805,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
       </button>
     </div>
     <button class="tab" data-view="data">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11"/><path d="M12 20V4"/><path d="M19 20v-6"/></svg>
+      <span class="tico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11"/><path d="M12 20V4"/><path d="M19 20v-6"/></svg></span>
       数据
     </button>
   </div>
@@ -4329,16 +4353,23 @@ function replaceNav(h){
   try { history.replaceState({ h: h }, '', '#/' + h); } catch(e) {}
 }
 
+/* 底部导航高亮。光靠颜色区分对读屏没用，所以一并挂 aria-current */
+function paintTabs(v){
+  var tabView = (v === 'events') ? 'data' : v;
+  $$('.tab').forEach(function(b){
+    var on = b.getAttribute('data-view') === tabView;
+    b.classList.toggle('on', on);
+    if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
+}
+
 function switchView(v, fromPop){
   state.view = v;
   ['records', 'events', 'data'].forEach(function(k){
     $('#view-' + k).classList.toggle('hidden', k !== v);
   });
   // 比赛管理是「数据」的二级页，导航高亮仍落在「数据」上
-  var tabView = (v === 'events') ? 'data' : v;
-  $$('.tab').forEach(function(b){
-    b.classList.toggle('on', b.getAttribute('data-view') === tabView);
-  });
+  paintTabs(v);
   document.body.classList.toggle('subpage', v === 'events');
   // 数据页的曲线宽度依赖真实布局：宽度变了要重算，否则按脏标记收敛
   paintView(v, v === 'data' && chartWidthChanged());
@@ -5562,7 +5593,7 @@ renderAll();
 (function bootView(){
   var m = /^#\/(records|data|events)$/.exec(location.hash);
   if (m && m[1] !== 'records') switchView(m[1], true);
-  else replaceNav('records');
+  else { paintTabs('records'); replaceNav('records'); }
 })();
 maybeAutoRate();   // 后台顺手更新汇率，失败不影响任何操作
 if (firstRun) {
