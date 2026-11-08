@@ -19,6 +19,7 @@ html,body{margin:0;padding:0}
 html{-webkit-text-size-adjust:100%}
 /* ================= 主题配色 ================= */
 :root{
+  color-scheme:light;
   --bg:#f6f5f0;
   --bg-1:#fcfbf7;
   --bg-2:#f7f6f1;
@@ -103,6 +104,29 @@ html{-webkit-text-size-adjust:100%}
   --bg-tex:none;
   --bg-tex-size:auto;
   --bg-tex-op:1;
+
+  /* ---- 品牌色上的文字 ----
+     浅色主题的品牌色都很深，白字压得住；深色主题的品牌色必须提亮才看得清，
+     再用白字就成了白底白字，所以那几套要把这个变量换成深墨色。 */
+  --on-brand:#ffffff;
+  /* ---- 纸面（卡片 / 弹层）的 rgb 通道 ----
+     给「从卡片色渐隐到透明」的遮罩用：透明端如果写死 rgba(255,255,255,0)，
+     深色主题上会渐出一层灰白雾。 */
+  --surface-rgb:255,255,255;
+  /* ---- 遮罩：深色主题要压得更重，否则弹层跟背景糊在一起 ---- */
+  --scrim:rgba(22,45,32,.42);
+
+  /* ---- 名次奖牌：金 / 银 / 铜 ----
+     深色主题不能沿用浅金渐变（在深底上像贴了三块白纸），所以抽出变量 */
+  --medal-1:linear-gradient(160deg,#fdf3d6,#f9e6b4);
+  --medal-1-ink:#8a5f0d;
+  --medal-1-line:#efd79a;
+  --medal-2:linear-gradient(160deg,#f2f5f8,#e7edf2);
+  --medal-2-ink:#5b6e7e;
+  --medal-2-line:#dde5ec;
+  --medal-3:linear-gradient(160deg,#fbeee3,#f5dfcd);
+  --medal-3-ink:#a0653a;
+  --medal-3-line:#eed5bf;
 }
 
 /* ==== 甜心：奶粉底 + 樱花粉，圆角到底、奶油波点 ==== */
@@ -282,6 +306,212 @@ html{-webkit-text-size-adjust:100%}
   --bg-tex:none;
 }
 
+/* ==== 夜账：深墨绿底 + 金线，账本的夜间版 ==== */
+:root[data-theme="midnight"]{
+  color-scheme:dark;
+  --bg:#0a110e;--bg-1:#0d1512;--bg-2:#0a120f;--bg-3:#070d0b;
+  --glow-1:rgba(46,180,124,.12);--glow-2:rgba(232,186,48,.07);--hero-glow:rgba(232,186,48,.13);
+  --brand:#e3b544;--brand-rgb:227,181,68;--brand-2:#b78a1c;
+  --accent:#3ecf8e;--accent-ink:#1b1405;
+  --text:#e9efe9;--muted:#93a89c;--muted-2:#8b9f94;--muted-3:#5d7166;--heading:#cadad0;
+  --line-rgb:186,220,198;--line:rgba(var(--line-rgb),.14);--line-2:rgba(var(--line-rgb),.085);
+  --surface:#121a16;--surface-hi:#16211b;--surface-2:#0f1713;--surface-3:#18251e;--soft-line:#26382e;
+  --gain:#f0705f;--loss:#3ecf8e;
+  --danger-bg:#241110;--danger-line:#4a2320;--danger-ink:#f08a7b;
+  --ph:#63776b;--chev:#6c8074;--icon:#e3b544;
+  --logo-a:#f2cb5e;--logo-b:#c8951a;--fab-a:#f2cb5e;--fab-b:#c8951a;
+  --toast-bg:rgba(20,28,24,.96);
+  --sh-rgb:0,0,0;--scrim:rgba(4,8,6,.62);
+  --on-brand:#1b1405;--surface-rgb:18,26,22;
+
+  /* 形状：跟账本一套，只是换了材质 */
+  --r-lg:20px;--r-md:16px;--r-sm:12px;--r-xs:9px;
+  --r-btn:13px;--r-chip:9px;--r-badge:12px;--r-fab:21px;--r-sheet:24px;
+
+  /* 材质：卡片比底色亮一档，靠边界而不是靠阴影分层 */
+  --card-bg:linear-gradient(180deg,#141d18,#101914);
+  --hero-bg:linear-gradient(160deg,#15201a,#0e1713);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.50),0 6px 16px -12px rgba(0,0,0,.90);
+  --shadow:0 1px 2px rgba(0,0,0,.55),0 10px 26px -18px rgba(0,0,0,.95);
+  --shadow-md:0 1px 2px rgba(0,0,0,.50),0 8px 20px -16px rgba(0,0,0,.90);
+  --shadow-lg:0 30px 80px rgba(0,0,0,.72);
+  --shadow-fab:0 10px 22px -8px rgba(227,181,68,.42),0 2px 6px rgba(0,0,0,.50);
+  --tabbar-bg:rgba(10,17,14,.90);
+
+  /* 奖牌：深底浅字，别把浅金渐变直接搬过来 */
+  --medal-1:linear-gradient(160deg,#4a3a12,#382b0b);--medal-1-ink:#f4cf6d;--medal-1-line:rgba(227,181,68,.38);
+  --medal-2:linear-gradient(160deg,#242d2b,#1b2321);--medal-2-ink:#c6d3cc;--medal-2-line:rgba(200,222,210,.22);
+  --medal-3:linear-gradient(160deg,#3b2a1c,#2c1f15);--medal-3-ink:#e2b58b;--medal-3-line:rgba(216,152,100,.28);
+
+  --track-h:.01em;
+  --bg-tex:none;
+}
+
+/* ==== 深海：深海军蓝 + 冷蓝光，数据主题的夜间版 ==== */
+:root[data-theme="abyss"]{
+  color-scheme:dark;
+  --bg:#060c14;--bg-1:#0a121c;--bg-2:#070e17;--bg-3:#040911;
+  --glow-1:rgba(70,150,220,.14);--glow-2:rgba(60,190,200,.08);--hero-glow:rgba(80,160,230,.14);
+  --brand:#5aa9e6;--brand-rgb:90,169,230;--brand-2:#2f74a8;
+  --accent:#e2b45c;--accent-ink:#05121d;
+  --text:#e4eef8;--muted:#8ba0b6;--muted-2:#879bb0;--muted-3:#526880;--heading:#b9cee0;
+  --line-rgb:170,205,235;--line:rgba(var(--line-rgb),.13);--line-2:rgba(var(--line-rgb),.075);
+  --surface:#0e1723;--surface-hi:#111c2a;--surface-2:#0b141f;--surface-3:#13202f;--soft-line:#22364a;
+  --gain:#ef6f5e;--loss:#3ec49a;
+  --danger-bg:#231210;--danger-line:#48231d;--danger-ink:#f08a7b;
+  --ph:#5a6f84;--chev:#63788d;--icon:#5aa9e6;
+  --logo-a:#6fb6ec;--logo-b:#2f6f9f;--fab-a:#6fb6ec;--fab-b:#2f6f9f;
+  --toast-bg:rgba(9,16,24,.96);
+  --sh-rgb:0,0,0;--scrim:rgba(3,7,12,.64);
+  --on-brand:#04121d;--surface-rgb:14,23,35;
+
+  /* 形状：收角、直角感，跟数据主题一致 */
+  --r-lg:14px;--r-md:10px;--r-sm:8px;--r-xs:6px;
+  --r-btn:9px;--r-chip:7px;--r-badge:7px;--r-fab:14px;--r-sheet:18px;
+
+  --card-bg:#0f1825;
+  --hero-bg:linear-gradient(180deg,#111c2a,#0c1622);
+  --shadow-sm:0 1px 0 rgba(255,255,255,.04);
+  --shadow:0 1px 0 rgba(255,255,255,.05),0 4px 14px -10px rgba(0,0,0,.95);
+  --shadow-md:0 1px 0 rgba(255,255,255,.04),0 3px 10px -8px rgba(0,0,0,.90);
+  --shadow-lg:0 30px 70px rgba(0,0,0,.70);
+  --shadow-fab:0 6px 14px -6px rgba(90,169,230,.55),0 1px 3px rgba(0,0,0,.60);
+  --tabbar-bg:rgba(7,13,21,.92);
+
+  --medal-1:linear-gradient(160deg,#3d3218,#2c2410);--medal-1-ink:#f0cd7c;--medal-1-line:rgba(226,180,92,.34);
+  --medal-2:linear-gradient(160deg,#1f2b38,#18222d);--medal-2-ink:#c2d3e2;--medal-2-line:rgba(180,210,235,.22);
+  --medal-3:linear-gradient(160deg,#33261d,#261b14);--medal-3-ink:#dfb28c;--medal-3-line:rgba(210,150,105,.26);
+
+  --num-font:ui-monospace,"SF Mono",Menlo,Consolas,"Courier New",monospace;
+  --track-h:.01em;
+
+  --bg-tex:linear-gradient(90deg,rgba(var(--brand-rgb),.06) 1px,transparent 1px),linear-gradient(180deg,rgba(var(--brand-rgb),.06) 1px,transparent 1px);
+  --bg-tex-size:22px 22px;
+}
+
+/* ==== 紫夜：深紫底 + 紫雾光晕，梦境主题的夜间版 ==== */
+:root[data-theme="nebula"]{
+  color-scheme:dark;
+  --bg:#0c0917;--bg-1:#110d1e;--bg-2:#0d0a18;--bg-3:#080613;
+  --glow-1:rgba(140,110,240,.18);--glow-2:rgba(220,120,200,.10);--hero-glow:rgba(150,120,240,.18);
+  --brand:#a48cf5;--brand-rgb:164,140,245;--brand-2:#7a63cf;
+  --accent:#e8c07a;--accent-ink:#120c22;
+  --text:#eae6f7;--muted:#a09ab8;--muted-2:#9a93b3;--muted-3:#6a6382;--heading:#cfc8e6;
+  --line-rgb:200,190,235;--line:rgba(var(--line-rgb),.12);--line-2:rgba(var(--line-rgb),.075);
+  --surface:#161226;--surface-hi:#1b1630;--surface-2:#120f1f;--surface-3:#1d1830;--soft-line:#2e2747;
+  --gain:#f0705f;--loss:#3ec9a0;
+  --danger-bg:#22101b;--danger-line:#47202f;--danger-ink:#f08a9b;
+  --ph:#6b6484;--chev:#726b8a;--icon:#a48cf5;
+  --logo-a:#b9a2ff;--logo-b:#7a5fd0;--fab-a:#b9a2ff;--fab-b:#7a5fd0;
+  --toast-bg:rgba(17,13,30,.96);
+  --sh-rgb:0,0,0;--scrim:rgba(7,5,15,.64);
+  --on-brand:#120c22;--surface-rgb:22,18,38;
+
+  /* 形状：超大圆角 */
+  --r-lg:30px;--r-md:22px;--r-sm:16px;--r-xs:12px;
+  --r-btn:var(--r-pill);--r-chip:var(--r-pill);--r-badge:50%;--r-fab:50%;--r-sheet:32px;
+
+  /* 材质：卡面带渐变，光从左上打过来 */
+  --card-bg:linear-gradient(165deg,#1a1530,#141026);
+  --hero-bg:linear-gradient(155deg,#1c1738 0%,#181330 55%,#1e1433 100%);
+  --shadow-sm:0 6px 20px -14px rgba(0,0,0,.90);
+  --shadow:0 12px 32px -20px rgba(0,0,0,.95);
+  --shadow-md:0 6px 22px -16px rgba(0,0,0,.90);
+  --shadow-fab:0 10px 24px -8px rgba(164,140,245,.50),0 2px 6px rgba(0,0,0,.50);
+  --tabbar-bg:rgba(12,9,23,.92);
+
+  --medal-1:linear-gradient(160deg,#3f3418,#2e2610);--medal-1-ink:#f2d184;--medal-1-line:rgba(232,192,122,.34);
+  --medal-2:linear-gradient(160deg,#252138,#1c1a2c);--medal-2-ink:#cfcae4;--medal-2-line:rgba(200,192,235,.24);
+  --medal-3:linear-gradient(160deg,#38281f,#2a1c15);--medal-3-ink:#e5b992;--medal-3-line:rgba(214,152,110,.26);
+
+  --track-h:.015em;
+
+  --bg-tex:radial-gradient(circle at 12% 26%,rgba(164,140,245,.16),transparent 58%),radial-gradient(circle at 88% 6%,rgba(210,130,200,.12),transparent 56%);
+}
+
+/* ==== 暗金：深棕底 + 琥珀色，暖阳主题的夜间版 ==== */
+:root[data-theme="ember"]{
+  color-scheme:dark;
+  --bg:#140e09;--bg-1:#19120b;--bg-2:#150f0a;--bg-3:#0f0a06;
+  --glow-1:rgba(200,130,60,.16);--glow-2:rgba(214,170,90,.11);--hero-glow:rgba(210,140,70,.16);
+  --brand:#d99a4e;--brand-rgb:217,154,78;--brand-2:#a86f2a;
+  --accent:#7fc9a8;--accent-ink:#1a1206;
+  --text:#f0e6da;--muted:#a8927c;--muted-2:#a08c78;--muted-3:#6f5f50;--heading:#ddc9b4;
+  --line-rgb:225,200,175;--line:rgba(var(--line-rgb),.12);--line-2:rgba(var(--line-rgb),.075);
+  --surface:#1d1610;--surface-hi:#241c14;--surface-2:#181109;--surface-3:#251c14;--soft-line:#3f3024;
+  --gain:#ef6d5a;--loss:#54c39a;
+  --danger-bg:#23120f;--danger-line:#482420;--danger-ink:#f08a78;
+  --ph:#7a6757;--chev:#7f6c5a;--icon:#d99a4e;
+  --logo-a:#e3ab5f;--logo-b:#b0742a;--fab-a:#e3ab5f;--fab-b:#b0742a;
+  --toast-bg:rgba(26,19,14,.96);
+  --sh-rgb:0,0,0;--scrim:rgba(10,7,5,.64);
+  --on-brand:#1a1206;--surface-rgb:26,20,16;
+
+  /* 形状：大一号的圆角 */
+  --r-lg:23px;--r-md:18px;--r-sm:13px;--r-xs:10px;
+  --r-btn:15px;--r-chip:11px;--r-badge:11px;--r-fab:19px;--r-sheet:28px;
+
+  --card-bg:linear-gradient(170deg,#211913,#1b1410);
+  --hero-bg:linear-gradient(170deg,#251b13,#1b1410);
+  --shadow-sm:0 3px 12px -8px rgba(0,0,0,.92);
+  --shadow:0 6px 20px -14px rgba(0,0,0,.95);
+  --shadow-md:0 3px 14px -10px rgba(0,0,0,.90);
+  --shadow-fab:0 8px 18px -8px rgba(217,154,78,.52),0 2px 5px rgba(0,0,0,.50);
+  --tabbar-bg:rgba(17,12,8,.92);
+
+  --medal-1:linear-gradient(160deg,#453414,#33260d);--medal-1-ink:#f0c882;--medal-1-line:rgba(217,154,78,.36);
+  --medal-2:linear-gradient(160deg,#2b2721,#211e19);--medal-2-ink:#d8cdbc;--medal-2-line:rgba(224,206,180,.22);
+  --medal-3:linear-gradient(160deg,#3b2a1c,#2c1f15);--medal-3-ink:#e6b992;--medal-3-line:rgba(216,152,100,.26);
+
+  --font-display:"Songti SC","Noto Serif SC","Source Han Serif SC",Georgia,serif;
+  --track-h:.02em;
+
+  --bg-tex:repeating-linear-gradient(48deg,rgba(217,154,78,.05) 0 1px,transparent 1px 6px);
+}
+
+/* ==== 炭黑：纯黑底 + 白描边，极简主题的反色版 ==== */
+:root[data-theme="carbon"]{
+  color-scheme:dark;
+  --bg:#0d0d0d;--bg-1:#121212;--bg-2:#0e0e0e;--bg-3:#090909;
+  --glow-1:rgba(255,255,255,.04);--glow-2:rgba(255,255,255,.02);--hero-glow:rgba(255,255,255,.05);
+  --brand:#f2f2f2;--brand-rgb:242,242,242;--brand-2:#cfcfcf;
+  --accent:#f2f2f2;--accent-ink:#0c0c0c;
+  --text:#ededed;--muted:#9a9a9a;--muted-2:#a0a0a0;--muted-3:#5e5e5e;--heading:#ededed;
+  --line-rgb:255,255,255;--line:rgba(255,255,255,.34);--line-2:rgba(255,255,255,.20);
+  --surface:#161616;--surface-hi:#161616;--surface-2:#1a1a1a;--surface-3:#1d1d1d;--soft-line:#f2f2f2;
+  --gain:#e5544a;--loss:#3fbf83;
+  --danger-bg:#161616;--danger-line:#f2f2f2;--danger-ink:#ff7a6e;
+  --ph:#6a6a6a;--chev:#8a8a8a;--icon:#f2f2f2;
+  --logo-a:#ffffff;--logo-b:#cfcfcf;--fab-a:#ffffff;--fab-b:#d0d0d0;
+  --toast-bg:rgba(8,8,8,.97);
+  --sh-rgb:0,0,0;--scrim:rgba(0,0,0,.66);
+  --on-brand:#0c0c0c;--surface-rgb:22,22,22;
+
+  /* 形状：全直角，2px 白边 */
+  --r-lg:2px;--r-md:2px;--r-sm:2px;--r-xs:2px;
+  --r-btn:2px;--r-chip:2px;--r-badge:2px;--r-fab:2px;--r-sheet:2px;--r-pill:2px;
+  --bw:2px;
+
+  /* 材质：白实心硬投影，没有渐变 */
+  --card-bg:var(--surface);
+  --hero-bg:var(--surface);
+  --shadow-sm:3px 3px 0 rgba(242,242,242,.88);
+  --shadow:4px 4px 0 rgba(242,242,242,.88);
+  --shadow-md:3px 3px 0 rgba(242,242,242,.82);
+  --shadow-lg:6px 6px 0 rgba(242,242,242,.85);
+  --shadow-fab:4px 4px 0 rgba(242,242,242,.90);
+  --tabbar-bg:rgba(9,9,9,.97);
+
+  --medal-1:var(--surface);--medal-1-ink:#f2f2f2;--medal-1-line:#f2f2f2;
+  --medal-2:var(--surface);--medal-2-ink:#f2f2f2;--medal-2-line:#f2f2f2;
+  --medal-3:var(--surface);--medal-3-ink:#f2f2f2;--medal-3-line:#f2f2f2;
+
+  --num-font:ui-monospace,"SF Mono",Menlo,Consolas,"Courier New",monospace;
+  --track-h:.02em;
+
+  --bg-tex:none;
+}
+
 /* ================= 主题特化：少数跳出变量体系的细节 ================= */
 /* 甜心：奖牌换成糖果色 */
 :root[data-theme="sakura"] .rank.r1{background:linear-gradient(160deg,#fff3cc,#ffe08f);color:#96650a;border-color:#ffdf95}
@@ -300,6 +530,11 @@ html{-webkit-text-size-adjust:100%}
 :root[data-theme="graphite"] .rank.ft.r3{background:var(--surface);color:#111;border-color:#111}
 :root[data-theme="graphite"] .hero::after{display:none}
 :root[data-theme="graphite"] .addbtn{box-shadow:0 0 0 4px var(--surface),var(--shadow-fab)}
+/* 炭黑：极简的反色版，白边白影，同样不要柔光 */
+:root[data-theme="carbon"] .rank.ft{box-shadow:none}
+:root[data-theme="carbon"] .hero::after{display:none}
+:root[data-theme="carbon"] .addbtn{box-shadow:0 0 0 4px var(--bg),var(--shadow-fab)}
+:root[data-theme="carbon"] .g-pt.ft{fill:var(--accent);stroke:var(--surface);stroke-width:1.4}
 
 body{
   background:var(--bg);
@@ -416,7 +651,7 @@ input,textarea,select{font-family:inherit;color:inherit}
   transition:background .25s ease;
 }
 .demo-banner button{
-  margin-left:auto;flex:0 0 auto;font-size:12px;font-weight:600;color:#fff;
+  margin-left:auto;flex:0 0 auto;font-size:12px;font-weight:600;color:var(--on-brand);
   background:var(--brand);padding:6px 11px;border-radius:var(--r-chip);
 }
 
@@ -623,22 +858,22 @@ input,textarea,select{font-family:inherit;color:inherit}
   white-space:nowrap;overflow:hidden;
   background:var(--surface-2);color:var(--muted);border:var(--bw) solid var(--line-2);
 }
-.rank.r1{background:linear-gradient(160deg,#fdf3d6,#f9e6b4);color:#8a5f0d;border-color:#efd79a}
-.rank.r2{background:linear-gradient(160deg,#f2f5f8,#e7edf2);color:#5b6e7e;border-color:#dde5ec}
-.rank.r3{background:linear-gradient(160deg,#fbeee3,#f5dfcd);color:#a0653a;border-color:#eed5bf}
+.rank.r1{background:var(--medal-1);color:var(--medal-1-ink);border-color:var(--medal-1-line)}
+.rank.r2{background:var(--medal-2);color:var(--medal-2-ink);border-color:var(--medal-2-line)}
+.rank.r3{background:var(--medal-3);color:var(--medal-3-ink);border-color:var(--medal-3-line)}
 .rank.in{background:var(--surface-3);color:var(--brand);border-color:rgba(var(--brand-rgb),.24)}
 .rank.out{background:transparent;color:var(--muted-2);border:var(--bw) dashed rgba(var(--line-rgb),.28);font-size:11px;font-weight:600;letter-spacing:.02em}
 .rank.ft{
   display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1px;line-height:1;
-  background:linear-gradient(160deg,var(--brand),var(--brand-2));color:#fff;border-color:transparent;
+  background:linear-gradient(160deg,var(--brand),var(--brand-2));color:var(--on-brand);border-color:transparent;
   box-shadow:0 3px 8px -4px rgba(var(--brand-rgb),.65);
 }
 .rank.ft b{font-size:12.5px;font-weight:700;letter-spacing:-.02em}
 .rank.ft i{font-style:normal;font-size:7.5px;font-weight:700;letter-spacing:.1em;opacity:.9}
 /* 进了 FT 又在前三：保留奖牌色，FT 小字仍标出来 */
-.rank.ft.r1{background:linear-gradient(160deg,#fdf3d6,#f7e3ac);color:#7d5606;border-color:#e8c983;box-shadow:none}
-.rank.ft.r2{background:linear-gradient(160deg,#f2f5f8,#e3eaf0);color:#54707f;border-color:#d5e0e8;box-shadow:none}
-.rank.ft.r3{background:linear-gradient(160deg,#fbeee3,#f3dac4);color:#96592f;border-color:#e5c8ad;box-shadow:none}
+.rank.ft.r1{background:var(--medal-1);color:var(--medal-1-ink);border-color:var(--medal-1-line);box-shadow:none}
+.rank.ft.r2{background:var(--medal-2);color:var(--medal-2-ink);border-color:var(--medal-2-line);box-shadow:none}
+.rank.ft.r3{background:var(--medal-3);color:var(--medal-3-ink);border-color:var(--medal-3-line);box-shadow:none}
 .rec-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
 .rec-title{font-size:14.5px;font-weight:600;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rec-meta{font-size:12px;color:var(--muted-2);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -944,7 +1179,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 .addbtn{
   width:56px;height:56px;border-radius:var(--r-fab);display:grid;place-items:center;margin-top:-24px;
   background:linear-gradient(155deg,var(--fab-a),var(--fab-b));
-  color:#fff;
+  color:var(--on-brand);
   box-shadow:0 0 0 4px var(--surface),var(--shadow-fab);
   transition:transform .16s,background .25s,box-shadow .25s;
 }
@@ -954,7 +1189,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 /* ---------- modal ---------- */
 .modal{position:fixed;inset:0;z-index:40;display:none}
 .modal.open{display:block}
-.modal-bg{position:absolute;inset:0;background:rgba(var(--sh-rgb),.42);animation:fade .22s ease;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.modal-bg{position:absolute;inset:0;background:var(--scrim);animation:fade .22s ease;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
 .sheet{
   position:absolute;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;
   max-height:92vh;max-height:92dvh;display:flex;flex-direction:column;
@@ -1100,14 +1335,15 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
   box-shadow:0 0 0 3px rgba(var(--brand-rgb),.11);
 }
 .tpv{position:relative;width:44px;height:44px;border-radius:var(--r-sm);flex:0 0 auto;overflow:hidden;
-  border:1px solid rgba(20,26,30,.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}
+  border:1px solid rgba(20,26,30,.10);box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}
 .tpv i{position:absolute;display:block;border-radius:2px}
+/* 预览卡面与两条文字线的颜色由主题数据给，浅色深色各一套 */
 .tpv-card{left:5px;top:6px;width:23px;height:28px;border-radius:6px;background:#fff;
-  box-shadow:0 1px 3px rgba(20,26,30,.16)}
+  box-shadow:0 1px 3px rgba(0,0,0,.18)}
 .tpv-bar{left:8px;top:11px;width:10px;height:3px}
 .tpv-line{left:8px;top:18px;width:15px;height:2px;border-radius:1px;background:rgba(20,26,30,.13)}
 .tpv-line2{left:8px;top:23px;width:9px;height:2px;border-radius:1px;background:rgba(20,26,30,.09)}
-.tpv-dot{right:4px;bottom:4px;width:13px;height:13px;border-radius:5px;box-shadow:0 2px 5px rgba(20,26,30,.18)}
+.tpv-dot{right:4px;bottom:4px;width:13px;height:13px;border-radius:5px;box-shadow:0 2px 5px rgba(0,0,0,.22)}
 .tinfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .tname{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .thint{font-size:10px;color:var(--muted-3);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1125,9 +1361,27 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 .themecard[data-theme-pick="graphite"] .tpv{border-radius:2px}
 .themecard[data-theme-pick="graphite"] .tpv-card{border-radius:0;box-shadow:none;border:1.5px solid #141414}
 .themecard[data-theme-pick="graphite"] .tpv-dot{border-radius:0;box-shadow:none}
+/* 深色那几套：预览块也走各自的形状 */
+.themecard[data-theme-pick="midnight"] .tpv{border-radius:12px}
+.themecard[data-theme-pick="midnight"] .tpv-card{border-radius:8px}
+.themecard[data-theme-pick="abyss"] .tpv{border-radius:6px}
+.themecard[data-theme-pick="abyss"] .tpv-card{border-radius:3px}
+.themecard[data-theme-pick="abyss"] .tpv-dot{border-radius:2px}
+.themecard[data-theme-pick="nebula"] .tpv{border-radius:15px}
+.themecard[data-theme-pick="nebula"] .tpv-card{border-radius:11px}
+.themecard[data-theme-pick="nebula"] .tpv-dot{border-radius:50%}
+.themecard[data-theme-pick="ember"] .tpv-card{border-radius:7px}
+.themecard[data-theme-pick="carbon"] .tpv{border-radius:2px}
+.themecard[data-theme-pick="carbon"] .tpv-card{border-radius:0;box-shadow:none;border:1.5px solid #f2f2f2}
+.themecard[data-theme-pick="carbon"] .tpv-dot{border-radius:0;box-shadow:none}
 .tick{flex:0 0 auto;width:17px;height:17px;border-radius:50%;display:grid;place-items:center;
-  font-size:10px;line-height:1;background:var(--brand);color:#fff;font-weight:700}
+  font-size:10px;line-height:1;background:var(--brand);color:var(--on-brand);font-weight:700}
 @media (min-width:520px){ .themegrid{grid-template-columns:repeat(3,1fr)} }
+/* 浅色 / 深色分组标题 */
+.tglabel{display:flex;align-items:center;gap:9px;margin:16px 2px 9px;
+  font-size:10.5px;letter-spacing:.14em;color:var(--muted-2);font-weight:640}
+.tglabel:first-child{margin-top:0}
+.tglabel::after{content:'';flex:1;height:1px;background:var(--line-2)}
 
 /* ---------- time picker ---------- */
 .time-quick{display:flex;gap:8px;padding:14px 16px 4px;flex:0 0 auto;overflow-x:auto}
@@ -1150,8 +1404,8 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 .wheels::before,.wheels::after{
   content:'';position:absolute;left:0;right:0;height:62px;z-index:3;pointer-events:none;
 }
-.wheels::before{top:0;background:linear-gradient(180deg,var(--surface) 8%,rgba(255,255,255,0))}
-.wheels::after{bottom:0;background:linear-gradient(0deg,var(--surface) 8%,rgba(255,255,255,0))}
+.wheels::before{top:0;background:linear-gradient(180deg,var(--surface) 8%,rgba(var(--surface-rgb),0))}
+.wheels::after{bottom:0;background:linear-gradient(0deg,var(--surface) 8%,rgba(var(--surface-rgb),0))}
 .wheel{
   position:relative;z-index:1;overflow-y:auto;scroll-snap-type:y mandatory;
   padding:80px 0;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
@@ -1183,7 +1437,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 .cmodal p{margin:0;font-size:12.5px;line-height:1.65;color:var(--muted)}
 .cact{display:flex;gap:9px;margin-top:18px}
 .cact button{flex:1;padding:11px;border-radius:var(--r-btn);font-size:13.5px;font-weight:550;background:var(--surface-2);border:var(--bw) solid rgba(var(--line-rgb),.07);color:var(--text)}
-.cact button.ok{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+.cact button.ok{background:var(--brand);border-color:var(--brand);color:var(--on-brand);font-weight:600}
 .cact button.ok.danger{background:#bd4132;border-color:#bd4132;color:#fff}
 
 /* ---------- toast ---------- */
@@ -1767,7 +2021,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
       <span class="link" style="visibility:hidden">关闭</span>
     </div>
     <div class="sheet-body">
-      <div class="themegrid" id="themeGrid"></div>
+      <div id="themeGrid"></div>
       <p class="note">每套换的不只是颜色 —— 圆角、描边、阴影、字体、背景纹理都会一起变，所以手感完全不同。点一下即时生效并自动记住。</p>
     </div>
   </div>
@@ -2505,13 +2759,25 @@ function setDispCur(c){
 
 /* ================= 主题 ================= */
 var THEME_KEY = 'matchledger.theme';
+/* card / ml / ml2 是主题选择器里那块缩略图用的：深色主题的卡面和白线不能写死，
+   否则六张小图看着都像浅色主题。 */
 var THEMES = [
   { k: 'forest',   name: '账本',   hint: '纸感 · 细线',    bg: '#fcfbf7', brand: '#146b46' },
   { k: 'sakura',   name: '甜心',   hint: '奶油 · 圆角',    bg: '#fffafc', brand: '#dd4f7f' },
   { k: 'ocean',    name: '数据',   hint: '网格 · 直角',    bg: '#fafcff', brand: '#1f5c8c' },
   { k: 'apricot',  name: '暖阳',   hint: '纸纹 · 宋体',    bg: '#fffaf2', brand: '#a85b33' },
   { k: 'lavender', name: '梦境',   hint: '紫雾 · 大圆角',  bg: '#fcfbff', brand: '#58489c' },
-  { k: 'graphite', name: '极简',   hint: '黑白 · 硬边',    bg: '#f7f7f4', brand: '#141414' }
+  { k: 'graphite', name: '极简',   hint: '黑白 · 硬边',    bg: '#f7f7f4', brand: '#141414' },
+  { k: 'midnight', name: '夜账',   hint: '墨绿 · 金线',    bg: '#0d1512', brand: '#e3b544', dark: true,
+    card: '#16211b', ml: 'rgba(230,240,232,.17)', ml2: 'rgba(230,240,232,.10)' },
+  { k: 'abyss',    name: '深海',   hint: '冷蓝 · 网格',    bg: '#0a121c', brand: '#5aa9e6', dark: true,
+    card: '#111c2a', ml: 'rgba(210,230,245,.17)', ml2: 'rgba(210,230,245,.10)' },
+  { k: 'nebula',   name: '紫夜',   hint: '紫雾 · 柔光',    bg: '#110d1e', brand: '#a48cf5', dark: true,
+    card: '#1b1630', ml: 'rgba(235,230,250,.17)', ml2: 'rgba(235,230,250,.10)' },
+  { k: 'ember',    name: '暗金',   hint: '深棕 · 宋体',    bg: '#15100b', brand: '#d99a4e', dark: true,
+    card: '#201913', ml: 'rgba(240,230,220,.17)', ml2: 'rgba(240,230,220,.10)' },
+  { k: 'carbon',   name: '炭黑',   hint: '黑白 · 反色',    bg: '#121212', brand: '#f2f2f2', dark: true,
+    card: '#161616', ml: 'rgba(255,255,255,.24)', ml2: 'rgba(255,255,255,.15)' }
 ];
 var curTheme = 'forest';
 
@@ -2519,26 +2785,32 @@ function themeByKey(k){
   for (var i = 0; i < THEMES.length; i++) if (THEMES[i].k === k) return THEMES[i];
   return THEMES[0];
 }
+function themeCardHTML(t){
+  var on = t.k === curTheme;
+  return '<button class="themecard' + (on ? ' cur' : '') + '" data-theme-pick="' + t.k + '" aria-pressed="' + on + '">'
+    + '<span class="tpv" style="background:linear-gradient(160deg,' + t.bg + ',' + t.brand + '26)">'
+      + '<i class="tpv-card" style="background:' + (t.card || '#fff') + '"></i>'
+      + '<i class="tpv-bar" style="background:' + t.brand + '"></i>'
+      + '<i class="tpv-line" style="background:' + (t.ml || 'rgba(20,26,30,.13)') + '"></i>'
+      + '<i class="tpv-line2" style="background:' + (t.ml2 || 'rgba(20,26,30,.09)') + '"></i>'
+      + '<i class="tpv-dot" style="background:' + t.brand + '"></i>'
+    + '</span>'
+    + '<span class="tinfo">'
+      + '<span class="tname">' + esc(t.name) + '</span>'
+      + '<span class="thint">' + esc(t.hint) + '</span>'
+    + '</span>'
+    + (on ? '<span class="tick">✓</span>' : '')
+  + '</button>';
+}
 function renderThemes(){
   var box = $('#themeGrid');
   if (!box) return;
-  box.innerHTML = THEMES.map(function(t){
-    var on = t.k === curTheme;
-    return '<button class="themecard' + (on ? ' cur' : '') + '" data-theme-pick="' + t.k + '" aria-pressed="' + on + '">'
-      + '<span class="tpv" style="background:linear-gradient(160deg,' + t.bg + ',' + t.brand + '26)">'
-        + '<i class="tpv-card"></i>'
-        + '<i class="tpv-bar" style="background:' + t.brand + '"></i>'
-        + '<i class="tpv-line"></i>'
-        + '<i class="tpv-line2"></i>'
-        + '<i class="tpv-dot" style="background:' + t.brand + '"></i>'
-      + '</span>'
-      + '<span class="tinfo">'
-        + '<span class="tname">' + esc(t.name) + '</span>'
-        + '<span class="thint">' + esc(t.hint) + '</span>'
-      + '</span>'
-      + (on ? '<span class="tick">✓</span>' : '')
-    + '</button>';
-  }).join('');
+  // 十套放一排太挤，按明暗分两组：想找深色的不用在一堆浅色里翻
+  var light = THEMES.filter(function(t){ return !t.dark; });
+  var dark = THEMES.filter(function(t){ return t.dark; });
+  box.innerHTML =
+      '<div class="tglabel">浅色</div><div class="themegrid">' + light.map(themeCardHTML).join('') + '</div>'
+    + '<div class="tglabel">深色</div><div class="themegrid">' + dark.map(themeCardHTML).join('') + '</div>';
 }
 function applyTheme(k, persist){
   var t = themeByKey(k);
