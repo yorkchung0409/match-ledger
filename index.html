@@ -436,6 +436,19 @@ input,textarea,select{font-family:inherit;color:inherit}
   border-right:1.4px solid var(--muted);border-bottom:1.4px solid var(--muted);
   transform:translateY(-70%) rotate(45deg);
 }
+/* 比赛筛选：外观跟原来的下拉一样，点开是可搜索的列表 —— 比赛多起来，
+   一个个在下拉里翻太费劲，也翻不到。 */
+.selwrap .evsel{
+  display:block;width:100%;padding:9px 30px 9px 13px;text-align:left;
+  border-radius:var(--r-btn);background:var(--surface);border:var(--bw) solid var(--line);
+  font-size:12.5px;color:var(--text);line-height:1.45;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  box-shadow:0 1px 2px rgba(var(--sh-rgb),.04);
+}
+.selwrap .evsel.on{
+  color:var(--brand);font-weight:600;
+  background:rgba(var(--brand-rgb),.09);border-color:rgba(var(--brand-rgb),.30);
+}
 .seg{display:flex;margin-left:auto;background:rgba(var(--line-rgb),.055);border:var(--bw) solid rgba(var(--line-rgb),.05);border-radius:calc(var(--r-btn) + 1px);padding:3px;gap:2px}
 .seg button{
   padding:6px 11px;border-radius:calc(var(--r-btn) - 2px);font-size:12.5px;color:var(--muted);
@@ -520,9 +533,47 @@ input,textarea,select{font-family:inherit;color:inherit}
   .seg{grid-column:1 / -1;margin-left:0;margin-top:2px}
   .seg button{flex:1}
   .datebtn{padding:8px 9px}
-  .selwrap select{padding:8px 26px 8px 11px;font-size:12px}
+  .selwrap select,.selwrap .evsel{padding:8px 26px 8px 11px;font-size:12px}
   .selwrap::after{right:11px}
 }
+
+/* 比赛筛选面板：搜索框钉在上面，只有列表滚 */
+.evf-body{display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.evf-search{
+  flex:0 0 auto;display:flex;align-items:center;gap:8px;
+  height:40px;padding:0 11px;margin-bottom:10px;
+  border-radius:var(--r-btn);background:var(--surface-2);border:var(--bw) solid var(--line-2);
+}
+.evf-search svg{flex:0 0 auto;color:var(--muted-3)}
+.evf-search input{
+  flex:1;min-width:0;padding:0;background:none;border:0;outline:none;
+  font-size:15px;color:var(--text);line-height:1.3;
+}
+.evf-search input::placeholder{color:var(--ph)}
+.evf-x{
+  flex:0 0 auto;width:24px;height:24px;display:grid;place-items:center;
+  border-radius:50%;background:rgba(var(--line-rgb),.10);color:var(--muted);
+  font-size:14px;line-height:1;
+}
+.evf-list{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;margin:0 -4px}
+.evf-row{
+  display:flex;align-items:center;gap:9px;width:100%;text-align:left;
+  padding:11px 9px;border-radius:var(--r-xs);
+}
+.evf-row:active{background:var(--surface-2)}
+.evf-row.on{background:rgba(var(--brand-rgb),.08)}
+.evf-nm{
+  flex:1;min-width:0;font-size:13.5px;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.evf-row.on .evf-nm{color:var(--brand);font-weight:600}
+.evf-tag{
+  font-style:normal;font-size:10px;font-weight:600;color:var(--muted-2);
+  background:rgba(var(--line-rgb),.08);border-radius:4px;padding:1px 4px;margin-left:6px;
+}
+.evf-ct{flex:0 0 auto;font-size:11.5px;color:var(--muted-3);font-variant-numeric:tabular-nums}
+.evf-tick{flex:0 0 auto;font-style:normal;font-size:13px;font-weight:700;color:var(--brand)}
+.evf-none{padding:26px 8px;text-align:center;font-size:12.5px;color:var(--muted-3)}
 
 /* 时间筛选面板 */
 .dp-group{margin-bottom:15px}
@@ -1256,7 +1307,9 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 
       <div class="filters">
         <div class="selwrap">
-          <select id="filterEvent"></select>
+          <button class="evsel" id="btnEventFilter" type="button" aria-haspopup="dialog" aria-label="按比赛筛选">
+            <span id="evBtnLabel">全部比赛</span>
+          </button>
         </div>
         <button class="datebtn" id="btnDate">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3.2" y="5" width="17.6" height="15.6" rx="3"/><path d="M8 3v4M16 3v4M3.2 10.4h17.6"/></svg>
@@ -1806,6 +1859,16 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
       </details>
 
       <details class="help-d">
+        <summary>筛选与时间范围</summary>
+        <div class="help-body"><ul>
+          <li><b>两页各有一份时间范围</b>：记录页顶部那个时间按钮只管列表，数据页顶部的「统计范围」只管统计。各存各的，在一页改了不会连带把另一页也筛掉。</li>
+          <li>记录页的比赛筛选点开可以<b>直接输入名字搜</b>，点一行就生效、面板自动关掉；「重置」回到全部比赛。</li>
+          <li>从成绩结构点进来的档位筛选会在筛选条下面留一个 chip，点它右边的 × 取消。</li>
+          <li>数据页的统计只认「统计范围」：记录页的输赢 / 比赛 / 时间筛选都不会影响它。</li>
+        </ul></div>
+      </details>
+
+      <details class="help-d">
         <summary>数据存在哪、怎么带走</summary>
         <div class="help-body"><ul>
           <li>只保存在这台手机的浏览器里，不上传任何服务器；换浏览器、清缓存都会丢。</li>
@@ -1847,6 +1910,27 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         <em id="dpPreviewNet">¥0</em>
       </div>
       <p class="note">只列出有记录的日期。月、日会跟着上一层收窄，点「不限」可以放开某一层。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 比赛筛选（可搜） ========== -->
+<div class="modal" id="mEventFilter" style="z-index:66">
+  <div class="modal-bg" data-close="mEventFilter"></div>
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <button class="link" id="evfReset">重置</button>
+      <h2>按比赛筛选</h2>
+      <button class="link gold" data-close="mEventFilter">关闭</button>
+    </div>
+    <div class="sheet-body evf-body">
+      <div class="evf-search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 20 20"/></svg>
+        <input id="evfInput" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="搜索比赛名">
+        <button type="button" class="evf-x hidden" id="evfClear" aria-label="清空搜索">×</button>
+      </div>
+      <div class="evf-list" id="evfList"></div>
     </div>
   </div>
 </div>
@@ -2349,9 +2433,14 @@ function hasDemo(){
 /* ================= 状态 ================= */
 var state = {
   view: 'records', filterType: 'all', filterEvent: 'all', filterStage: 'all',
-  filterY: 'all', filterM: 'all', filterD: 'all', dispCur: 'CNY',
+  dispCur: 'CNY',
   trend: 'seq',         // 走势图维度：seq 场次 / mon 月度 / ev 比赛
-  stageTab: 'reg'       // 成绩结构 tab：reg 常规赛 / sat 卫星赛
+  stageTab: 'reg',      // 成绩结构 tab：reg 常规赛 / sat 卫星赛
+  // 时间范围两个页面各管各的：记录页筛「看哪几场流水」，数据页筛「统计哪一段」。
+  // 以前共用一套，在数据页挑了 11 月切回记录页，列表也被筛掉了 —— 两个页面问的
+  // 不是同一个问题，共用一套必然互相污染。
+  recDate: { filterY: 'all', filterM: 'all', filterD: 'all' },
+  dataDate: { filterY: 'all', filterM: 'all', filterD: 'all' }
 };
 var form = null;      // 当前编辑的记录
 var editingEvent = null;
@@ -2466,7 +2555,9 @@ function applyTheme(k, persist){
 function recNet(r){ return toDisp(money(r.income) - money(r.cost), curOf(r)); }
 function recNetRaw(r){ return money(r.income) - money(r.cost); }
 
-/* 时间三件套：年 / 月 / 日各自独立，值为 'all' 表示不限 */
+/* 时间三件套：年 / 月 / 日各自独立，值为 'all' 表示不限。
+   f 是「一份时间范围」—— 记录页那份是 state.recDate，数据页那份是 state.dataDate。
+   故意不给 f 默认值：默认值会让漏传参数的地方悄悄退回某一页的条件。 */
 function dateBits(r){
   var t = String((r && r.time) || '');
   return { y: t.slice(0, 4), m: t.slice(5, 7), d: t.slice(8, 10) };
@@ -2480,12 +2571,10 @@ function passDate(r, f){
   return true;
 }
 function dateActive(f){
-  f = f || state;
   return f.filterY !== 'all' || f.filterM !== 'all' || f.filterD !== 'all';
 }
 /* 按钮上的短标签：26/11/05 这类，尽量短 */
 function dateLabelOf(f){
-  f = f || state;
   var y = f.filterY, m = f.filterM, d = f.filterD;
   var ss = function(v){ return v.length > 2 ? v.slice(2) : v; };
   if (y !== 'all' && m !== 'all' && d !== 'all') return ss(y) + '/' + m + '/' + d;
@@ -2499,7 +2588,6 @@ function dateLabelOf(f){
 }
 /* 顶部那句口径说明也要跟着时间走 */
 function dateScopeText(f){
-  f = f || state;
   var y = f.filterY, m = f.filterM, d = f.filterD;
   if (y !== 'all' && m !== 'all' && d !== 'all') return y + '年' + (+m) + '月' + (+d) + '日';
   if (y !== 'all' && m !== 'all') return y + '年' + (+m) + '月';
@@ -2515,15 +2603,17 @@ function resetFilters(){
   state.filterEvent = 'all';
   state.filterType = 'all';
   state.filterStage = 'all';
-  state.filterY = 'all'; state.filterM = 'all'; state.filterD = 'all';
+  state.recDate = { filterY: 'all', filterM: 'all', filterD: 'all' };
+  state.dataDate = { filterY: 'all', filterM: 'all', filterD: 'all' };
 }
 
 /* 筛选结果按「筛选条件 + 数据版本」缓存：一次渲染里 hero、列表、数据页都要用，
    以前每次调都重新 filter + sort 一遍整份记录。 */
 var _fKey = '', _fList = null;
 function filtered(){
+  var f = state.recDate;
   var key = state.filterType + '|' + state.filterEvent + '|' + state.filterStage + '|'
-    + state.filterY + '|' + state.filterM + '|' + state.filterD + '|' + db.records.length + '|' + dbRev;
+    + f.filterY + '|' + f.filterM + '|' + f.filterD + '|' + db.records.length + '|' + dbRev;
   if (_fKey === key && _fList) return _fList;
   var out = db.records.filter(function(r){
     if (state.filterType === 'win' && recNet(r) <= 0) return false;
@@ -2539,7 +2629,7 @@ function filtered(){
         return false;
       }
     }
-    if (!passDate(r, state)) return false;
+    if (!passDate(r, f)) return false;
     return true;
   }).sort(function(a, b){
     // 时间是定长的 'YYYY-MM-DDTHH:mm'，直接比字符串就等价于比先后，比 localeCompare 快一个量级
@@ -2604,7 +2694,7 @@ function hasOpening(){
 /* 只有完全没筛选时，累计数才代表「记账以来的总账」，期初才有意义 */
 function noFilter(){
   return state.filterType === 'all' && state.filterEvent === 'all'
-    && state.filterStage === 'all' && !dateActive();
+    && state.filterStage === 'all' && !dateActive(state.recDate);
 }
 
 /* ================= 渲染：记录 ================= */
@@ -2625,7 +2715,7 @@ function renderStats(){
   if (curBox) curBox.classList.toggle('hidden', db.records.length === 0);
 
   var parts = [];
-  if (dateActive()) parts.push(dateScopeText());
+  if (dateActive(state.recDate)) parts.push(dateScopeText(state.recDate));
   if (state.filterEvent !== 'all') {
     var ev = eventById(state.filterEvent);
     parts.push(ev ? ev.name : '已删除的比赛');
@@ -2787,36 +2877,129 @@ function paintStageChip(){
   $('#stageChipN').textContent = filtered().length + ' 场';
 }
 
+/* 比赛筛选按钮上写的名字：被删掉的比赛要能认出来，否则会看到「全部比赛」
+   却又只剩几场，像个 bug */
+function eventFilterLabel(){
+  if (state.filterEvent === 'all') return '全部比赛';
+  var ev = eventById(state.filterEvent);
+  return ev ? (ev.name || '未命名比赛') : '已删除的比赛';
+}
+function paintEventBtn(){
+  var b = $('#btnEventFilter');
+  if (!b) return;
+  var on = state.filterEvent !== 'all';
+  b.classList.toggle('on', on);
+  b.setAttribute('aria-label', '按比赛筛选，当前' + eventFilterLabel());
+  var lb = $('#evBtnLabel');
+  if (lb) lb.textContent = eventFilterLabel();
+}
+
 function renderFilters(){
   var bar = $('.filters');
   if (bar) bar.classList.toggle('hidden', db.records.length === 0);
-  var sel = $('#filterEvent');
-  var opts = '<option value="all">全部比赛</option>';
-  var sorted = db.events.slice().sort(function(a, b){
-    return cmpName(a.name, b.name);
-  });
-  sorted.forEach(function(e){
-    opts += '<option value="' + esc(e.id) + '">' + esc(e.name) + '</option>';
-  });
-  if (state.filterEvent !== 'all' && !eventById(state.filterEvent)) {
-    opts += '<option value="' + esc(state.filterEvent) + '">已删除的比赛</option>';
-  }
-  sel.innerHTML = opts;
-  sel.value = state.filterEvent;
+
+  paintEventBtn();
 
   $$('#filterType button').forEach(function(b){
     b.classList.toggle('on', b.getAttribute('data-type') === state.filterType);
   });
 
   var dbtn = $('#btnDate'), dlabel = $('#dateLabel');
-  if (dlabel) dlabel.textContent = dateLabelOf();
-  if (dbtn) dbtn.classList.toggle('on', dateActive());
+  if (dlabel) dlabel.textContent = dateLabelOf(state.recDate);
+  if (dbtn) dbtn.classList.toggle('on', dateActive(state.recDate));
 
   paintStageChip();
 }
 
+/* ============ 比赛筛选面板 ============
+   原生 select 在手机上就是一列长名单，几十个比赛要一格格滑。换成自己的面板：
+   搜索框 + 每场多少场次，点一行就生效并关掉。 */
+var evQuery = '';
+
+function eventCounts(){
+  var m = Object.create(null);
+  db.records.forEach(function(r){
+    var k = r.eventId || '';
+    m[k] = (m[k] || 0) + 1;
+  });
+  return m;
+}
+
+function renderEventFilter(){
+  var box = $('#evfList');
+  if (!box) return;
+  var q = evQuery.trim().toLowerCase();
+  var cnt = eventCounts();
+  var rows = [];
+
+  function row(id, label, n, tag){
+    var on = state.filterEvent === id;
+    return '<button class="evf-row' + (on ? ' on' : '') + '" type="button"'
+      + ' data-evpick="' + esc(id) + '" aria-pressed="' + (on ? 'true' : 'false') + '">'
+      + '<span class="evf-nm">' + esc(label)
+        + (tag ? '<i class="evf-tag">' + tag + '</i>' : '') + '</span>'
+      + '<span class="evf-ct">' + n + ' 场</span>'
+      + (on ? '<i class="evf-tick">✓</i>' : '')
+    + '</button>';
+  }
+
+  // 搜索时把「全部比赛」收起来：正在找某一场，第一行却是全选很碍事
+  if (!q) rows.push(row('all', '全部比赛', db.records.length));
+  // 指向一场已经删掉的比赛时留一行，否则用户看得见筛选生效了，却找不到它在哪
+  if (state.filterEvent !== 'all' && !eventById(state.filterEvent)) {
+    rows.push(row(state.filterEvent, '已删除的比赛', cnt[state.filterEvent] || 0));
+  }
+  db.events.slice().sort(function(a, b){ return cmpName(a.name, b.name); }).forEach(function(e){
+    if (q && String(e.name || '').toLowerCase().indexOf(q) < 0) return;
+    rows.push(row(e.id, e.name || '未命名比赛', cnt[e.id] || 0, e.kind === 'satellite' ? '卫星' : ''));
+  });
+
+  box.innerHTML = rows.length
+    ? rows.join('')
+    : '<div class="evf-none">没有匹配「' + esc(evQuery.trim()) + '」的比赛</div>';
+
+  var x = $('#evfClear');
+  if (x) x.classList.toggle('hidden', !evQuery);
+}
+
+function openEventFilter(){
+  evQuery = '';
+  var inp = $('#evfInput');
+  if (inp) inp.value = '';
+  renderEventFilter();
+  openModal('mEventFilter');
+  fitSheetToKeyboard();
+}
+
+/* 手机上键盘弹起来会盖住半个屏幕，而这个面板就贴在底部。
+   用 visualViewport 量一下被盖掉多少，把面板抬到键盘上面；键盘收起时原样还原。 */
+function fitSheetToKeyboard(){
+  var sheet = document.querySelector('#mEventFilter .sheet');
+  if (!sheet) return;
+  var vv = window.visualViewport;
+  var covered = vv ? (window.innerHeight - vv.height - vv.offsetTop) : 0;
+  if (covered > 60) {
+    sheet.style.bottom = Math.round(covered) + 'px';
+    sheet.style.maxHeight = Math.max(220, Math.round(vv.height - 12)) + 'px';
+  } else {
+    sheet.style.bottom = '';
+    sheet.style.maxHeight = '';
+  }
+}
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', fitSheetToKeyboard);
+  window.visualViewport.addEventListener('scroll', fitSheetToKeyboard);
+}
+
 /* ============ 时间筛选面板 ============ */
+/* 面板是共用的，但一次只编辑一份范围：dpScope 记住这次开的是哪一页的。
+   记录页（rec）和数据页（data）各存各的，互不影响。 */
 var dpDraft = { filterY: 'all', filterM: 'all', filterD: 'all' };
+var dpScope = 'rec';
+
+function dateScopeRef(scope){
+  return scope === 'data' ? state.dataDate : state.recDate;
+}
 
 /* 候选池：月跟着年收窄，日跟着年月收窄，只保留真出现过的值 */
 function datePool(f){
@@ -2867,8 +3050,13 @@ function renderDatePicker(){
   net.className = cls(s.net);
 }
 
-function openDatePicker(){
-  dpDraft = { filterY: state.filterY, filterM: state.filterM, filterD: state.filterD };
+function openDatePicker(scope){
+  dpScope = scope === 'data' ? 'data' : 'rec';
+  var ref = dateScopeRef(dpScope);
+  dpDraft = { filterY: ref.filterY, filterM: ref.filterM, filterD: ref.filterD };
+  // 同名面板干两件事，标题得说清这次改的是谁的范围
+  var h = $('#mDate .sheet-head h2');
+  if (h) h.textContent = dpScope === 'data' ? '统计范围' : '记录筛选 · 时间';
   renderDatePicker();
   openModal('mDate');
 }
@@ -3168,7 +3356,7 @@ function renderTrendMon(recs){
     + '<span>月均<b class="' + cls(sum / n) + '">' + signed(Math.round(sum / n)) + '</b></span>';
 
   var nl = [];
-  var spanWord = dateActive() ? '这段时间跨 ' : '记账跨 ';
+  var spanWord = dateActive(state.dataDate) ? '这段时间跨 ' : '记账跨 ';
   if (all.length > keys.length) {
     nl.push(spanWord + all.length + ' 个月，这里显示最近 ' + keys.length + ' 个'
       + (emptyN ? '（其中 ' + emptyN + ' 个月没记录）' : '') + '；更早的用上面的「统计范围」看');
@@ -3244,7 +3432,7 @@ function renderTrendSeq(recs){
   var body = $('#chartBody'), axis = $('#chartAxis'), foot = $('#chartFoot');
   // 曲线只画「记账以来」的累计：期初金额塞进同一条线会把后半段压成一条平线，
   // 所以期初只进 hero 的总账，在这里用一行文案对账。
-  var base = dateActive() ? 0 : openingOf();
+  var base = dateActive(state.dataDate) ? 0 : openingOf();
 
   var vals = [0], stages = [''], cum = 0, i;
   recs.forEach(function(r){ cum += recNet(r); vals.push(cum); stages.push(stageOf(r)); });
@@ -3326,13 +3514,13 @@ function renderTrendSeq(recs){
   // 口径：这条线从哪算起、跟期初怎么对账
   var titleEl = $('#trendTitle');
   if (titleEl) {
-    titleEl.textContent = (base !== 0 && !dateActive()) ? '记账以来走势' : '累计净收益走势';
+    titleEl.textContent = (base !== 0 && !dateActive(state.dataDate)) ? '记账以来走势' : '累计净收益走势';
   }
   var noteEl = $('#chartNote');
   if (noteEl) {
     var nl = [];
-    if (dateActive()) {
-      nl.push('只累计 ' + dateScopeText() + '的 ' + recs.length + ' 场' + (hasOpening() ? '，期初不参与' : ''));
+    if (dateActive(state.dataDate)) {
+      nl.push('只累计 ' + dateScopeText(state.dataDate) + '的 ' + recs.length + ' 场' + (hasOpening() ? '，期初不参与' : ''));
     } else if (base !== 0) {
       nl.push('记账以来 <b class="' + cls(cur) + '">' + signed(cur) + '</b> · 期初 <b class="' + cls(base) + '">'
         + signed(base) + '</b> 另计 · 合计 <b class="' + cls(cur + base) + '">' + signed(cur + base) + '</b>');
@@ -3633,9 +3821,9 @@ function renderBests(list){
     + cell('最长连亏', lRun ? lRun + ' 场' : '—', lRun ? 'loss' : 'zero', '当前 ' + curL + ' 场');
 }
 
-/* 数据页只受时间筛选影响：记录页的输赢 / 比赛筛选不进来 */
+/* 数据页只受自己那份时间范围影响：记录页的输赢 / 比赛 / 时间筛选都不进来 */
 function dateFilteredRecords(){
-  return db.records.filter(function(r){ return passDate(r, state); });
+  return db.records.filter(function(r){ return passDate(r, state.dataDate); });
 }
 
 function num4(v){ return String(parseFloat(money(v).toFixed(4))); }
@@ -3683,11 +3871,11 @@ function rateSourceText(){
 function renderDataScope(list, n){
   var btn = $('#btnDateData');
   if (!btn) return;
-  var on = dateActive();
+  var on = dateActive(state.dataDate);
   btn.classList.toggle('on', on);
   var box = $('#dataScope');
   if (box) box.classList.toggle('on', on);
-  $('#dateLabelData').textContent = on ? dateScopeText() : '全部时间';
+  $('#dateLabelData').textContent = on ? dateScopeText(state.dataDate) : '全部时间';
   $('#dataScopeN').textContent = (n === undefined ? statsOf(list).n : n) + ' 场';
   paintCurSegs();
 }
@@ -3718,7 +3906,7 @@ function renderDataEmpty(){
   }
   box.innerHTML = '<div class="empty" style="padding:32px 14px 24px">'
     + '<h3>这个时间范围没有记录</h3>'
-    + '<p>' + esc(dateScopeText()) + '里没有比赛<br>换一段时间，或者看全部</p>'
+    + '<p>' + esc(dateScopeText(state.dataDate)) + '里没有比赛<br>换一段时间，或者看全部</p>'
     + '<div class="empty-acts">'
       + '<button class="cta" data-date>换个范围</button>'
       + '<button class="cta plain" data-cleardate>全部时间</button>'
@@ -3910,6 +4098,11 @@ function closeModal(id){
   if (!el) return;
   el.classList.remove('open');
   el.setAttribute('aria-hidden', 'true');
+  // 抬起来等键盘的那点 offset 是临时的，关掉就还原
+  if (id === 'mEventFilter') {
+    var sh = el.querySelector('.sheet');
+    if (sh) { sh.style.bottom = ''; sh.style.maxHeight = ''; }
+  }
   syncLock();
   // 主动关闭时把压进去的那条历史也退掉，别让返回键白按一次；
   // 若这次关闭本身就是 popstate 触发的，history.state 已经不是它，不会再退
@@ -4225,10 +4418,10 @@ function saveRecord(){
   saveDB();
   renderAll();
 
-  // 刚存的这笔如果落在当前时间筛选之外，会自动看不见 —— 直接放开时间筛选，别让人以为没存上
-  var off = dateActive() && !passDate({ time: form.time }, state);
+  // 刚存的这笔如果落在记录页当前时间筛选之外，会自动看不见 —— 直接放开时间筛选，别让人以为没存上
+  var off = dateActive(state.recDate) && !passDate({ time: form.time }, state.recDate);
   if (off) {
-    state.filterY = 'all'; state.filterM = 'all'; state.filterD = 'all';
+    state.recDate = { filterY: 'all', filterM: 'all', filterD: 'all' };
     dirty.data = true;
     renderAll();
   }
@@ -4959,11 +5152,13 @@ document.addEventListener('click', function(e){
     return;
   }
   var dateOpen = e.target.closest ? e.target.closest('[data-date]') : null;
-  if (dateOpen) { openDatePicker(); return; }
+  if (dateOpen) { openDatePicker(state.view === 'data' ? 'data' : 'rec'); return; }
 
   var dateClear = e.target.closest ? e.target.closest('[data-cleardate]') : null;
   if (dateClear) {
-    state.filterY = 'all'; state.filterM = 'all'; state.filterD = 'all';
+    // 空状态里的「全部时间」只清当前这页那份，别顺手把另一页也放开了
+    var cref = dateScopeRef(state.view === 'data' ? 'data' : 'rec');
+    cref.filterY = 'all'; cref.filterM = 'all'; cref.filterD = 'all';
     renderFilters(); renderStats(); renderRecords(); renderData();
     return;
   }
@@ -4984,14 +5179,38 @@ document.addEventListener('click', function(e){
   }
 });
 
-$('#filterEvent').addEventListener('change', function(){
-  state.filterEvent = this.value;
-  renderStats(); renderRecords(); paintStageChip();
+/* 比赛筛选面板：搜索 + 点一行生效 */
+$('#btnEventFilter').addEventListener('click', openEventFilter);
+
+$('#evfInput').addEventListener('input', function(){
+  evQuery = this.value;
+  renderEventFilter();
 });
 
-/* 时间筛选 */
-$('#btnDate').addEventListener('click', openDatePicker);
-$('#btnDateData').addEventListener('click', openDatePicker);
+$('#evfClear').addEventListener('click', function(){
+  evQuery = '';
+  var inp = $('#evfInput');
+  if (inp) { inp.value = ''; try { inp.focus(); } catch(e) {} }
+  renderEventFilter();
+});
+
+$('#evfReset').addEventListener('click', function(){
+  state.filterEvent = 'all';
+  closeModal('mEventFilter');
+  renderFilters(); renderStats(); renderRecords();
+});
+
+$('#evfList').addEventListener('click', function(e){
+  var b = e.target.closest ? e.target.closest('[data-evpick]') : null;
+  if (!b) return;
+  state.filterEvent = b.getAttribute('data-evpick');
+  closeModal('mEventFilter');
+  renderFilters(); renderStats(); renderRecords();
+});
+
+/* 时间筛选：记录页和数据页各开各的，改哪一份由 dpScope 记住 */
+$('#btnDate').addEventListener('click', function(){ openDatePicker('rec'); });
+$('#btnDateData').addEventListener('click', function(){ openDatePicker('data'); });
 
 $('#dpReset').addEventListener('click', function(){
   dpDraft = { filterY: 'all', filterM: 'all', filterD: 'all' };
@@ -4999,9 +5218,10 @@ $('#dpReset').addEventListener('click', function(){
 });
 
 $('#dpDone').addEventListener('click', function(){
-  state.filterY = dpDraft.filterY;
-  state.filterM = dpDraft.filterM;
-  state.filterD = dpDraft.filterD;
+  var ref = dateScopeRef(dpScope);
+  ref.filterY = dpDraft.filterY;
+  ref.filterM = dpDraft.filterM;
+  ref.filterD = dpDraft.filterD;
   closeModal('mDate');
   renderFilters(); renderStats(); renderRecords(); renderData();
 });
