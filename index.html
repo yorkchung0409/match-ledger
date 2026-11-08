@@ -781,6 +781,11 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 .s-ft{background:var(--brand)}
 .s-itm{background:rgba(var(--brand-rgb),.38)}
 .s-out{background:rgba(var(--line-rgb),.22)}
+/* 卫星赛的两档：赢到票 / 没赢到。用同一套深浅，别让两个 tab 像两套设计 */
+.s-win{background:var(--brand)}
+.s-miss{background:rgba(var(--line-rgb),.22)}
+/* 命中率下面那条占比，和上面的数字拉开一点 */
+.sat-share{margin-top:12px}
 .stagelist{list-style:none;margin:0;padding:0}
 .stagelist li{border-top:var(--bw) solid var(--line-2)}
 .stagelist li:first-child{border-top:0}
@@ -1352,26 +1357,29 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
       </div>
 
       <div id="dataStats">
-        <div class="sec hidden" id="satSec">
-          <span class="bar"></span><h2>卫星赛与门票</h2>
-          <span class="spacer"></span><span class="hint">门票不进净收益</span>
-        </div>
-        <div class="panel hidden" id="satPanel">
-          <div class="buy-head">
-            <span class="buy-avg"><span id="satHit">0</span><em>命中率</em></span>
-            <span class="buy-tot" id="satSum"></span>
-          </div>
-          <div class="buy-cmp" id="satCmp"></div>
-          <p class="buy-note" id="satNote"></p>
-        </div>
-
         <div class="sec">
           <span class="bar"></span><h2>成绩结构</h2>
-          <span class="spacer"></span><span class="hint" id="stageHint">平均每场净收益</span>
+          <span class="spacer"></span>
+          <span class="hint" id="stageHint">平均每场净收益</span>
+          <div class="tseg hidden" id="stageSeg" role="group" aria-label="成绩结构口径">
+            <button type="button" data-stagetab="reg" class="on">常规赛</button>
+            <button type="button" data-stagetab="sat">卫星赛</button>
+          </div>
         </div>
         <div class="panel">
-          <div class="share" id="stageShare"></div>
-          <ul class="stagelist" id="stageList"></ul>
+          <div id="stageRegBox">
+            <div class="share" id="stageShare"></div>
+            <ul class="stagelist" id="stageList"></ul>
+          </div>
+          <div id="stageSatBox" class="hidden">
+            <div class="buy-head">
+              <span class="buy-avg"><span id="satHit">—</span><em>命中率</em></span>
+              <span class="buy-tot" id="satSum"></span>
+            </div>
+            <div class="share sat-share" id="satShare"></div>
+            <ul class="stagelist" id="satList"></ul>
+            <div class="buy-cmp" id="satCmp"></div>
+          </div>
           <div class="chart-note" id="stageNote"></div>
         </div>
 
@@ -1647,7 +1655,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <button type="button" data-kind="regular" class="on">常规赛</button>
           <button type="button" data-kind="satellite">卫星赛</button>
         </div>
-        <p class="fhint">卫星赛赢的是更大比赛的门票，不是现金。会单独归类统计，不混进常规赛的进圈率和成绩结构。</p>
+        <p class="fhint">卫星赛赢的是更大比赛的门票，不是现金。会单独归类统计，不混进常规赛的进圈率和成绩结构 —— 数据页「成绩结构」里有单独的卫星赛 tab。</p>
       </div>
       <div class="fgroup">
         <span class="flabel">一手买入（可选）</span>
@@ -1743,7 +1751,8 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <li>ROI = 净收益 ÷ 总成本</li>
           <li>进圈率 = 进圈场次 ÷ 已记录场次</li>
           <li>场均净收益 = 净收益 ÷ 场次</li>
-          <li>成绩结构每行右边是<b>这一档的场均</b>，不是这一档的总和 —— 6 场一共亏 $6.08，场均就是 −$1.01；想看总数就在记录页把这一档筛出来看顶部。</li>
+          <li>成绩结构按口径分两个 tab：<b>常规赛</b>看圈外 / 进圈 / 进 FT，<b>卫星赛</b>看赢到票 / 没赢到。每行右边是<b>这一档的场均</b>，不是这一档的总和 —— 6 场一共亏 $6.08，场均就是 −$1.01；想看总数就在记录页把这一档筛出来看顶部。</li>
+          <li>成绩结构每行<b>整行可点</b>：点「进圈」就只看进圈场次，再点一次取消；卫星赛点「赢到门票」同理。</li>
           <li>比率只看<b>已记录的场次</b>。没记住的场次不补也不猜 —— 缺记录会让样本有偏，但不会把公式算错。</li>
         </ul></div>
       </details>
@@ -1772,14 +1781,14 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <li><b>场次</b>：累计曲线，每个点按名次档着色（金＝进 FT、品牌色＝进圈、灰＝圈外）；超过 60 场只标 FT 的点。</li>
           <li><b>月度</b>：每月一根柱，赚红亏绿，没打的月份是浅色短横线；「最差」「月均」只按有记录的月份算。</li>
           <li><b>比赛</b>：按净收益排序的横条，中线是 0，往右赚往左亏；点一行跳到记录页，只看这个比赛。</li>
-          <li>成绩结构三行<b>整行可点</b>：点「进圈」就只看进圈场次，再点一次取消。</li>
         </ul></div>
       </details>
 
       <details class="help-d">
         <summary>卫星赛与门票</summary>
         <div class="help-body"><ul>
-          <li>卫星赛赢的是更大比赛的<b>门票</b>，不是现金。票绑定本人、不能变现，所以<b>不进净收益、不进 ROI</b>，只记在数据页的门票台账里。</li>
+          <li>卫星赛赢的是更大比赛的<b>门票</b>，不是现金。票绑定本人、不能变现，所以<b>不进净收益、不进 ROI</b>，只记在数据页「成绩结构 → 卫星赛」的门票台账里。</li>
+          <li>数据页「成绩结构」右上角可以切<b>常规赛 / 卫星赛</b>：卫星赛那边看命中率、赢到票 / 没赢到各多少场、每场平均花多少现金，下面是全库的门票台账。</li>
           <li>记一笔时把「收益类型」选成「赢门票」并填票面，现金收益自动算 0，不会虚增成绩。</li>
           <li>用票打主赛时「成本来源」选「门票」或「票 + 现金」：票面填在门票面值，<b>现金成本只填自己掏的钱</b>（rebuy / add-on）。净收益仍是「现金收益 − 现金成本」，一张票不会被记两次。</li>
           <li>在「比赛管理」里把这类比赛标成<b>卫星赛</b>：单独归类，不混进常规赛的进圈率、成绩结构、买入习惯和个人纪录；但卫星赛买入是真花钱，仍照记进净收益和走势。</li>
@@ -2067,7 +2076,9 @@ function eventKindOf(e){ return (e && e.kind === 'satellite') ? 'satellite' : 'r
 function isSatellite(r){
   if (!r) return false;
   if (r.eventKind === 'satellite' || r.eventKind === 'regular') return r.eventKind === 'satellite';
-  return eventKindOf(eventById(r.eventId));
+  // eventKindOf 返回的是 'regular' / 'satellite' 字符串 —— 直接 return 等于
+  // 「非空即真」，没有 eventKind 的老记录会全被判成卫星赛（示例数据就踩过）。
+  return eventKindOf(eventById(r.eventId)) === 'satellite';
 }
 function regularOnly(list){
   return (list || []).filter(function(r){ return !isSatellite(r); });
@@ -2339,7 +2350,8 @@ function hasDemo(){
 var state = {
   view: 'records', filterType: 'all', filterEvent: 'all', filterStage: 'all',
   filterY: 'all', filterM: 'all', filterD: 'all', dispCur: 'CNY',
-  trend: 'seq'          // 走势图维度：seq 场次 / mon 月度 / ev 比赛
+  trend: 'seq',         // 走势图维度：seq 场次 / mon 月度 / ev 比赛
+  stageTab: 'reg'       // 成绩结构 tab：reg 常规赛 / sat 卫星赛
 };
 var form = null;      // 当前编辑的记录
 var editingEvent = null;
@@ -2365,6 +2377,16 @@ function loadTrendPref(){
 }
 function saveTrendPref(){
   try { localStorage.setItem(TREND_KEY, state.trend); } catch(e) {}
+}
+/* 成绩结构的 tab 同理：常看卫星赛的人，切过去就记住 */
+var STAGE_KEY = 'matchledger.stagetab';
+function loadStagePref(){
+  var v = '';
+  try { v = localStorage.getItem(STAGE_KEY) || ''; } catch(e) {}
+  state.stageTab = (v === 'sat') ? 'sat' : 'reg';
+}
+function saveStagePref(){
+  try { localStorage.setItem(STAGE_KEY, state.stageTab); } catch(e) {}
 }
 function paintTrendSeg(){
   $$('#trendSeg button').forEach(function(b){
@@ -2508,8 +2530,14 @@ function filtered(){
     if (state.filterType === 'loss' && recNet(r) >= 0) return false;
     if (state.filterEvent !== 'all' && r.eventId !== state.filterEvent) return false;
     if (state.filterStage !== 'all') {
-      // 成绩结构按常规赛统计，下钻也只看常规赛，否则点「进圈」会多出卫星赛记录
-      if (isSatellite(r) || stageOf(r) !== state.filterStage) return false;
+      // 两套口径互斥：常规赛按名次档，卫星赛按有没有赢到票。
+      // 卫星赛没有「进圈 / 圈外」之分，混进来点「进圈」就会多出一堆票赛。
+      if (state.filterStage === 'satwin' || state.filterStage === 'satmiss') {
+        if (!isSatellite(r)) return false;
+        if ((ticketWonOf(r) > 0) !== (state.filterStage === 'satwin')) return false;
+      } else if (isSatellite(r) || stageOf(r) !== state.filterStage) {
+        return false;
+      }
     }
     if (!passDate(r, state)) return false;
     return true;
@@ -2533,6 +2561,15 @@ function stageOf(r){
 function stageLabel(r){
   var st = stageOf(r);
   return st === 'ft' ? '进FT' : st === 'itm' ? '进圈' : '圈外';
+}
+/* 档位筛选的名字：常规赛三档 + 卫星赛两档，界面上只留一个 chip，名字得对得上 */
+function stageFilterLabel(v){
+  return v === 'ft' ? '进 FT'
+    : v === 'itm' ? '进圈'
+    : v === 'out' ? '圈外'
+    : v === 'satwin' ? '赢到门票'
+    : v === 'satmiss' ? '未赢票'
+    : '';
 }
 
 function statsOf(list){
@@ -2594,7 +2631,7 @@ function renderStats(){
     parts.push(ev ? ev.name : '已删除的比赛');
   }
   if (state.filterStage !== 'all') {
-    parts.push(state.filterStage === 'ft' ? '进 FT' : state.filterStage === 'itm' ? '进圈' : '圈外');
+    parts.push(stageFilterLabel(state.filterStage));
   }
   if (state.filterType === 'win') parts.push('盈利场');
   if (state.filterType === 'loss') parts.push('亏损场');
@@ -2746,8 +2783,7 @@ function paintStageChip(){
   var on = state.filterStage !== 'all' && db.records.length > 0;
   chip.classList.toggle('hidden', !on);
   if (!on) return;
-  $('#stageChipLabel').textContent =
-    state.filterStage === 'ft' ? '进 FT' : state.filterStage === 'itm' ? '进圈' : '圈外';
+  $('#stageChipLabel').textContent = stageFilterLabel(state.filterStage);
   $('#stageChipN').textContent = filtered().length + ' 场';
 }
 
@@ -3315,51 +3351,84 @@ function renderTrendSeq(recs){
   }
 }
 
-/* 卫星赛与门票台账。票绑定本人、不能变现，所以只记张数与面值，
-   不进净收益、不进 ROI。台账按全库算 —— 查「还有几张票没打」不能被
-   当前的时间筛选骗到；命中率则按当前统计范围的卫星赛场次算。 */
-function renderSatellites(list){
-  var sec = $('#satSec'), panel = $('#satPanel');
-  if (!sec || !panel) return;
-  var all = db.records;
-  var sat = (list || []).filter(isSatellite);
-  var won = all.filter(function(r){ return ticketWonOf(r) > 0; });
-  var used = all.filter(function(r){ return ticketCostOf(r) > 0; });
-  var any = sat.length || won.length || used.length;
-  sec.classList.toggle('hidden', !any);
-  panel.classList.toggle('hidden', !any);
-  if (!any) return;
+/* ================= 成绩结构（两个 tab） =================
+   常规赛看「圈外 / 进圈 / 进 FT」的分布与场均净收益；
+   卫星赛看「赢到票 / 没赢到」的分布与场均花费，外加门票台账。
+   两套口径本来就不一样 —— 卫星赛没有奖金圈、也不产生现金奖金 ——
+   所以放同一张卡片里切 tab，而不是硬塞进同一组三行。
+   票是权益不是现金：只记张数与面值，永远不进净收益和 ROI。 */
+var _stageReg = [], _stageSat = [];
 
-  function faceSum(arr, get){
-    var s = 0;
-    arr.forEach(function(r){ s += toDisp(get(r), curOf(r)); });
-    return s;
+function hasSatellite(){ return db.records.some(isSatellite); }
+
+function paintStageSeg(){
+  var seg = $('#stageSeg');
+  if (!seg) return;
+  // 一条卫星赛都没有的人，不该看见一个永远空的 tab
+  seg.classList.toggle('hidden', !hasSatellite());
+  $$('#stageSeg button').forEach(function(b){
+    var on = b.getAttribute('data-stagetab') === state.stageTab;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+function setStageTab(t){
+  var next = t === 'sat' ? 'sat' : 'reg';
+  if (next === state.stageTab) return;
+  state.stageTab = next;
+  saveStagePref();
+  paintStageSeg();
+  paintStageTab();
+}
+/* 换 tab 只重画这一块：数据页其他块跟口径无关，整页重画是白费 */
+function paintStageTab(){
+  var regBox = $('#stageRegBox'), satBox = $('#stageSatBox'), hint = $('#stageHint');
+  if (!regBox || !satBox) return;
+  var hasSat = hasSatellite();
+  var sat = hasSat && state.stageTab === 'sat';
+  regBox.classList.toggle('hidden', sat);
+  satBox.classList.toggle('hidden', !sat);
+  if (hint) {
+    // 有 tab 的时候「常规赛」三个字已经说清口径，右边再写一遍是废话
+    hint.textContent = hasSat ? '' : '平均每场净收益';
+    hint.classList.toggle('hidden', hasSat);
   }
-  var winSat = sat.filter(function(r){ return ticketWonOf(r) > 0; }).length;
-  $('#satHit').textContent = sat.length ? Math.round(winSat / sat.length * 100) + '%' : '—';
-  $('#satSum').textContent = sat.length + ' 场卫星赛 · 赢票 ' + won.length + ' 张';
-  function cell(label, n, sub){
-    return '<div><span class="bc-l">' + label + '</span>'
-      + '<span class="bc-n"><b>' + n + '</b>张</span>'
-      + '<span class="bc-s">' + sub + '</span></div>';
-  }
-  $('#satCmp').innerHTML = cell('赢到门票', won.length, '面值 <b>' + fmtMoney(faceSum(won, ticketWonOf)) + '</b>')
-    + cell('已用门票', used.length, '面值 <b>' + fmtMoney(faceSum(used, ticketCostOf)) + '</b> · 未用 '
-      + Math.max(0, won.length - used.length) + ' 张');
-  $('#satNote').textContent =
-    '门票绑定本人、不能变现，不计入净收益和 ROI；卫星赛也不进常规赛的进圈率、成绩结构、买入习惯和个人纪录，但买入是真花钱，仍进净收益和走势。用票打主赛时现金成本只填自己掏的钱（rebuy / add-on）。台账按全部记录算，不受时间范围影响。';
+  if (sat) renderSatTab(_stageSat); else renderStageReg(_stageReg);
 }
 
-/* 成绩结构：圈外 / 进圈 / 进 FT 各占多少场、平均每场赚多少 */
-function renderStages(list){
-  var box = $('#stageList'), share = $('#stageShare');
-  list = list || db.records;
-  var hint = $('#stageHint');
-  if (hint) hint.textContent = db.records.some(isSatellite) ? '常规赛 · 场均' : '平均每场净收益';
+function renderStages(regList, satList){
+  _stageReg = regList || [];
+  _stageSat = satList || [];
+  // 这段时间没有常规赛、却有卫星赛时，先把卫星赛摆出来，别让人先看一张空表。
+  // 只改「当前看哪个」，不动存下来的偏好 —— 记录回来时还回原来那一栏。
+  if (state.stageTab === 'reg' && !_stageReg.length && _stageSat.length) state.stageTab = 'sat';
+  else if (state.stageTab === 'sat' && !_stageSat.length && _stageReg.length) state.stageTab = 'reg';
+  paintStageSeg();
+  paintStageTab();
+}
+
+/* 两档共用的行结构：整行可点，点了跳记录页只留这一档 */
+function stageRowHTML(o){
+  var on = state.filterStage === o.stage;
+  return '<li><button class="stagerow' + (on ? ' on' : '') + '" type="button"'
+    + ' data-stage="' + o.stage + '"' + (o.n ? '' : ' disabled')
+    + ' aria-label="' + o.aria + '">'
+    + '<i class="sd s-' + o.k + '"></i>'
+    + '<span class="sn">' + o.name + '</span>'
+    + '<span class="sc">' + o.n + ' 场' + (o.pct ? ' · ' + o.pct : '') + '</span>'
+    + '<span class="sv ' + (o.n ? (o.valCls || '') : 'zero') + '">'
+      + (o.n ? o.valHTML : '—') + '</span>'
+    + (o.n ? '<i class="stage-chev">›</i>' : '')
+  + '</button></li>';
+}
+
+function renderStageReg(list){
+  var box = $('#stageList'), share = $('#stageShare'), note = $('#stageNote');
+  if (!box || !share) return;
   var total = list.length;
   if (!total) {
     box.innerHTML = ''; share.innerHTML = '';
-    var n0 = $('#stageNote'); if (n0) n0.innerHTML = '';
+    if (note) note.innerHTML = '<div class="nl">这段时间没有常规赛记录</div>';
     return;
   }
 
@@ -3381,33 +3450,109 @@ function renderStages(list){
     // 这里给的是「场均」，不是这一档的总和 —— 6 场 -$6.08 场均就是 -$1.01。
     // 以前取整成 -$1，看着像「6 场总共只亏 1 刀」，照着顶部 -$6.08 一对就以为算错了。
     var avg = r.n ? r.s.net / r.n : 0;
-    var on = state.filterStage === r.d.k;
-    // 整行可点：点了就跳记录页、只留这一档。没场次的那行点不动，别把人送进空列表
-    return '<li><button class="stagerow' + (on ? ' on' : '') + '" type="button"'
-      + ' data-stage="' + r.d.k + '"' + (r.n ? '' : ' disabled')
-      + ' aria-label="只看 ' + r.d.name + '，' + r.n + ' 场，场均 ' + (r.n ? signed(avg) : '—') + '">'
-      + '<i class="sd s-' + r.d.k + '"></i>'
-      + '<span class="sn">' + r.d.name + '</span>'
-      + '<span class="sc">' + r.n + ' 场' + (r.n ? ' · ' + Math.round(r.n / total * 100) + '%' : '') + '</span>'
-      + '<span class="sv ' + (r.n ? cls(avg) : 'zero') + '">'
-        + (r.n ? '<i class="sv-k">场均</i>' + signed(avg) : '—') + '</span>'
-      + (r.n ? '<i class="stage-chev">›</i>' : '')
-    + '</button></li>';
+    return stageRowHTML({
+      k: r.d.k, name: r.d.name, n: r.n,
+      pct: r.n ? Math.round(r.n / total * 100) + '%' : '',
+      stage: r.d.k,
+      valHTML: '<i class="sv-k">场均</i>' + signed(avg),
+      valCls: cls(avg),
+      aria: '只看' + r.d.name + '，' + r.n + ' 场，场均 ' + (r.n ? signed(avg) : '—')
+    });
   }).join('');
 
-  // 金额被折算过就说清楚：$1,000 买入的比赛，场均却写着 ¥8,238，
-  // 不解释的话看起来就是算错了
-  var note = $('#stageNote');
-  if (note) {
-    if (needsFx(list)) {
-      var d = dispCur();
-      note.innerHTML = '<div class="nl">金额按 1$ ≈ ¥' + fxShort() + ' 折算成' + curName(d) + '</div>'
-        + '<div class="nl">想看' + curName(d === 'USD' ? 'CNY' : 'USD') + '，点上面的<b>「'
-        + (d === 'USD' ? '¥ 人民币' : '$ 美元') + '」</b></div>';
-    } else {
-      note.innerHTML = '';
-    }
+  paintStageFxNote(note, list);
+}
+
+/* 卫星赛：赢到票 / 没赢到各多少场、场均花多少，外加全库的门票台账。
+   这里第三列给的是「场均花」而不是「场均净收益」：赢到票那几场现金上是负的
+   （钱变成了票），写净收益会看着像算错。 */
+function renderSatTab(list){
+  var share = $('#satShare'), box = $('#satList'), cmp = $('#satCmp'), note = $('#stageNote');
+  var all = db.records;
+  var satAll = all.filter(isSatellite);
+  var wonAll = all.filter(function(r){ return ticketWonOf(r) > 0; });
+  var usedAll = all.filter(function(r){ return ticketCostOf(r) > 0; });
+
+  function sumOf(arr, get){
+    var s = 0;
+    arr.forEach(function(r){ s += toDisp(get(r), curOf(r)); });
+    return s;
   }
+  function costSum(arr){ return sumOf(arr, function(r){ return r.cost; }); }
+
+  var won = list.filter(function(r){ return ticketWonOf(r) > 0; });
+  $('#satHit').textContent = list.length ? Math.round(won.length / list.length * 100) + '%' : '—';
+  $('#satSum').textContent = list.length
+    ? (list.length + ' 场 · 赢票 ' + won.length + ' 张')
+    : '这段时间没有卫星赛';
+
+  var defs = [
+    { k: 'win',  name: '赢到门票', keep: function(r){ return ticketWonOf(r) > 0; } },
+    { k: 'miss', name: '未赢票',   keep: function(r){ return ticketWonOf(r) <= 0; } }
+  ];
+  var rows = defs.map(function(d){
+    var subset = list.filter(d.keep);
+    return { d: d, n: subset.length, cost: costSum(subset) };
+  });
+
+  share.innerHTML = rows.filter(function(r){ return r.n > 0; }).map(function(r){
+    return '<i class="s-' + r.d.k + '" style="flex:' + r.n + ' 1 0"></i>';
+  }).join('');
+
+  box.innerHTML = rows.map(function(r){
+    var avg = r.n ? r.cost / r.n : 0;
+    return stageRowHTML({
+      k: r.d.k, name: r.d.name, n: r.n, pct: '',
+      stage: r.d.k === 'win' ? 'satwin' : 'satmiss',
+      valHTML: '<i class="sv-k">场均花</i>' + fmtMoney(avg),
+      valCls: '',
+      aria: '只看' + r.d.name + '，' + r.n + ' 场，场均花 ' + (r.n ? fmtMoney(avg) : '—')
+    });
+  }).join('');
+
+  function cell(label, n, sub){
+    return '<div><span class="bc-l">' + label + '</span>'
+      + '<span class="bc-n"><b>' + n + '</b>张</span>'
+      + '<span class="bc-s">' + sub + '</span></div>';
+  }
+  // 面值为 0 时别写「面值 $0」：那是没填，不是这张票不值钱
+  var wonFace = sumOf(wonAll, ticketWonOf), usedFace = sumOf(usedAll, ticketCostOf);
+  var unused = Math.max(0, wonAll.length - usedAll.length);
+  function faceText(n, sum){
+    if (!n) return '';
+    return sum > 0 ? '面值 <b>' + fmtMoney(sum) + '</b>' : '面值未填';
+  }
+  var wonTxt = faceText(wonAll.length, wonFace) || '还没赢到票';
+  var usedTxt = faceText(usedAll.length, usedFace);
+  cmp.innerHTML = cell('赢到门票', wonAll.length, wonTxt)
+    + cell('已用门票', usedAll.length, (usedTxt ? usedTxt + ' · ' : '') + '未用 ' + unused + ' 张');
+
+  // 台账按全库算 ——「还有几张票没打」不能被上面的时间筛选骗到
+  var nl = [];
+  var costAll = costSum(satAll);
+  if (wonAll.length) {
+    var face = sumOf(wonAll, ticketWonOf) / wonAll.length;
+    nl.push('平均每张票花 <b>' + fmtMoney(costAll / wonAll.length) + '</b>'
+      + (face > 0 ? '（票面 ' + fmtMoney(face) + '）' : ''));
+  } else if (satAll.length) {
+    nl.push('还没赢到票，卫星赛已花 <b>' + fmtMoney(costAll) + '</b>');
+  }
+  nl.push('场均花 ＝ 每场平均掏出去的现金，赢了票也照算');
+  nl.push('票面不进净收益和 ROI，买入仍照记');
+  nl.push('门票台账按全部记录算，不受时间范围影响');
+  if (needsFx(list)) nl.push('金额按 1$ ≈ ¥' + fxShort() + ' 折算成' + curName(dispCur()));
+  if (note) note.innerHTML = nl.map(function(t){ return '<div class="nl">' + t + '</div>'; }).join('');
+}
+
+/* 金额被折算过就说清楚：$1,000 买入的比赛，场均却写着 ¥8,238，
+   不解释的话看起来就是算错了 */
+function paintStageFxNote(note, list){
+  if (!note) return;
+  if (!needsFx(list)) { note.innerHTML = ''; return; }
+  var d = dispCur();
+  note.innerHTML = '<div class="nl">金额按 1$ ≈ ¥' + fxShort() + ' 折算成' + curName(d) + '</div>'
+    + '<div class="nl">想看' + curName(d === 'USD' ? 'CNY' : 'USD') + '，点上面的<b>「'
+    + (d === 'USD' ? '¥ 人民币' : '$ 美元') + '」</b></div>';
 }
 
 /* 买入习惯：场均手数 + 「1 手」和「2 手以上」分开算进圈率 */
@@ -3593,15 +3738,15 @@ function renderData(){
   renderDataScope(list, list.length);
   renderOpeningMeta();
   renderDataEmpty();
-  renderSatellites(list);
 
   var cnt = $('#evCount');
   if (cnt) cnt.textContent = db.events.length + ' 个';
 
   if (!has) return;
   var reg = regularOnly(list);
+  var sat = list.filter(isSatellite);
   renderTrend(list);        // 累计曲线是现金总账，卫星赛是真花钱，照记
-  renderStages(reg);         // 比率类只看常规赛
+  renderStages(reg, sat);   // 两个 tab：常规赛看名次档，卫星赛看有没有赢到票
   renderBuys(reg);
   renderBests(reg);
 }
@@ -4763,6 +4908,10 @@ document.addEventListener('click', function(e){
   var trendBtn = e.target.closest ? e.target.closest('[data-trend]') : null;
   if (trendBtn) { setTrend(trendBtn.getAttribute('data-trend')); return; }
 
+  // 成绩结构切口径：常规赛 / 卫星赛
+  var stageTabBtn = e.target.closest ? e.target.closest('[data-stagetab]') : null;
+  if (stageTabBtn) { setStageTab(stageTabBtn.getAttribute('data-stagetab')); return; }
+
   // 成绩结构整行点进记录页：再点一次同一档就取消
   var stageBtn = e.target.closest ? e.target.closest('[data-stage]') : null;
   if (stageBtn && !stageBtn.disabled) {
@@ -4874,6 +5023,7 @@ applyTheme(savedTheme, false);
 var firstRun = loadDB();
 loadDispPref();
 loadTrendPref();
+loadStagePref();
 paintTrendSeg();
 renderAll();
 /* 起始视图：URL 里带了 #/data 或 #/events 就照它开，否则把当前状态规范进历史 */
