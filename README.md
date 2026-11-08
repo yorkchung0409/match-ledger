@@ -145,6 +145,10 @@ v1 / v2 的备份可以直接恢复：读盘和导入时先做字段映射，再
 
 选择记在本地。
 
+**启动图的底色也跟着主题走。** 安卓从主屏冷启动时那块纯色启动图，取的是 manifest 的 `background_color`，而 manifest 是浏览器在页面脚本跑起来之前就去取的 —— 页面改不到它。所以反过来做：页面按当前主题把 manifest 改写一份扔进 Cache，`sw.js` 拦到 `manifest.json` 请求时发这份。`<link rel="manifest">` 仍然指向同源的静态文件 —— 换成 `blob:` 实测也能解析，但安装判定会失去同源性，不值得为一张启动图冒这个险。首次访问、或浏览器不给 Cache API 时，退回仓库里那份浅色的 `manifest.json`。
+
+iOS 不读 manifest 的这个字段，主屏启动想换底色只能塞 `apple-touch-startup-image` 静态图（一张固定尺寸的图片，跟不了主题），所以 iPhone 上仍是系统默认。
+
 ## 部署
 
 GitHub Pages 从 `main` 分支根目录自动构建，每次 push 后约 30–60 秒重新发布，不需要额外操作。

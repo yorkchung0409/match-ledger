@@ -2022,7 +2022,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
     </div>
     <div class="sheet-body">
       <div id="themeGrid"></div>
-      <p class="note">每套换的不只是颜色 —— 圆角、描边、阴影、字体、背景纹理都会一起变，所以手感完全不同。点一下即时生效并自动记住。</p>
+      <p class="note">每套换的不只是颜色 —— 圆角、描边、阴影、字体、背景纹理都会一起变，所以手感完全不同。点一下即时生效并自动记住。安卓从主屏冷启动的底色也会跟着变，下次启动生效。</p>
     </div>
   </div>
 </div>
@@ -2812,12 +2812,52 @@ function renderThemes(){
       '<div class="tglabel">浅色</div><div class="themegrid">' + light.map(themeCardHTML).join('') + '</div>'
     + '<div class="tglabel">深色</div><div class="themegrid">' + dark.map(themeCardHTML).join('') + '</div>';
 }
+/* 页面真正铺满全屏的底色（--bg）。THEMES 里的 bg 是选择器那张小图的卡面，
+   比它亮一档 —— 启动图要跟页面接得上，拿错就是一道色缝。 */
+function themeBgColor(){
+  var v = '';
+  try { v = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(); } catch(e) {}
+  return v || '#f6f5f0';
+}
+
+/* 启动图底色跟着主题走。
+   manifest 是浏览器在页面脚本跑起来之前就取的，页面改不到它 —— 所以反过来：
+   页面把按当前主题改好的 manifest 预置进 Cache，sw.js 拦到 manifest.json
+   请求时直接发这份。上次选的是深色，这次从主屏冷启动就是深色的启动图。
+   首次访问、或浏览器不给 Cache API 时，退回仓库里那份静态 manifest.json。 */
+var MANIFEST_CACHE = 'ml-meta', MANIFEST_KEY = '__manifest-theme', _manifestSrc = null;
+function syncManifestTheme(bg){
+  if (!('caches' in window)) return;
+  var key = new URL(MANIFEST_KEY, location.href).href;
+  function write(src){
+    var j;
+    try { j = JSON.parse(src); } catch(e) { return; }
+    j.background_color = bg;
+    j.theme_color = bg;
+    try {
+      caches.open(MANIFEST_CACHE).then(function(c){
+        return c.put(key, new Response(JSON.stringify(j), {
+          headers: { 'Content-Type': 'application/manifest+json', 'Cache-Control': 'no-cache' }
+        }));
+      }).catch(function(){});
+    } catch(e) {}
+  }
+  if (_manifestSrc) { write(_manifestSrc); return; }
+  // 带 ?raw 才是取仓库里那份原文：sw.js 只拦不带 query 的，否则拿到的是自己
+  fetch('manifest.json?raw=1', { cache: 'no-cache' })
+    .then(function(r){ return r.ok ? r.text() : ''; })
+    .then(function(txt){ if (txt) { _manifestSrc = txt; write(txt); } })
+    .catch(function(){});
+}
+
 function applyTheme(k, persist){
   var t = themeByKey(k);
   curTheme = t.k;
   document.documentElement.setAttribute('data-theme', t.k);
+  var bg = themeBgColor();
   var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', t.bg);
+  if (meta) meta.setAttribute('content', bg);
+  syncManifestTheme(bg);
   if (persist !== false) { try { localStorage.setItem(THEME_KEY, t.k); } catch(e) {} }
   renderThemes();
 }
