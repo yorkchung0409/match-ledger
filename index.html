@@ -631,12 +631,13 @@ input,textarea,select{font-family:inherit;color:inherit}
 }
 .hero-note{font-size:12px;color:var(--muted);letter-spacing:.02em;text-wrap:pretty}
 .hero-grid{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:6px;
+  display:grid;grid-template-columns:repeat(5,1fr);gap:5px;
   margin-top:16px;padding-top:14px;border-top:var(--bw) solid var(--line-2);
 }
 .hero-grid>div{display:flex;flex-direction:column;gap:5px;min-width:0}
-.hero-grid span{font-size:10.5px;color:var(--muted-2);letter-spacing:.05em}
-.hero-grid b{font-family:var(--num-font);font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.hero-grid span{font-size:10.5px;color:var(--muted-2);letter-spacing:.02em;white-space:nowrap}
+/* 5 格比原来 4 格窄，字数多的 "-100.0%" / "$1,234.56" 要跟着视口缩一点，别撑破格子 */
+.hero-grid b{font-family:var(--num-font);font-size:clamp(11px,3.2vw,13px);font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em;white-space:nowrap}
 
 /* ---------- 币种切换（hero / 数据页顶卡 / 表单 / 弹层共用） ---------- */
 .curseg{
@@ -1500,6 +1501,13 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 .fatal-acts .btn{width:100%}
 
 /* ---------- 窄屏适配 ---------- */
+/* 5 项指标在窄屏挤成一行会把 "-100.0%" / "$1,234.56" 顶到隔壁格子，
+   拆成 3 + 2 两行：前三项各占 2 列，后两项各占 3 列，两行都刚好铺满。 */
+@media (max-width:399px){
+  .hero-grid{grid-template-columns:repeat(6,1fr);row-gap:11px}
+  .hero-grid>div{grid-column:span 2}
+  .hero-grid>div:nth-child(4),.hero-grid>div:nth-child(5){grid-column:span 3}
+}
 @media (max-width:359px){
   .app{padding-left:13px;padding-right:13px}
   .rec{gap:10px;padding:12px}
@@ -1514,7 +1522,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
   .rec-meta span{white-space:nowrap}
   .hero-value{font-size:31px}
   .hero{padding:18px 15px 14px}
-  .hero-grid b{font-size:12.5px}
+  .hero-grid b{font-size:12px}
   .seg button{padding:6px 9px}
   /* 手数这一行要在窄屏挤下「标签 + 5 个方块 + 单价」，方块收窄一点 */
   .buyrow{gap:6px}
@@ -1578,6 +1586,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <div><span>总投入</span><b id="sCost">¥0</b></div>
           <div><span>ROI</span><b id="sRoi">—</b></div>
           <div><span>进圈率</span><b id="sItm">—</b></div>
+          <div><span>FT 率</span><b id="sFt">—</b></div>
         </div>
       </div>
 
@@ -2080,7 +2089,8 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         <div class="help-body"><ul>
           <li>净收益 = 收益 − 成本</li>
           <li>ROI = 净收益 ÷ 总成本</li>
-          <li>进圈率 = 进圈场次 ÷ 已记录场次</li>
+          <li>进圈率 = <b>进圈（含进 FT）</b>场次 ÷ 常规赛场次</li>
+          <li>FT 率 = <b>进 FT</b> 场次 ÷ 常规赛场次，和进圈率同一个分母。卫星赛没有奖金圈、也不设 FT，两个比率都不把它算进去；有卫星赛时首页小字会写明「比率按 N 场常规赛」</li>
           <li>场均净收益 = 净收益 ÷ 场次</li>
           <li>成绩结构按口径分两个 tab：<b>常规赛</b>看圈外 / 进圈 / 进 FT，<b>卫星赛</b>看赢到票 / 没赢到。每行右边是<b>这一档的场均</b>，不是这一档的总和 —— 6 场一共亏 $6.08，场均就是 −$1.01；想看总数就在记录页把这一档筛出来看顶部。</li>
           <li>成绩结构每行<b>整行可点</b>：点「进圈」就只看进圈场次，再点一次取消；卫星赛点「赢到门票」同理。</li>
@@ -2092,7 +2102,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         <summary>累计净收益与期初结余</summary>
         <div class="help-body"><ul>
           <li>首页大数字是记账以来的累计。在「数据管理 · 期初结余」填一个记账之前已经累计的数，它会一起算进这个总账。</li>
-          <li>期初<b>不算场次、不进 ROI</b>，也不影响进圈率和连胜纪录。</li>
+          <li>期初<b>不算场次、不进 ROI</b>，也不影响进圈率、FT 率和连胜纪录。</li>
           <li>走势曲线仍然只画记账以来 —— 一个大额期初塞进曲线会把后半段压成平线，所以曲线底部用「记账以来 / 期初 / 合计」三个数对账。</li>
         </ul></div>
       </details>
@@ -2122,7 +2132,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <li>数据页「成绩结构」右上角可以切<b>常规赛 / 卫星赛</b>：卫星赛那边看命中率、赢到票 / 没赢到各多少场、每场平均花多少现金，下面是全库的门票台账。</li>
           <li>记一笔时把「收益类型」选成「赢门票」并填票面，现金收益自动算 0，不会虚增成绩。</li>
           <li>用票打主赛时「成本来源」选「门票」或「票 + 现金」：票面填在门票面值，<b>现金成本只填自己掏的钱</b>（rebuy / add-on）。净收益仍是「现金收益 − 现金成本」，一张票不会被记两次。</li>
-          <li>在「比赛管理」里把这类比赛标成<b>卫星赛</b>：单独归类，不混进常规赛的进圈率、成绩结构、买入习惯和个人纪录；但卫星赛买入是真花钱，仍照记进净收益和走势。</li>
+          <li>在「比赛管理」里把这类比赛标成<b>卫星赛</b>：单独归类，不混进常规赛的进圈率、FT 率、成绩结构、买入习惯和个人纪录；但卫星赛买入是真花钱，仍照记进净收益和走势。</li>
           <li>门票台账按<b>全部记录</b>算，不受上面的时间范围影响 —— 查「还有几张票没打」要准。</li>
         </ul></div>
       </details>
@@ -2241,7 +2251,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         </div>
         <p class="fhint" id="openingPreview">填记账开始前已经累计的钱，亏了就点右边那颗「−」。</p>
       </div>
-      <p class="note">它只加进首页的<b>累计净收益</b>这个总账，不算场次、不进 ROI、不影响进圈率和连胜纪录；走势曲线仍然只画记账以来，不会因为一个大额期初被压成平线。留空或填 0 表示不设。</p>
+      <p class="note">它只加进首页的<b>累计净收益</b>这个总账，不算场次、不进 ROI、不影响进圈率、FT 率和连胜纪录；走势曲线仍然只画记账以来，不会因为一个大额期初被压成平线。留空或填 0 表示不设。</p>
     </div>
   </div>
 </div>
@@ -3074,7 +3084,8 @@ function renderStats(){
   }
   // 有跟展示币种不同的记录时，这里的数字就是折算出来的，明说一句
   var fxNote = needsFx(list) ? (' · 含' + (dispCur() === 'USD' ? '人民币' : '美元') + '折算') : '';
-  var satNote = (list.length > regularOnly(list).length && regS.n) ? (' · 进圈率按 ' + regS.n + ' 场常规赛') : '';
+  // 卫星赛没有奖金圈，也不设 FT，两个比率都只按常规赛算，脚注里说清分母
+  var satNote = (list.length > regularOnly(list).length && regS.n) ? (' · 比率按 ' + regS.n + ' 场常规赛') : '';
   $('#heroNote').textContent = s.n > 0
     ? scope + ' · ' + s.n + ' 场' + (s.n ? ' · 平均 ' + signed(Math.round(s.net / s.n)) : '') + fxNote + satNote
     : scope + ' · 还没有记录' + fxNote;
@@ -3084,6 +3095,9 @@ function renderStats(){
   $('#sRoi').textContent = s.roi === null ? '—' : (s.roi >= 0 ? '+' : '') + (s.roi * 100).toFixed(1) + '%';
   $('#sRoi').className = s.roi === null ? '' : cls(s.roi);
   $('#sItm').textContent = regS.n ? Math.round(regS.itm / regS.n * 100) + '%' : '—';
+  // FT 率 = 进 FT 场次 ÷ 常规赛场次。和进圈率同一个分母，卫星赛不进任何比率。
+  // statsOf 里 ft 是独立的计数（进圈率把 ft 也算进 itm），所以这里不会重复计。
+  $('#sFt').textContent = regS.n ? Math.round(regS.ft / regS.n * 100) + '%' : '—';
 }
 
 function recCardHTML(r){
