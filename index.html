@@ -1317,6 +1317,42 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 .kindrow-l{flex:0 0 auto;font-size:10.5px;letter-spacing:.05em;color:var(--muted-2)}
 .seg-s{margin-left:auto;flex:0 0 auto}
 .seg-s button{padding:5px 6px;font-size:11px}
+/* v4 门票流水：表单里选具体哪张票 / 台账里列票 */
+.tkpick{margin:10px 2px 0}
+.tklist{display:flex;flex-direction:column;gap:6px;max-height:196px;overflow:auto;-webkit-overflow-scrolling:touch}
+.tkchip{display:flex;align-items:center;gap:9px;width:100%;text-align:left;
+  padding:9px 11px;border-radius:var(--r-xs);background:var(--surface-2);
+  border:var(--bw) solid var(--soft-line);color:var(--text);font:inherit;cursor:pointer}
+.tkchip.on{background:var(--surface-3);border-color:var(--brand);box-shadow:0 0 0 2px rgba(var(--brand-rgb),.13)}
+.tkchip:active{opacity:.75}
+.tkchip-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.tkchip-b{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tkchip-s{font-size:10.5px;color:var(--muted-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tkbadge{flex:0 0 auto;white-space:nowrap;font-size:10px;padding:2px 6px;border-radius:5px;
+  background:var(--surface-3);border:var(--bw) solid var(--soft-line);color:var(--brand)}
+.tkbadge.gift{color:var(--muted-2)}
+.tkpanel{margin-top:12px;padding-top:12px;border-top:var(--bw) solid var(--line-2)}
+.tkpanel-head{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.tkpanel-head b{font-size:12px;font-weight:640;color:var(--text)}
+.tkpanel-head .spacer{flex:1}
+.tkpanel-head button{font:inherit;cursor:pointer;font-size:11px;color:var(--brand);
+  background:var(--surface-3);border:var(--bw) solid var(--soft-line);
+  border-radius:var(--r-xs);padding:5px 9px}
+.tkrow{display:flex;align-items:center;gap:9px;padding:9px 2px;border-top:var(--bw) solid var(--line-2)}
+.tkrow:first-child{border-top:0}
+.tkrow-main{flex:1;min-width:0}
+.tkrow-b{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tkrow-s{font-size:10.5px;color:var(--muted-3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tkdel{flex:0 0 auto;font:inherit;cursor:pointer;font-size:11px;color:var(--muted-2);
+  background:none;border:0;padding:5px 3px}
+.tkdel:active{color:var(--loss)}
+.tkempty{font-size:11px;color:var(--muted-3);line-height:1.7;padding:6px 2px}
+.tkmore{margin-top:6px}
+.tkmore>summary{font-size:11px;color:var(--muted-2);cursor:pointer;padding:6px 2px;list-style:none}
+.tkmore>summary::-webkit-details-marker{display:none}
+.tkmore>summary::before{content:'▸ ';color:var(--muted-2)}
+.tkmore[open]>summary::before{content:'▾ '}
+#satCmp{grid-template-columns:repeat(3,1fr)}
 .fta{
   width:100%;background:var(--surface-2);border:var(--bw) solid rgba(var(--line-rgb),.055);
   border-radius:var(--r-btn);padding:12px 14px;font-size:14px;outline:none;resize:none;
@@ -1743,6 +1779,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
             <div class="share sat-share" id="satShare"></div>
             <ul class="stagelist" id="satList"></ul>
             <div class="buy-cmp" id="satCmp"></div>
+            <div class="tkpanel" id="ticketPanel"></div>
           </div>
           <div class="chart-note" id="stageNote"></div>
         </div>
@@ -1935,15 +1972,30 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         </div>
         <div class="row2 hidden" id="fTicketRow">
           <div class="field hidden" id="fTicketCostWrap">
-            <div class="fbody"><span class="fcap">门票面值（成本）</span>
-              <div style="display:flex;align-items:center;gap:4px"><span class="fprefix" data-cursym>¥</span><input class="finput" id="fTicketCost" placeholder="0" inputmode="decimal" autocomplete="off"></div>
+            <div class="fbody"><span class="fcap">这张票的面值（来自台账）</span>
+              <div style="display:flex;align-items:center;gap:4px"><input class="finput" id="fTicketCost" placeholder="面值未填" readonly autocomplete="off"></div>
             </div>
           </div>
           <div class="field hidden" id="fTicketWonWrap">
-            <div class="fbody"><span class="fcap">赢票面值</span>
+            <div class="fbody"><span class="fcap">每张票面值（可留空）</span>
               <div style="display:flex;align-items:center;gap:4px"><span class="fprefix" data-cursym>¥</span><input class="finput" id="fTicketWon" placeholder="0" inputmode="decimal" autocomplete="off"></div>
             </div>
           </div>
+        </div>
+        <div class="kindrow hidden" id="fTicketWonNRow">
+          <span class="kindrow-l">赢票张数</span>
+          <div class="buychips" id="fTicketWonN" role="group" aria-label="本场赢到几张票">
+            <button type="button" data-n="1">×1</button>
+            <button type="button" data-n="2">×2</button>
+            <button type="button" data-n="3">×3</button>
+            <button type="button" data-n="4">×4</button>
+            <button type="button" data-n="5">×5</button>
+          </div>
+        </div>
+        <div class="tkpick hidden" id="fTicketPick">
+          <span class="flabel">用哪张票 <em class="req">必选</em></span>
+          <div class="tklist" id="fTicketChips"></div>
+          <p class="fhint" id="fTicketPickHint"></p>
         </div>
         <p class="fhint hidden" id="ticketHint"></p>
         <div class="buyrow">
@@ -2153,11 +2205,15 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         <summary>卫星赛与门票</summary>
         <div class="help-body"><ul>
           <li>卫星赛赢的是更大比赛的<b>门票</b>，不是现金。票绑定本人、不能变现，所以<b>不进净收益、不进 ROI</b>，只记在数据页「成绩结构 → 卫星赛」的门票台账里。</li>
-          <li>数据页「成绩结构」右上角可以切<b>常规赛 / 卫星赛</b>：卫星赛那边看命中率、赢到票 / 没赢到各多少场、每场平均花多少现金，下面是全库的门票台账。</li>
-          <li>记一笔时把「收益类型」选成「赢门票」并填票面，现金收益自动算 0，不会虚增成绩。</li>
-          <li>用票打主赛时「成本来源」选「门票」或「票 + 现金」：票面填在门票面值，<b>现金成本只填自己掏的钱</b>（rebuy / add-on）。净收益仍是「现金收益 − 现金成本」，一张票不会被记两次。</li>
+          <li><b>票不是一场比赛</b>：不产生场次，不进进圈率、FT 率、成绩结构、买入习惯、个人纪录。台账里一张票一条，分「卫星赛赢到」和「获赠」两种来源。</li>
+          <li>记一笔把「收益类型」选成「赢门票」，可以填<b>每张票面值和张数</b>；<b>面值留空也能入账</b>，现金收益自动算 0。</li>
+          <li>用票打主赛时「成本来源」选「门票」或「票 + 现金」，并<b>从列表里选中具体哪一张票</b> —— 赠票也能选，台账就能追到它是哪一场用掉的。<b>现金成本只填自己掏的钱</b>（rebuy / add-on），票面从台账带出、不算现金成本。</li>
+          <li>免费获赠的票（没打过卫星赛）点<b>「+ 登记赠票」</b>：可一次登记多张，每张面值可留空，不产生场次、不进任何统计；只有票、没有卫星赛也能打开这个 tab。</li>
+          <li>数据页「成绩结构」右上角切<b>常规赛 / 卫星赛</b>：卫星赛那边看命中率、赢到票 / 没赢到各多少场、每场平均花多少现金；下面是全库门票流水，未用 / 已用都能点开，可删、可跳到用掉它的那场。</li>
+          <li>门票台账按<b>全部记录</b>算，不受时间范围影响 —— 查「还有几张票没打」要准。<b>平均每张票花</b> ＝ 卫星赛现金成本 ÷ 赢到的票张数，获赠的票不进分母；<b>未用票数</b>按流水张数算，不再拿记录条数相减。</li>
           <li>在「比赛管理」里把这类比赛标成<b>卫星赛</b>：单独归类，不混进常规赛的进圈率、FT 率、成绩结构、买入习惯和个人纪录；但卫星赛买入是真花钱，仍照记进净收益和走势。</li>
-          <li>门票台账按<b>全部记录</b>算，不受上面的时间范围影响 —— 查「还有几张票没打」要准。</li>
+          <li>老账本打开时会自动补出票流水：赢票面值变卫星赛票，用票却找不到更早的票就标成「获赠 · 来源未记」。<b>现金数字一个都不动</b>，配对不准可以在台账里删掉再登记。</li>
+          <li>删记录时，由这场赢到的票一并移除，这场用掉的票退回「未用」；删票不影响任何现金金额。</li>
         </ul></div>
       </details>
 
@@ -2310,6 +2366,57 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
   </div>
 </div>
 
+<!-- ========== 登记获赠门票 ========== -->
+<div class="modal" id="mGift" style="z-index:66">
+  <div class="modal-bg" data-close="mGift"></div>
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <button class="link" data-close="mGift">取消</button>
+      <h2>登记获赠门票</h2>
+      <button class="link gold" id="btnGiftSave">保存</button>
+    </div>
+    <div class="sheet-body">
+      <div class="fgroup">
+        <div class="flabel-row">
+          <span class="flabel">获赠张数</span>
+          <div class="curseg sm" id="giftCur" role="group" aria-label="票面币种">
+            <button type="button" data-cur="CNY">¥ 人民币</button>
+            <button type="button" data-cur="USD">$ 美元</button>
+          </div>
+        </div>
+        <div class="buychips" id="giftN" role="group" aria-label="获赠几张票">
+          <button type="button" data-n="1">×1</button>
+          <button type="button" data-n="2">×2</button>
+          <button type="button" data-n="3">×3</button>
+          <button type="button" data-n="4">×4</button>
+          <button type="button" data-n="5">×5</button>
+        </div>
+      </div>
+      <div class="fgroup">
+        <span class="flabel">每张票面值 <em class="opt">可留空</em></span>
+        <div class="field">
+          <span class="fi" data-giftsym>¥</span>
+          <div class="fbody"><input class="finput" id="giftFace" placeholder="不填就显示「面值未填」" inputmode="decimal" autocomplete="off"></div>
+        </div>
+      </div>
+      <div class="fgroup">
+        <span class="flabel">获得日期</span>
+        <div class="field">
+          <div class="fbody"><input class="finput" id="giftDate" type="date" autocomplete="off"></div>
+        </div>
+      </div>
+      <div class="fgroup">
+        <span class="flabel">备注（谁送的 / 什么活动）</span>
+        <div class="field">
+          <div class="fbody"><input class="finput" id="giftNote" placeholder="可留空" autocomplete="off" maxlength="60"></div>
+        </div>
+      </div>
+      <p class="note">赠票不是比赛：<b>不产生场次</b>，不进净收益 / ROI / 进圈率 / FT 率，只在门票台账里出现。用掉它时，在「记一笔」把成本来源选成「门票」，从列表里选中这张票，就能追到是哪一场用掉的。</p>
+    </div>
+  </div>
+</div>
+
 <!-- ========== 确认框 ========== -->
 <div class="modal" id="mConfirm" style="z-index:70">
   <div class="modal-bg" id="confirmBg"></div>
@@ -2432,11 +2539,16 @@ function stamp(){
    v3 加卫星赛：events[].kind、records[].eventKind 快照，以及 ticketCost / ticketWon。
    关键约定：cost 仍然只表示「自己掏的现金」（含 rebuy），门票面值单独存，
    所以 净收益 = 收益 − 成本 这个公式一行都不用改，老备份读进来数字也不变。
-   老备份（v1 / v2）在 sanitizeDB 里映射过来，不用用户做任何事。 */
-var SCHEMA_VERSION = 3;
+   v4 加门票流水 db.tickets[]：票不是一场比赛，不产生场次、不进任何现金/比率统计。
+   一张票一条：source = sat（打卫星赛赢的）/ gift（免费获赠），face 面值可空，
+   earnedIn 指向赢票记录，usedIn 指向用掉它的那场记录。记录上的 ticketCost /
+   ticketWon 保留为面值快照（兼容旧备份与旧统计），另加 ticketWonN（这张记录赢了几张）
+   与 ticketUsedId（这场用掉哪张票）—— 张数/配对只认流水，不再拿记录条数相减。
+   老备份（v1/v2/v3）在 upgraded 里自动补出流水，不用用户做任何事。 */
+var SCHEMA_VERSION = 4;
 var db = {
   schemaVersion: SCHEMA_VERSION,
-  events: [], records: [],
+  events: [], records: [], tickets: [],
   openingBalance: null, openingCur: 'CNY',
   fxRate: null, fxUpdatedAt: null, fxSource: null
 };
@@ -2468,6 +2580,52 @@ function buyinOf(e){
    比赛类型，都不该让历史记录的统计归类跟着漂。 */
 function ticketWonOf(r){ return Math.max(0, money(r && r.ticketWon)); }
 function ticketCostOf(r){ return Math.max(0, money(r && r.ticketCost)); }
+/* v4：面值可留空，所以「赢到票」不能再靠 ticketWon > 0 判断。
+   ticketWonN 是这张记录赢的张数；老备份没这个字段时退回面值判断。 */
+function wonTicketN(r){
+  var n = parseInt(r && r.ticketWonN, 10);
+  if (isFinite(n) && n > 0) return Math.min(n, 99);
+  return ticketWonOf(r) > 0 ? 1 : 0;
+}
+function wonTicketOf(r){ return wonTicketN(r) > 0; }
+function usedTicketOf(r){
+  return !!r && (ticketCostOf(r) > 0 || !!(r.ticketUsedId && String(r.ticketUsedId).length));
+}
+function ticketById(id){
+  if (!id || !Array.isArray(db.tickets)) return null;
+  var hit = db.tickets.filter(function(t){ return t.id === id; })[0];
+  return hit || null;
+}
+/* 门票台账：票本身只在这里汇总，永远不进净收益/ROI/进圈率/FT 率。
+   face 为空的票只计张数、不计面值；sat 票与赠票分开列，赠票不进平均成本的分母。 */
+function ticketStats(){
+  var ts = Array.isArray(db.tickets) ? db.tickets : [];
+  var sat = [], gift = [], used = [], unused = [];
+  ts.forEach(function(t){
+    if (t.source === 'gift') gift.push(t); else sat.push(t);
+    if (t.usedIn) used.push(t); else unused.push(t);
+  });
+  function faceSum(arr){
+    var sum = 0, filled = 0;
+    arr.forEach(function(t){
+      var f = money(t.face);
+      if (f > 0) { sum += toDisp(f, curOf(t)); filled++; }
+    });
+    return { sum: sum, filled: filled };
+  }
+  var satCost = 0;
+  (Array.isArray(db.records) ? db.records : []).forEach(function(r){
+    if (isSatellite(r)) satCost += toDisp(money(r.cost), curOf(r));
+  });
+  return {
+    total: ts.length, satN: sat.length, giftN: gift.length,
+    usedN: used.length, unusedN: unused.length,
+    satFace: faceSum(sat), giftFace: faceSum(gift),
+    usedFace: faceSum(used), unusedFace: faceSum(unused),
+    satCost: satCost,
+    avgPerSat: sat.length ? satCost / sat.length : null
+  };
+}
 function eventKindOf(e){ return (e && e.kind === 'satellite') ? 'satellite' : 'regular'; }
 function isSatellite(r){
   if (!r) return false;
@@ -2551,6 +2709,9 @@ function cleanRec(r){
   var ticketCost = ticketCostOf(r);
   var ticketWon = ticketWonOf(r);
   var eventKind = (r.eventKind === 'satellite') ? 'satellite' : 'regular';
+  // v4：张数和票 id 是流水层的快照，缺了就补，同样不算「修好了一条」
+  var ticketWonN = wonTicketN(r);
+  var ticketUsedId = (typeof r.ticketUsedId === 'string' && r.ticketUsedId) ? r.ticketUsedId : null;
 
   var created = money(r.createdAt);
   if (!(created > 0)) created = Date.now();
@@ -2565,6 +2726,7 @@ function cleanRec(r){
     id: id, eventId: eid, eventName: name, time: t, rank: rank, stage: stage,
     cost: cost, income: income, cur: cur, buyCount: buyCount,
     eventKind: eventKind, ticketCost: ticketCost, ticketWon: ticketWon,
+    ticketWonN: ticketWonN, ticketUsedId: ticketUsedId,
     note: note, createdAt: created
   };
   if (r.demo === true) o.demo = true;
@@ -2598,32 +2760,132 @@ function cleanEvent(e){
   return { e: o, fix: fix };
 }
 
-/* 老版本升到 v3 只做字段映射，值交给下面的清洗统一规整。
+/* v4 门票流水：一条票一条记录。票不是比赛，不产生场次。
+   face 为 null 就是「面值可留空」，不是这张票不值钱。 */
+function cleanTicket(t){
+  if (!isObj(t)) return null;
+  var fix = false;
+  var id = (typeof t.id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(t.id)) ? t.id : uid();
+  if (id !== t.id) fix = true;
+  var source = (t.source === 'gift') ? 'gift' : 'sat';
+  if (source !== t.source) fix = true;
+  var f = money(t.face);
+  var face = f > 0 ? f : null;
+  if (face !== t.face) fix = true;
+  var cur = (t.cur === 'USD') ? 'USD' : 'CNY';
+  if (cur !== t.cur) fix = true;
+  var date = (typeof t.date === 'string') ? t.date.trim() : '';
+  if (!TIME_RE.test(date)) { date = dateToStr(new Date(money(t.createdAt) || Date.now())); fix = true; }
+  else if (date !== t.date) fix = true;
+  var earnedIn = (typeof t.earnedIn === 'string' && t.earnedIn) ? t.earnedIn : null;
+  if (earnedIn !== t.earnedIn) fix = true;
+  var usedIn = (typeof t.usedIn === 'string' && t.usedIn) ? t.usedIn : null;
+  if (usedIn !== t.usedIn) fix = true;
+  var note = (typeof t.note === 'string') ? t.note.slice(0, 120) : '';
+  if (note !== t.note) fix = true;
+  var created = money(t.createdAt);
+  if (!(created > 0)) created = Date.now();
+  if (created !== t.createdAt) fix = true;
+  return { t: { id: id, source: source, face: face, cur: cur, date: date,
+    earnedIn: earnedIn, usedIn: usedIn, note: note, createdAt: created }, fix: fix };
+}
+
+/* v3 → v4：老账本只记了「赢票面值 / 用票面值」两笔数字，没有票这个实体。
+   补出来的流水按时间就近配对：先赢的票先用；找不到更早的未用票，就把这场
+   当作「用了一张来源没记下来的票」，标成赠票带入 —— 免费送的票本来就打不了
+   卫星赛，不会凭空多出一场比赛。迁移只补流水，记录的现金数字一个都不动。 */
+function migrateTickets(p){
+  var recs = Array.isArray(p.records) ? p.records : [];
+  var tickets = [], pool = [];
+  var recOut = recs.map(function(r){
+    var o = {};
+    if (isObj(r)) { for (var k in r) if (Object.prototype.hasOwnProperty.call(r, k)) o[k] = r[k]; }
+    o.ticketWonN = wonTicketN(r);
+    o.ticketUsedId = null;
+    return o;
+  });
+  function tOf(r){ return (r && typeof r.time === 'string') ? r.time : ''; }
+  function cOf(r){ return money(r && r.createdAt); }
+  var idx = recOut.map(function(_, i){ return i; }).sort(function(a, b){
+    var ta = tOf(recOut[a]), tb = tOf(recOut[b]);
+    if (ta !== tb) return ta < tb ? -1 : 1;
+    return cOf(recOut[a]) - cOf(recOut[b]) || a - b;
+  });
+  function dateFor(r){
+    var t = tOf(r);
+    return TIME_RE.test(t) ? t : dateToStr(new Date(cOf(r) || Date.now()));
+  }
+  function rid(r){ return (isObj(r) && typeof r.id === 'string' && r.id) ? r.id : null; }
+
+  idx.forEach(function(i){
+    var r = recOut[i];
+    if (!isObj(r)) return;
+    var tw = ticketWonOf(r);
+    if (tw <= 0) return;
+    var t = { id: uid(), source: 'sat', face: tw, cur: curOf(r), date: dateFor(r),
+      earnedIn: rid(r), usedIn: null, note: '', createdAt: cOf(r) || Date.now() };
+    tickets.push(t); pool.push(t);
+  });
+
+  idx.forEach(function(i){
+    var r = recOut[i];
+    if (!isObj(r)) return;
+    var tc = ticketCostOf(r);
+    if (tc <= 0) return;
+    var rt = tOf(r), pick = -1;
+    for (var j = 0; j < pool.length; j++) {
+      if (pool[j].usedIn) continue;
+      if (rt && pool[j].date >= rt) continue;   // 只用严格早于这场记录的票
+      pick = j; break;
+    }
+    var t;
+    if (pick >= 0) {
+      t = pool[pick];
+      t.usedIn = rid(r);
+    } else {
+      t = { id: uid(), source: 'gift', face: tc, cur: curOf(r), date: dateFor(r),
+        earnedIn: null, usedIn: rid(r), note: '旧账本带入 · 来源未记',
+        createdAt: cOf(r) || Date.now() };
+      tickets.push(t);
+    }
+    r.ticketUsedId = t.id;
+  });
+  return { tickets: tickets, records: recOut };
+}
+
+/* 老版本升级只做字段映射，值交给下面的清洗统一规整。
    v1: opening / rate / rateAt / rateSrc、events.buyin、records.buys
    v3: openingBalance / fxRate / fxUpdatedAt / fxSource、events.unitPrice / kind、
        records.buyCount / eventKind / ticketCost / ticketWon
-   v2 老数据缺的新字段不用在这里逐条补：cleanRec / cleanEvent 会给默认值，
-   「没填过门票」就是 0，「没标过类型」就是常规赛。 */
+   v4: tickets[] 流水、records.ticketWonN / ticketUsedId
+   更早的备份缺的新字段不用在这里逐条补：cleanRec / cleanEvent 会给默认值。 */
 function upgraded(p){
   var o = isObj(p) ? p : {};
   if (o.schemaVersion === SCHEMA_VERSION) return o;
-  return {
+  var base = {
     schemaVersion: SCHEMA_VERSION,
     events: o.events,
     records: o.records,
+    tickets: Array.isArray(o.tickets) ? o.tickets : null,
     openingCur: o.openingCur,
     openingBalance: ('openingBalance' in o) ? o.openingBalance : o.opening,
     fxRate: ('fxRate' in o) ? o.fxRate : o.rate,
     fxUpdatedAt: ('fxUpdatedAt' in o) ? o.fxUpdatedAt : o.rateAt,
     fxSource: ('fxSource' in o) ? o.fxSource : o.rateSrc
   };
+  if (!Array.isArray(o.tickets)) {
+    var m = migrateTickets(base);
+    base.records = m.records;
+    base.tickets = m.tickets;
+  }
+  return base;
 }
 
 function sanitizeDB(src){
   var p = upgraded(src);
   var out = {
     schemaVersion: SCHEMA_VERSION,
-    events: [], records: [],
+    events: [], records: [], tickets: [],
     openingBalance: null, openingCur: 'CNY',
     fxRate: null, fxUpdatedAt: null, fxSource: null
   };
@@ -2652,6 +2914,27 @@ function sanitizeDB(src){
     out.records.push(c.r);
   });
 
+  // 门票流水：id 撞了重分配；指向已不存在记录的指针一律解绑，
+  // 否则「这张票用在哪场」会跳到一条查不到的记录。
+  var recIds = Object.create(null);
+  out.records.forEach(function(r){ recIds[r.id] = 1; });
+  var seenT = Object.create(null);
+  (Array.isArray(p.tickets) ? p.tickets : []).forEach(function(raw){
+    var c = cleanTicket(raw);
+    if (!c) { dropped++; return; }
+    if (seenT[c.t.id]) { c.t.id = uid(); c.fix = true; }
+    seenT[c.t.id] = 1;
+    if (c.t.earnedIn && !recIds[c.t.earnedIn]) { c.t.earnedIn = null; c.fix = true; }
+    if (c.t.usedIn && !recIds[c.t.usedIn]) { c.t.usedIn = null; c.fix = true; }
+    if (c.fix) fixed++;
+    out.tickets.push(c.t);
+  });
+  var ticketIds = Object.create(null);
+  out.tickets.forEach(function(t){ ticketIds[t.id] = 1; });
+  out.records.forEach(function(r){
+    if (r.ticketUsedId && !ticketIds[r.ticketUsedId]) r.ticketUsedId = null;
+  });
+
   // 期初：0 等同于没设，免得 hero 上挂一句「含期初 +¥0」
   var hasOv = (p.openingBalance !== null && p.openingBalance !== undefined && String(p.openingBalance).trim() !== '');
   var ov = money(p.openingBalance);
@@ -2675,6 +2958,7 @@ function adoptData(src, persist){
   db.schemaVersion = SCHEMA_VERSION;
   db.events = s.data.events;
   db.records = s.data.records;
+  db.tickets = s.data.tickets;
   db.openingBalance = s.data.openingBalance;
   db.openingCur = s.data.openingCur;
   db.fxRate = s.data.fxRate;
@@ -2758,6 +3042,7 @@ function seed(){
   var e2 = { id: uid(), name: '周日快速赛', note: '买入 200', unitPrice: 200, createdAt: Date.now() - 1000 };
   var e3 = { id: uid(), name: '周中赏金赛', note: '买入 500，赏金制', unitPrice: 500, createdAt: Date.now() - 2000 };
   db.events = [e1, e2, e3];
+  db.tickets = [];
   var base = Date.now();
   db.records = [
     { id: uid(), eventId: e1.id, eventName: e1.name, time: y + '-11-01T20:00', rank: '18', cost: 1000, income: 0, note: 'rebuy 一次还是没进圈', stage: 'out', cur: 'CNY', buyCount: 2, createdAt: base - 5000, demo: true },
@@ -3023,7 +3308,7 @@ function filtered(){
       // 卫星赛没有「进圈 / 圈外」之分，混进来点「进圈」就会多出一堆票赛。
       if (state.filterStage === 'satwin' || state.filterStage === 'satmiss') {
         if (!isSatellite(r)) return false;
-        if ((ticketWonOf(r) > 0) !== (state.filterStage === 'satwin')) return false;
+        if (wonTicketOf(r) !== (state.filterStage === 'satwin')) return false;
       } else if (isSatellite(r) || stageOf(r) !== state.filterStage) {
         return false;
       }
@@ -3180,17 +3465,19 @@ function recCardHTML(r){
   var tc = ticketCostOf(r), tw = ticketWonOf(r);
   var metaBits = [esc(fmtWhen(r.time))];
   if (isSatellite(r)) metaBits.push('卫星赛');
-  if (tc > 0 && money(r.cost) > 0) {
-    metaBits.push('成本 票 ' + fmtIn(tc, cur) + ' + 现金 ' + fmtIn(money(r.cost), cur));
-  } else if (tc > 0) {
-    metaBits.push('成本 门票 ' + fmtIn(tc, cur));
+  if (usedTicketOf(r) && money(r.cost) > 0) {
+    metaBits.push('成本 票' + (tc > 0 ? ' ' + fmtIn(tc, cur) : '（面值未填）')
+      + ' + 现金 ' + fmtIn(money(r.cost), cur));
+  } else if (usedTicketOf(r)) {
+    metaBits.push('成本 门票' + (tc > 0 ? ' ' + fmtIn(tc, cur) : '（面值未填）'));
   } else {
     metaBits.push('成本 ' + fmtIn(money(r.cost), cur));
   }
   if (buysOf(r) > 1) metaBits.push(buysOf(r) + ' 手');
   if (st === 'out' && hasRank) metaBits.push('第 ' + rk + ' 名');
-  var sub = tw > 0
-    ? '赢门票 ' + fmtIn(tw, cur) + ' · 现金收益 ' + fmtIn(money(r.income), cur)
+  var sub = wonTicketOf(r)
+    ? '赢门票 ' + wonTicketN(r) + ' 张' + (tw > 0 ? ' ' + fmtIn(tw, cur) : ' · 面值未填')
+      + ' · 现金收益 ' + fmtIn(money(r.income), cur)
     : '收益 ' + fmtIn(money(r.income), cur);
 
   return '<button class="rec" data-open="' + r.id + '">'
@@ -3951,12 +4238,16 @@ function renderTrendSeq(recs){
 var _stageReg = [], _stageSat = [];
 
 function hasSatellite(){ return db.records.some(isSatellite); }
+/* 只拿过赠票、从没打过卫星赛的人也该有这个 tab，否则门票流水没地方登记 */
+function hasTicketStage(){
+  return hasSatellite() || (Array.isArray(db.tickets) && db.tickets.length > 0);
+}
 
 function paintStageSeg(){
   var seg = $('#stageSeg');
   if (!seg) return;
-  // 一条卫星赛都没有的人，不该看见一个永远空的 tab
-  seg.classList.toggle('hidden', !hasSatellite());
+  // 既没卫星赛也没票的人，不该看见一个永远空的 tab
+  seg.classList.toggle('hidden', !hasTicketStage());
   $$('#stageSeg button').forEach(function(b){
     var on = b.getAttribute('data-stagetab') === state.stageTab;
     b.classList.toggle('on', on);
@@ -3975,7 +4266,7 @@ function setStageTab(t){
 function paintStageTab(){
   var regBox = $('#stageRegBox'), satBox = $('#stageSatBox'), hint = $('#stageHint');
   if (!regBox || !satBox) return;
-  var hasSat = hasSatellite();
+  var hasSat = hasTicketStage();
   var sat = hasSat && state.stageTab === 'sat';
   regBox.classList.toggle('hidden', sat);
   satBox.classList.toggle('hidden', !sat);
@@ -3993,7 +4284,8 @@ function renderStages(regList, satList){
   // 这段时间没有常规赛、却有卫星赛时，先把卫星赛摆出来，别让人先看一张空表。
   // 只改「当前看哪个」，不动存下来的偏好 —— 记录回来时还回原来那一栏。
   if (state.stageTab === 'reg' && !_stageReg.length && _stageSat.length) state.stageTab = 'sat';
-  else if (state.stageTab === 'sat' && !_stageSat.length && _stageReg.length) state.stageTab = 'reg';
+  else if (state.stageTab === 'sat' && !_stageSat.length && _stageReg.length
+           && !(Array.isArray(db.tickets) && db.tickets.length)) state.stageTab = 'reg';
   paintStageSeg();
   paintStageTab();
 }
@@ -4059,27 +4351,26 @@ function renderStageReg(list){
    （钱变成了票），写净收益会看着像算错。 */
 function renderSatTab(list){
   var share = $('#satShare'), box = $('#satList'), cmp = $('#satCmp'), note = $('#stageNote');
-  var all = db.records;
-  var satAll = all.filter(isSatellite);
-  var wonAll = all.filter(function(r){ return ticketWonOf(r) > 0; });
-  var usedAll = all.filter(function(r){ return ticketCostOf(r) > 0; });
+  var satAll = db.records.filter(isSatellite);
+  var ts = ticketStats();
 
-  function sumOf(arr, get){
+  function costSum(arr){
     var s = 0;
-    arr.forEach(function(r){ s += toDisp(get(r), curOf(r)); });
+    arr.forEach(function(r){ s += toDisp(money(r.cost), curOf(r)); });
     return s;
   }
-  function costSum(arr){ return sumOf(arr, function(r){ return r.cost; }); }
 
-  var won = list.filter(function(r){ return ticketWonOf(r) > 0; });
+  var won = list.filter(wonTicketOf);
+  var wonN = 0;
+  list.forEach(function(r){ wonN += wonTicketN(r); });
   $('#satHit').textContent = list.length ? Math.round(won.length / list.length * 100) + '%' : '—';
   $('#satSum').textContent = list.length
-    ? (list.length + ' 场 · 赢票 ' + won.length + ' 张')
+    ? (list.length + ' 场 · 赢票 ' + wonN + ' 张')
     : '这段时间没有卫星赛';
 
   var defs = [
-    { k: 'win',  name: '赢到门票', keep: function(r){ return ticketWonOf(r) > 0; } },
-    { k: 'miss', name: '未赢票',   keep: function(r){ return ticketWonOf(r) <= 0; } }
+    { k: 'win',  name: '赢到门票', keep: wonTicketOf },
+    { k: 'miss', name: '未赢票',   keep: function(r){ return !wonTicketOf(r); } }
   ];
   var rows = defs.map(function(d){
     var subset = list.filter(d.keep);
@@ -4106,33 +4397,153 @@ function renderSatTab(list){
       + '<span class="bc-n"><b>' + n + '</b>张</span>'
       + '<span class="bc-s">' + sub + '</span></div>';
   }
-  // 面值为 0 时别写「面值 $0」：那是没填，不是这张票不值钱
-  var wonFace = sumOf(wonAll, ticketWonOf), usedFace = sumOf(usedAll, ticketCostOf);
-  var unused = Math.max(0, wonAll.length - usedAll.length);
-  function faceText(n, sum){
-    if (!n) return '';
-    return sum > 0 ? '面值 <b>' + fmtMoney(sum) + '</b>' : '面值未填';
+  // 面值为空时别写「面值 ¥0」：那是没填，不是这张票不值钱
+  function faceText(g, n){
+    if (!g.filled) return '面值未填';
+    // 只填了一部分时别写成「3 张票面值 $500」—— 那是已填的那几张的合计
+    return '面值 <b>' + fmtMoney(g.sum) + '</b>'
+      + (n > g.filled ? ' · ' + g.filled + '/' + n + ' 张填了' : '');
   }
-  var wonTxt = faceText(wonAll.length, wonFace) || '还没赢到票';
-  var usedTxt = faceText(usedAll.length, usedFace);
-  cmp.innerHTML = cell('赢到门票', wonAll.length, wonTxt)
-    + cell('已用门票', usedAll.length, (usedTxt ? usedTxt + ' · ' : '') + '未用 ' + unused + ' 张');
+  cmp.innerHTML = cell('赢到门票', ts.satN, ts.satN ? faceText(ts.satFace, ts.satN) : '还没赢到票')
+    + cell('已用门票', ts.usedN, ts.usedN ? faceText(ts.usedFace, ts.usedN) : '—')
+    + cell('未用门票', ts.unusedN, ts.unusedN ? faceText(ts.unusedFace, ts.unusedN) : '—');
 
   // 台账按全库算 ——「还有几张票没打」不能被上面的时间筛选骗到
   var nl = [];
-  var costAll = costSum(satAll);
-  if (wonAll.length) {
-    var face = sumOf(wonAll, ticketWonOf) / wonAll.length;
-    nl.push('平均每张票花 <b>' + fmtMoney(costAll / wonAll.length) + '</b>'
-      + (face > 0 ? '（票面 ' + fmtMoney(face) + '）' : ''));
-  } else if (satAll.length) {
-    nl.push('还没赢到票，卫星赛已花 <b>' + fmtMoney(costAll) + '</b>');
+  if (ts.avgPerSat !== null) {
+    nl.push('平均每张票花 <b>' + fmtMoney(ts.avgPerSat) + '</b>'
+      + '（卫星赛现金 ' + fmtMoney(ts.satCost) + ' ÷ ' + ts.satN + ' 张赢到的票）');
+  } else if (ts.satCost > 0) {
+    nl.push('还没赢到票，卫星赛已花 <b>' + fmtMoney(ts.satCost) + '</b>');
   }
+  if (ts.giftN) nl.push('另有获赠 <b>' + ts.giftN + '</b> 张，不进平均成本');
   nl.push('场均花 ＝ 每场平均掏出去的现金，赢了票也照算');
   nl.push('票面不进净收益和 ROI，买入仍照记');
   nl.push('门票台账按全部记录算，不受时间范围影响');
   if (needsFx(list)) nl.push('金额按 1$ ≈ ¥' + fxShort() + ' 折算成' + curName(dispCur()));
   if (note) note.innerHTML = nl.map(function(t){ return '<div class="nl">' + t + '</div>'; }).join('');
+
+  renderTicketPanel();
+}
+
+/* ================= 门票流水（v4） =================
+   票不是比赛：不产生场次，不进净收益 / ROI / 进圈率 / FT 率。
+   台账只看 db.tickets 这一个真相来源，记录上的 ticketCost 只是当时的面值快照。 */
+function ticketFaceText(t){
+  var f = money(t && t.face);
+  return f > 0 ? fmtIn(f, curOf(t)) : '面值未填';
+}
+function ticketSrcText(t){ return (t && t.source === 'gift') ? '获赠' : '卫星赛赢到'; }
+function ticketUsedText(t){
+  if (!t || !t.usedIn) return '';
+  var r = db.records.filter(function(x){ return x.id === t.usedIn; })[0];
+  if (!r) return '用在一场已删除的记录';
+  return '用于 ' + (r.eventName || '未命名比赛') + ' · ' + fmtWhen(r.time);
+}
+function ticketRowHTML(t){
+  var tag = t.source === 'gift'
+    ? '<span class="tkbadge gift">赠票</span>' : '<span class="tkbadge">卫星赛</span>';
+  return '<div class="tkrow">' + tag
+    + '<div class="tkrow-main"><div class="tkrow-b">' + esc(ticketFaceText(t))
+      + (t.note ? ' · ' + esc(t.note) : '') + '</div>'
+      + '<div class="tkrow-s">' + esc(fmtWhen(t.date))
+      + (t.usedIn ? ' · ' + esc(ticketUsedText(t)) : '') + '</div></div>'
+    + (t.usedIn ? '<button type="button" class="tkdel" data-jumprec="' + esc(t.usedIn) + '">查看 ›</button>' : '')
+    + '<button type="button" class="tkdel" data-delticket="' + esc(t.id) + '">删除</button>'
+    + '</div>';
+}
+function ticketSorted(arr){
+  return arr.slice().sort(function(a, b){
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+    return (b.createdAt || 0) - (a.createdAt || 0);
+  });
+}
+function renderTicketPanel(){
+  var box = $('#ticketPanel');
+  if (!box) return;
+  var all = Array.isArray(db.tickets) ? db.tickets : [];
+  var ts = ticketStats();
+  var unused = ticketSorted(all.filter(function(t){ return !t.usedIn; }));
+  var used = ticketSorted(all.filter(function(t){ return !!t.usedIn; }));
+  var html = '<div class="tkpanel-head"><b>门票流水 · 共 ' + ts.total + ' 张</b>'
+    + '<span class="spacer"></span>'
+    + '<button type="button" id="btnGiftAdd">+ 登记赠票</button></div>'
+    + '<div class="tkrow-s" style="margin-bottom:4px">卫星赛赢到 ' + ts.satN
+    + ' 张 · 获赠 ' + ts.giftN + ' 张 · 已用 ' + ts.usedN + ' 张 · 未用 ' + ts.unusedN + ' 张</div>';
+  html += unused.length
+    ? unused.map(ticketRowHTML).join('')
+    : '<div class="tkempty">还没有未用的票。卫星赛赢到的票会在保存记录时自动入账；免费获赠的票点右上「+ 登记赠票」。</div>';
+  if (used.length) {
+    html += '<details class="tkmore"><summary>已用 ' + used.length + ' 张（点开看用在哪场）</summary>'
+      + used.map(ticketRowHTML).join('') + '</details>';
+  }
+  box.innerHTML = html;
+}
+
+function todayStr(){
+  var d = new Date();
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+var giftForm = null;
+function paintGiftForm(){
+  if (!giftForm) return;
+  $$('#giftN button').forEach(function(b){
+    b.classList.toggle('on', parseInt(b.getAttribute('data-n'), 10) === giftForm.n);
+  });
+  paintSeg($('#giftCur'), giftForm.cur);
+  $$('[data-giftsym]').forEach(function(el){ el.textContent = curSym(giftForm.cur); });
+}
+function openGiftForm(){
+  giftForm = { n: 1, cur: dispCur() };
+  $('#giftFace').value = '';
+  $('#giftNote').value = '';
+  $('#giftDate').value = todayStr();
+  paintGiftForm();
+  openModal('mGift');
+}
+function saveGift(){
+  if (!giftForm) return;
+  var f = money($('#giftFace').value);
+  var note = ($('#giftNote').value || '').trim().slice(0, 60);
+  var d = ($('#giftDate').value || '').trim();
+  var date = /^\d{4}-\d{2}-\d{2}$/.test(d) ? (d + 'T12:00') : nowStr();
+  var n = giftForm.n, cur = giftForm.cur, base = Date.now();
+  for (var i = 0; i < n; i++) {
+    db.tickets.push({ id: uid(), source: 'gift', face: f > 0 ? f : null, cur: cur,
+      date: date, earnedIn: null, usedIn: null, note: note, createdAt: base + i });
+  }
+  closeModal('mGift');
+  giftForm = null;
+  saveDB(); renderAll();
+  toast('已登记 ' + n + ' 张赠票');
+}
+function deleteTicket(id){
+  var t = ticketById(id);
+  if (!t) return;
+  var used = t.usedIn ? ticketUsedText(t) : '';
+  askConfirm({
+    title: '删除这张票？',
+    desc: '「' + esc(ticketFaceText(t)) + ' · ' + esc(ticketSrcText(t)) + '」将从台账移除。'
+      + (used ? '<br>它记着用在「' + esc(used) + '」，删除后那场记录会变成没记票面。' : '')
+      + '<br>现金金额和所有统计都不受影响。',
+    ok: '删除', danger: true
+  }).then(function(ok){
+    if (!ok) return;
+    db.tickets = (db.tickets || []).filter(function(x){ return x.id !== id; });
+    db.records.forEach(function(r){
+      if (r.ticketUsedId === id) { r.ticketUsedId = null; r.ticketCost = 0; }
+    });
+    if (t.earnedIn) {
+      var er = db.records.filter(function(x){ return x.id === t.earnedIn; })[0];
+      if (er) {
+        er.ticketWonN = Math.max(0, wonTicketN(er) - 1);
+        var left = 0;
+        db.tickets.forEach(function(x){ if (x.earnedIn === t.earnedIn) left += money(x.face); });
+        er.ticketWon = left;
+      }
+    }
+    saveDB(); renderAll(); toast('已删除这张票');
+  });
 }
 
 /* 金额被折算过就说清楚：$1,000 买入的比赛，场均却写着 ¥8,238，
@@ -4608,6 +5019,47 @@ function updateNetPreview(){
   el.textContent = signedIn(n, cur);
   el.className = cls(n);
 }
+/* 用票时从台账里挑「具体哪一张」—— 赠票也要能追到是哪场用掉的。
+   编辑旧记录时，那张已用掉的票要一起列出来，否则回显会是空的。 */
+function renderTicketChips(){
+  var box = $('#fTicketChips');
+  if (!box || !form) return;
+  var cur = form.ticketUsedId || '';
+  var list = ticketSorted((Array.isArray(db.tickets) ? db.tickets : []).filter(function(t){
+    return !t.usedIn || t.id === cur;
+  }));
+  if (!list.length) {
+    box.innerHTML = '<div class="tkempty">台账里还没有可用的票。<br>'
+      + '免费获赠的票需要先登记：</div>'
+      + '<button type="button" class="tkchip" data-gotogift>'
+      + '<span class="tkchip-main"><span class="tkchip-b">去登记一张赠票 ›</span>'
+      + '<span class="tkchip-s">会先关掉记一笔，登记完回来继续</span></span></button>';
+    var h0 = $('#fTicketPickHint');
+    if (h0) h0.textContent = '';
+    return;
+  }
+  box.innerHTML = list.map(function(t){
+    return '<button type="button" class="tkchip' + (t.id === cur ? ' on' : '') + '"'
+      + ' data-ticket="' + esc(t.id) + '" aria-pressed="' + (t.id === cur ? 'true' : 'false') + '">'
+      + '<span class="tkbadge' + (t.source === 'gift' ? ' gift' : '') + '">'
+      + (t.source === 'gift' ? '赠票' : '卫星赛') + '</span>'
+      + '<span class="tkchip-main"><span class="tkchip-b">' + esc(ticketFaceText(t))
+      + (t.note ? ' · ' + esc(t.note) : '') + '</span>'
+      + '<span class="tkchip-s">' + esc(fmtWhen(t.date))
+      + (t.usedIn ? ' · 本场已选' : ' · 未用') + '</span></span></button>';
+  }).join('');
+  var h = $('#fTicketPickHint');
+  if (h) h.textContent = cur
+    ? '已选中一张票；票面只进台账，不算现金成本。'
+    : '选一张未用的票，免费获赠的票也能选。';
+}
+function paintUsedTicketFace(){
+  var el = $('#fTicketCost');
+  if (!el) return;
+  var t = form && form.ticketUsedId ? ticketById(form.ticketUsedId) : null;
+  el.value = (t && money(t.face) > 0) ? ticketFaceText(t) : '';
+}
+
 /* 成本来源 / 收益类型决定哪些输入框出现。
    票 + 现金（用票进场后 rebuy）时四个框都能填，各归各的账。 */
 function syncTicketUI(){
@@ -4628,6 +5080,14 @@ function syncTicketUI(){
   $('#fTicketWonWrap').classList.toggle('hidden', !tw);
   $('#fTicketRow').classList.toggle('hidden', !tc && !tw);
   $('#fTicketRow').classList.toggle('one', !(tc && tw));
+  $('#fTicketWonNRow').classList.toggle('hidden', !tw);
+  $('#fTicketPick').classList.toggle('hidden', !tc);
+
+  $$('#fTicketWonN button').forEach(function(b){
+    b.classList.toggle('on', parseInt(b.getAttribute('data-n'), 10) === (form.ticketWonN || 1));
+  });
+  if (tc) renderTicketChips();
+  paintUsedTicketFace();
 
   var cap = $('#fCostCap');
   if (cap) cap.textContent = form.costKind === 'both' ? '现金成本（rebuy / add-on）' : '现金成本（买入）';
@@ -4635,8 +5095,8 @@ function syncTicketUI(){
   if (hint) {
     hint.classList.toggle('hidden', !tc && !tw);
     hint.textContent = tw
-      ? '赢到的是门票，不算现金收益；票面填在上面。门票只进台账，不进净收益。'
-      : (tc ? '门票面值只记进台账，不算现金成本；净收益仍按「现金收益 − 现金成本」算。' : '');
+      ? '赢到的是门票，不算现金收益；每张票面可留空，票数照样入台账。'
+      : (tc ? '票面从台账带出，不算现金成本；净收益仍按「现金收益 − 现金成本」算。' : '');
   }
   updateNetPreview();
 }
@@ -4709,7 +5169,6 @@ function paintForm(){
   $('#fRank').value = form.rank || '';
   $('#fCost').value = form.cost || '';
   $('#fIncome').value = form.income || '';
-  $('#fTicketCost').value = form.ticketCost || '';
   $('#fTicketWon').value = form.ticketWon || '';
   $('#fNote').value = form.note || '';
   syncItmUI();
@@ -4750,10 +5209,12 @@ function openRecordForm(id){
       cost: r.cost == null ? '' : String(r.cost),
       income: r.income == null ? '' : String(r.income),
       note: r.note || '', stage: stageOf(r), cur: curOf(r), buys: buysOf(r), costAuto: false,
-      ticketCost: ticketCostOf(r) ? String(ticketCostOf(r)) : '',
-      ticketWon: ticketWonOf(r) ? String(ticketWonOf(r)) : '',
-      costKind: ticketCostOf(r) > 0 ? (money(r.cost) > 0 ? 'both' : 'ticket') : 'cash',
-      incomeKind: ticketWonOf(r) > 0 ? 'ticket' : 'cash'
+      ticketWon: (wonTicketN(r) > 0 && ticketWonOf(r) > 0)
+        ? String(ticketWonOf(r) / wonTicketN(r)) : '',
+      ticketUsedId: r.ticketUsedId || null,
+      ticketWonN: wonTicketN(r) || 1,
+      costKind: usedTicketOf(r) ? (money(r.cost) > 0 ? 'both' : 'ticket') : 'cash',
+      incomeKind: wonTicketOf(r) ? 'ticket' : 'cash'
     };
   } else {
     // 默认选中：当前筛选的比赛 > 最近一次用的比赛 > 唯一比赛
@@ -4772,7 +5233,7 @@ function openRecordForm(id){
     form = {
       id: null, eventId: eid, eventName: ev ? ev.name : '',
       time: nowStr(), rank: '', cost: '', income: '', note: '', stage: 'out', cur: lastCur, buys: 1, costAuto: false,
-      ticketCost: '', ticketWon: '', costKind: 'cash',
+      ticketWon: '', ticketUsedId: null, ticketWonN: 1, costKind: 'cash',
       // 卫星赛默认记「赢门票」，省得每次手切；圈外没赢票再切回现金即可
       incomeKind: (ev && eventKindOf(ev) === 'satellite') ? 'ticket' : 'cash'
     };
@@ -4790,10 +5251,22 @@ function saveRecord(){
   // 门票面值单独存，不塞进 cost / income —— 净收益公式保持现金口径。
   var cost = (form.costKind === 'ticket') ? 0 : Math.max(0, money($('#fCost').value));
   var income = (form.incomeKind === 'ticket') ? 0 : Math.max(0, money($('#fIncome').value));
-  var ticketCost = (form.costKind === 'cash') ? 0 : Math.max(0, money($('#fTicketCost').value));
-  var ticketWon = (form.incomeKind === 'cash') ? 0 : Math.max(0, money($('#fTicketWon').value));
   var eventKind = eventKindOf(eventById(form.eventId));
   var note = ($('#fNote').value || '').trim();
+
+  // v4：用票必须指到台账里具体的一张（赠票也一样），面值从票上取，不再手填
+  var needTicket = form.costKind !== 'cash';
+  var ticketUsedId = needTicket ? (form.ticketUsedId || null) : null;
+  if (needTicket && (!ticketUsedId || !ticketById(ticketUsedId))) {
+    toast('先选一张要用的门票；赠票要先在门票台账登记');
+    return;
+  }
+  var usedT = ticketUsedId ? ticketById(ticketUsedId) : null;
+  var ticketCost = usedT ? Math.max(0, money(usedT.face)) : 0;
+  var wonN = (form.incomeKind === 'cash') ? 0
+    : Math.max(1, Math.min(5, parseInt(form.ticketWonN, 10) || 1));
+  var wonEach = (form.incomeKind === 'cash') ? 0 : Math.max(0, money($('#fTicketWon').value));
+  var ticketWon = wonEach * wonN;
 
   // 只有进圈/进 FT 才强制名次；圈外可以不填
   if (form.stage !== 'out' && !rankRaw) {
@@ -4801,6 +5274,23 @@ function saveRecord(){
     var ri = $('#fRank');
     if (ri) { ri.focus(); }
     return;
+  }
+
+  var rid = form.id || uid();
+  // 编辑时先撤掉这条记录旧的票关联，再按当前表单重建 —— 不 diff，避免漏改一处
+  db.tickets = (db.tickets || []).filter(function(t){ return t.earnedIn !== rid; });
+  db.tickets.forEach(function(t){ if (t.usedIn === rid) t.usedIn = null; });
+  var freshTickets = [];
+  for (var ti = 0; ti < wonN; ti++) {
+    freshTickets.push({ id: uid(), source: 'sat', face: wonEach > 0 ? wonEach : null,
+      cur: form.cur || 'CNY', date: form.time || nowStr(), earnedIn: rid,
+      usedIn: null, note: '', createdAt: Date.now() + ti });
+  }
+  db.tickets = db.tickets.concat(freshTickets);
+  if (ticketUsedId) {
+    var pick = ticketById(ticketUsedId) || freshTickets[0] || null;
+    if (pick) { pick.usedIn = rid; ticketUsedId = pick.id; }
+    else ticketUsedId = null;
   }
 
   if (form.id) {
@@ -4811,15 +5301,17 @@ function saveRecord(){
       r.stage = form.stage; r.cur = form.cur || 'CNY';
       r.buyCount = buysOf({ buyCount: form.buys });
       r.ticketCost = ticketCost; r.ticketWon = ticketWon;
+      r.ticketWonN = wonN; r.ticketUsedId = ticketUsedId;
       r.eventKind = eventKind;
       delete r.itm; delete r.demo;
     }
   } else {
     db.records.push({
-      id: uid(), eventId: form.eventId, eventName: form.eventName, time: form.time,
+      id: rid, eventId: form.eventId, eventName: form.eventName, time: form.time,
       rank: rankRaw, cost: cost, income: income, note: note, stage: form.stage,
       cur: form.cur || 'CNY', buyCount: buysOf({ buyCount: form.buys }),
       eventKind: eventKind, ticketCost: ticketCost, ticketWon: ticketWon,
+      ticketWonN: wonN, ticketUsedId: ticketUsedId,
       createdAt: Date.now()
     });
     // 如果比赛名库里还没有这条（理论上不会），补一条
@@ -4902,17 +5394,42 @@ $('#fEventKind').addEventListener('click', function(e){
   paintKindSeg($('#fEventKind'), b.getAttribute('data-kind'));
 });
 
-['#fCost', '#fIncome', '#fTicketCost', '#fTicketWon'].forEach(function(sel){
+['#fCost', '#fIncome', '#fTicketWon'].forEach(function(sel){
   $(sel).addEventListener('input', function(){
     this.value = this.value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
     if (form) {
       if (sel === '#fCost') { form.cost = this.value; form.costAuto = false; }
-      if (sel === '#fTicketCost') form.ticketCost = this.value;
       if (sel === '#fTicketWon') form.ticketWon = this.value;
     }
     updateNetPreview();
   });
 });
+
+/* 赢票张数：面值按「每张」填，几张就往流水里放几条，条数相减的旧毛病不再有 */
+$('#fTicketWonN').addEventListener('click', function(e){
+  var b = e.target.closest ? e.target.closest('button[data-n]') : null;
+  if (!b || !form) return;
+  form.ticketWonN = parseInt(b.getAttribute('data-n'), 10) || 1;
+  syncTicketUI();
+});
+
+/* 登记赠票：张数 / 币种 / 面值，面值留空就存 null */
+$('#giftN').addEventListener('click', function(e){
+  var b = e.target.closest ? e.target.closest('button[data-n]') : null;
+  if (!b || !giftForm) return;
+  giftForm.n = parseInt(b.getAttribute('data-n'), 10) || 1;
+  paintGiftForm();
+});
+$('#giftCur').addEventListener('click', function(e){
+  var b = e.target.closest ? e.target.closest('[data-cur]') : null;
+  if (!b || !giftForm) return;
+  giftForm.cur = b.getAttribute('data-cur') === 'USD' ? 'USD' : 'CNY';
+  paintGiftForm();
+});
+$('#giftFace').addEventListener('input', function(){
+  this.value = this.value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
+});
+$('#btnGiftSave').addEventListener('click', saveGift);
 
 /* 手数：点了只改标签；设过一手买入价时顺手把成本算成单价 × 手数 */
 $('#fBuys').addEventListener('click', function(e){
@@ -4935,13 +5452,27 @@ $('#fRank').addEventListener('input', function(){
 
 $('#btnDelete').addEventListener('click', function(){
   if (!form || !form.id) return;
+  var rid = form.id;
+  var satN = (db.tickets || []).filter(function(t){ return t.earnedIn === rid; }).length;
+  var usedN = (db.tickets || []).filter(function(t){ return t.usedIn === rid; }).length;
+  var extra = satN ? '<br>由这场赢到的 ' + satN + ' 张票会一并从台账移除。' : '';
+  if (usedN) extra += '<br>这场用掉的 ' + usedN + ' 张票会退回「未用」。';
   askConfirm({
     title: '删除这条记录？',
-    desc: '删除后无法恢复。',
+    desc: '删除后无法恢复。' + extra,
     ok: '删除', danger: true
   }).then(function(ok){
     if (!ok) return;
-    db.records = db.records.filter(function(x){ return x.id !== form.id; });
+    var gone = Object.create(null);
+    db.tickets = (db.tickets || []).filter(function(t){
+      if (t.earnedIn === rid) { gone[t.id] = 1; return false; }
+      return true;
+    });
+    db.tickets.forEach(function(t){ if (t.usedIn === rid) t.usedIn = null; });
+    db.records.forEach(function(r){
+      if (r.ticketUsedId && gone[r.ticketUsedId]) { r.ticketUsedId = null; r.ticketCost = 0; }
+    });
+    db.records = db.records.filter(function(x){ return x.id !== rid; });
     saveDB(); renderAll(); closeModal('mRecord'); toast('已删除');
   });
 });
@@ -5288,7 +5819,7 @@ function exportJSON(){
     app: 'matchledger', schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(),
     openingBalance: db.openingBalance, openingCur: db.openingCur || 'CNY',
     fxRate: db.fxRate, fxUpdatedAt: db.fxUpdatedAt, fxSource: db.fxSource,
-    events: db.events, records: plainRecords(db.records)
+    events: db.events, records: plainRecords(db.records), tickets: db.tickets || []
   }, null, 2);
   download(data, '赛场账本备份_' + stamp() + '.json', 'application/json;charset=utf-8');
 }
@@ -5494,7 +6025,8 @@ $('#btnClear').addEventListener('click', function(){
     ok: '全部清空', danger: true
   }).then(function(ok){
     if (!ok) return;
-    db.events = []; db.records = []; db.openingBalance = null; db.openingCur = 'CNY';
+    db.events = []; db.records = []; db.tickets = [];
+    db.openingBalance = null; db.openingCur = 'CNY';
     resetFilters();
     saveDB(); renderAll(); toast('已清空');
   });
@@ -5503,6 +6035,30 @@ $('#btnClear').addEventListener('click', function(){
 /* ================= 事件委托 ================= */
 document.addEventListener('click', function(e){
   var el = e.target.closest ? e.target.closest('[data-close], [data-open], [data-add], [data-event]') : null;
+  var q = function(s){ return e.target.closest ? e.target.closest(s) : null; };
+
+  /* v4 门票流水：台账里删票 / 跳到用掉它的那场 / 登记赠票 / 表单里选票 */
+  var tkDel = q('[data-delticket]');
+  if (tkDel) { deleteTicket(tkDel.getAttribute('data-delticket')); return; }
+  var tkJump = q('[data-jumprec]');
+  if (tkJump) { openRecordForm(tkJump.getAttribute('data-jumprec')); return; }
+  if (q('#btnGiftAdd')) { openGiftForm(); return; }
+  var tkChip = q('[data-ticket]');
+  if (tkChip) {
+    if (form) {
+      form.ticketUsedId = tkChip.getAttribute('data-ticket');
+      renderTicketChips(); paintUsedTicketFace();
+    }
+    return;
+  }
+  if (q('[data-gotogift]')) {
+    // 叠两个弹层会让返回键乱掉：先关记一笔，落到数据页的卫星赛栏再开登记
+    closeModal('mRecord');
+    state.stageTab = 'sat'; saveStagePref();
+    switchView('data'); renderAll();
+    openGiftForm();
+    return;
+  }
 
   var closeBtn = e.target.closest ? e.target.closest('[data-close]') : null;
   if (closeBtn) {
@@ -5597,7 +6153,8 @@ document.addEventListener('click', function(e){
     // 全是示例数据就整库清空；混着你自己的记录时只摘掉示例，别误删
     var allDemo = db.records.length > 0 && db.records.every(function(r){ return r.demo; });
     if (allDemo) {
-      db.events = []; db.records = []; db.openingBalance = null; db.openingCur = 'CNY';
+      db.events = []; db.records = []; db.tickets = [];
+      db.openingBalance = null; db.openingCur = 'CNY';
       resetFilters();
       saveDB(); renderAll(); toast('已清空示例');
     } else {
