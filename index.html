@@ -1476,6 +1476,24 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 }
 #toast.show{opacity:1;transform:translate(-50%,0)}
 
+/* ---------- 本机存储写失败：常驻警示，toast 一闪而过不够 ---------- */
+.store-warn{
+  position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:9px;
+  margin:0 -16px 12px;padding:calc(9px + env(safe-area-inset-top)) 12px 9px;
+  background:var(--danger-bg);border-bottom:var(--bw) solid var(--danger-line);
+  color:var(--danger-ink);font-size:12px;line-height:1.5;
+}
+.store-warn .sw-ico{
+  flex:0 0 18px;width:18px;height:18px;display:grid;place-items:center;
+  border-radius:50%;background:var(--danger-line);font-weight:700;font-size:12px;
+}
+.store-warn .sw-txt{flex:1;min-width:0}
+.store-warn .sw-btn{
+  flex:0 0 auto;padding:6px 10px;border-radius:var(--r-btn);
+  border:var(--bw) solid var(--danger-line);background:var(--surface);
+  color:var(--danger-ink);font:inherit;font-size:12px;font-weight:600;cursor:pointer;
+}
+
 /* ---------- 兜底页：渲染失败时的唯一入口 ---------- */
 .fatal{
   position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;
@@ -1535,6 +1553,12 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 <body>
 
 <div class="app" id="app">
+  <!-- 写盘失败时的常驻警示：普通文档流占位，不用 fixed，绝不遮挡内容 -->
+  <div id="storeWarn" class="store-warn hidden" role="alert">
+    <span class="sw-ico">!</span>
+    <span class="sw-txt" id="storeWarnText">本机存储不可用，改动还没存上。请先导出备份，刷新会丢。</span>
+    <button class="sw-btn" id="storeWarnExport" type="button">导出备份</button>
+  </div>
   <header class="brand">
     <div class="logo">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
@@ -2661,7 +2685,19 @@ function adoptData(src, persist){
   return s;
 }
 
-var dbIssue = null;   // 读盘时发现的问题，启动后提示一次
+var dbIssue = null;       // 读盘时发现的问题，启动后提示一次
+var storageOK = true;     // 本次会话写盘是否正常
+var rawBackup = null;     // 坏 JSON 原文的内存副本：.broken 写失败时最后一条线索
+var suspendWrites = false;// 原文没保住时禁止一切自动写盘，绝不覆盖原始账本
+
+/* 写盘失败不能只靠一闪而过的 toast：这条常驻在页面顶部，还带导出入口 */
+function showStoreWarn(msg){
+  storageOK = false;
+  var w = document.getElementById('storeWarn');
+  var t = document.getElementById('storeWarnText');
+  if (t && msg) t.textContent = msg;
+  if (w) w.classList.remove('hidden');
+}
 
 function loadDB(){
   var raw = null;
@@ -2670,9 +2706,15 @@ function loadDB(){
     var p = null;
     try { p = JSON.parse(raw); } catch(e) { p = null; }
     if (!isObj(p)) {
-      // 解析不了先别急着覆盖：原文另存一份，还有手工捞回来的机会
-      try { localStorage.setItem(LS_KEY + '.broken', raw); } catch(e) {}
-      dbIssue = { kind: 'read' };
+      // 解析不了先别急着覆盖：原文另存一份，还有手工捞回来的机会。
+      // 但「另存」本身也可能失败（配额满 / 隐私模式），这时内存里必须留一份，
+      // 并且禁止 adoptData 顺手把空库写回原键 —— 否则唯一能捞回的原文就没了。
+      rawBackup = raw;
+      var backedUp = false;
+      try { localStorage.setItem(LS_KEY + '.broken', raw); backedUp = true; } catch(e) {}
+      suspendWrites = !backedUp;
+      if (!backedUp) showStoreWarn('账本原文没能另存，已暂停自动写入。请先导出留底，别刷新页面。');
+      dbIssue = { kind: 'read', backedUp: backedUp };
       p = {};
     }
     var s = adoptData(p, false);
@@ -2693,11 +2735,22 @@ var dirty = { records: true, events: true, data: true };
 function markAllDirty(){ dirty.records = true; dirty.events = true; dirty.data = true; }
 var dbRev = 0;    // 每次写盘自增，用来让筛选缓存失效
 
+/* 返回是否真的写进了本机。失败时保留内存里的数据（刚记的一笔不该凭空消失），
+   但绝不能让调用方报「已记录」：toast 会带警示，顶部还有常驻条和导出入口。 */
 function saveDB(){
-  try { localStorage.setItem(LS_KEY, JSON.stringify(db)); }
-  catch(e) { toast('保存失败，浏览器存储不可用'); }
-  dbRev++;
+  dbRev++;          // 内存数据已变，筛选缓存无论如何都要失效
   markAllDirty();
+  if (suspendWrites) {
+    showStoreWarn('账本原文没能另存，已暂停自动写入。请先导出留底，别刷新页面。');
+    return false;
+  }
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(db));
+    return true;
+  } catch(e) {
+    showStoreWarn('本机存储不可用，改动还没存上。请先导出备份，刷新会丢。');
+    return false;
+  }
 }
 function seed(){
   var y = new Date().getFullYear();
@@ -4300,11 +4353,14 @@ function showFatal(err, mode){
   // 两种失败要给的出口不一样：渲染崩了还能靠清洗救；JSON 语法坏了洗不回来，
   // 只能先把原文导出去。文案和按钮都按场景换，别给一个点了没用的「尝试修复」。
   if (h) h.textContent = readMode ? '本机数据读取失败' : '界面没能正常显示';
+  var backedUp = !(dbIssue && dbIssue.backedUp === false);
   if (p) p.innerHTML = readMode
-    ? '账本文件没能解析。<br><b>原始内容已另存</b>：先导出留底，再决定怎么恢复。'
+    ? (backedUp
+        ? '账本文件没能解析。<br><b>原始内容已另存</b>：先导出留底，再决定怎么恢复。'
+        : '账本文件没能解析，本机存储也写不进去。<br><b>原文只在内存里</b>：立刻导出留底，刷新就没了。')
     : '数据里有一条格式不对，界面画到一半停了。<br><b>记录都还在</b>：先备份，再点「尝试修复」。';
   if (msg) msg.textContent = readMode
-    ? '原文：matchledger.v1.broken'
+    ? (backedUp ? '原文：matchledger.v1.broken' : '原文：暂存在内存中，刷新即丢失')
     : String((err && (err.message || err)) || '未知错误').slice(0, 180);
   var fix = $('#fatalFix');
   if (fix) fix.classList.toggle('hidden', readMode);
@@ -4508,10 +4564,12 @@ document.addEventListener('keydown', function(e){
 var toastTimer = null;
 function toast(msg){
   var t = $('#toast');
-  t.textContent = msg;
+  // 写盘失败期间，所有「已保存 / 已删除 / 已恢复」都不能原样报成功
+  t.textContent = (!storageOK && typeof msg === 'string')
+    ? msg + ' · 未存上本机，先导出备份' : msg;
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 1800);
+  toastTimer = setTimeout(function(){ t.classList.remove('show'); }, storageOK ? 1800 : 3000);
 }
 
 /* ================= 确认框 ================= */
@@ -4990,6 +5048,7 @@ $('#btnEventSave').addEventListener('click', function(){
   });
   if (dup.length) { toast('已有同名比赛'); return; }
 
+  var savedMsg = '';
   if (editingEvent) {
     editingEvent.name = name;
     editingEvent.note = note;
@@ -4999,13 +5058,15 @@ $('#btnEventSave').addEventListener('click', function(){
     db.records.forEach(function(r){
       if (r.eventId === editingEvent.id) { r.eventName = name; r.eventKind = kind; }
     });
-    toast('已保存');
+    // 提示放到 saveDB 之后，写盘失败时 toast 才知道要带警示，不能先报「已保存」
+    savedMsg = '已保存';
   } else {
     db.events.push({ id: uid(), name: name, note: note,
       unitPrice: buyin > 0 ? buyin : null, kind: kind, createdAt: Date.now() });
-    toast('已添加');
+    savedMsg = '已添加';
   }
   saveDB(); renderAll(); closeModal('mEvent');
+  toast(savedMsg);
 });
 
 $('#btnEventDelete').addEventListener('click', function(){
@@ -5234,6 +5295,15 @@ function exportJSON(){
 
 $('#btnJson').addEventListener('click', exportJSON);
 
+/* 常驻警示条上的导出：坏数据未另存时要给原文，不能导出内存里的空账本 */
+$('#storeWarnExport').addEventListener('click', function(){
+  if (rawBackup) {
+    download(rawBackup, '赛场账本_原始数据_' + stamp() + '.json', 'application/json;charset=utf-8');
+  } else {
+    exportJSON();
+  }
+});
+
 $('#btnImport').addEventListener('click', function(){ $('#fileInput').click(); });
 
 $('#fileInput').addEventListener('change', function(){
@@ -5269,10 +5339,13 @@ $('#fileInput').addEventListener('change', function(){
 /* ---------- 兜底页的三个出口 ---------- */
 /* 导出的是 localStorage 里的原文，不经过任何整理：这时候「原封不动」比「整齐」重要 */
 $('#fatalExport').addEventListener('click', function(){
-  // 坏 JSON 时 loadDB 会顺手写一份空库进 LS_KEY，原文只在 .broken 里 ——
-  // 先取 .broken，否则导出去的是空账本，等于把最后的线索也弄丢了。
-  var raw = '';
-  try { raw = localStorage.getItem(LS_KEY + '.broken') || localStorage.getItem(LS_KEY) || ''; } catch(e) {}
+  // 优先取内存里的原文副本：.broken 写失败时它是唯一线索。
+  // 其次 .broken，最后才是 LS_KEY —— 自动写盘被 suspendWrites 挡住后原键仍是坏原文，
+  // 但万一没挡住，取它至少不是空库。
+  var raw = rawBackup || '';
+  if (!raw) {
+    try { raw = localStorage.getItem(LS_KEY + '.broken') || localStorage.getItem(LS_KEY) || ''; } catch(e) {}
+  }
   if (!raw) { toast('本机没有可导出的数据'); return; }
   download(raw, '赛场账本备份_' + stamp() + '.json', 'application/json;charset=utf-8');
 });
