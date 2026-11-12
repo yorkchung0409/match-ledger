@@ -630,6 +630,12 @@ input,textarea,select{font-family:inherit;color:inherit}
   font-variant-numeric:tabular-nums;
 }
 .hero-note{font-size:12px;color:var(--muted);letter-spacing:.02em;text-wrap:pretty}
+/* 进圈率基线：来源必须写在脸上，反推值不能当精确值用 */
+.hero-base{margin-top:11px;font-size:11.5px;color:var(--muted);
+  display:flex;align-items:center;gap:7px;flex-wrap:wrap;line-height:1.5}
+.hero-base b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.hero-base em{font-style:normal;font-size:10px;color:var(--muted-2);
+  border:var(--bw) solid var(--soft-line);border-radius:5px;padding:0 5px;white-space:nowrap}
 .hero-grid{
   display:grid;grid-template-columns:repeat(5,1fr);gap:5px;
   margin-top:16px;padding-top:14px;border-top:var(--bw) solid var(--line-2);
@@ -1561,6 +1567,13 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
   .hero-grid{grid-template-columns:repeat(6,1fr);row-gap:11px}
   .hero-grid>div{grid-column:span 2}
   .hero-grid>div:nth-child(4),.hero-grid>div:nth-child(5){grid-column:span 3}
+  /* 副行加了「32/420 · 前7.6%」之后，360~399 这一档一行放不下，
+     以前是省略号截断（正好把百分位吃掉）。改成按整段折行：
+     放得下时仍是一行，放不下才多一行，不会出现「前7.6…」这种半截数字 */
+  .rec-meta{white-space:normal;line-height:1.4;overflow:visible;text-overflow:clip;
+    display:flex;flex-wrap:wrap;column-gap:9px;row-gap:1px}
+  .rec-meta span + span::before{content:none}
+  .rec-meta span{white-space:nowrap}
 }
 @media (max-width:359px){
   .app{padding-left:13px;padding-right:13px}
@@ -1568,12 +1581,6 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
   .rank{width:36px;height:36px;border-radius:var(--r-badge);font-size:12.5px}
   .rec-net{font-size:15px}
   .rec-sub{font-size:11.5px}
-  /* 字提到 12px 后「时间 · 成本 · 手数」在 320 宽一行放不下：
-     允许折成两行，但按整段折，别把「3 手」拆成「3」和「手」 */
-  .rec-meta{white-space:normal;line-height:1.4;overflow:visible;text-overflow:clip;
-    display:flex;flex-wrap:wrap;column-gap:9px;row-gap:1px}
-  .rec-meta span + span::before{content:none}
-  .rec-meta span{white-space:nowrap}
   .hero-value{font-size:31px}
   .hero{padding:18px 15px 14px}
   .hero-grid b{font-size:12px}
@@ -1648,6 +1655,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <div><span>进圈率</span><b id="sItm">—</b></div>
           <div><span>FT 率</span><b id="sFt">—</b></div>
         </div>
+        <div class="hero-base hidden" id="heroBase"></div>
       </div>
 
       <div id="demoBanner"></div>
@@ -1936,6 +1944,15 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
       </div>
 
       <div class="fgroup">
+        <span class="flabel">比赛人数<em class="opt">可选</em></span>
+        <div class="field">
+          <div class="fbody"><input class="finput" id="fFieldSize" placeholder="报名总人次，如 420" inputmode="numeric" autocomplete="off"></div>
+          <span class="fprefix">人</span>
+        </div>
+        <p class="fhint" id="fieldSizeHint">含重进 / rebuy 的总人次。圈外也要填 —— 它是进圈率的分母。</p>
+      </div>
+
+      <div class="fgroup">
         <div class="flabel-row">
           <span class="flabel">成本 / 收益</span>
           <div class="curseg sm" id="fCur" role="group" aria-label="本场币种">
@@ -2081,6 +2098,14 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         <p class="fhint">按记账时选的币种理解。填了之后，记一笔选这个比赛会自动带出成本，点「×2」就按两手算 —— 之后还能手动改。</p>
       </div>
       <div class="fgroup">
+        <span class="flabel">付费比例<em class="opt">可选</em></span>
+        <div class="field">
+          <div class="fbody"><input class="finput" id="fEventPaidPct" placeholder="如 12" inputmode="decimal" autocomplete="off"></div>
+          <span class="fprefix">%</span>
+        </div>
+        <p class="fhint">这个赛事进钱圈的人数占比。填一次就够，之后每场不用再填 —— 进圈率基线靠它算。不知道就留空，会用你历史最好的一次进圈名次反推（偏低）。</p>
+      </div>
+      <div class="fgroup">
         <span class="flabel">备注（可选）</span>
         <textarea class="fta" id="fEventNote" placeholder="场地、买入档位、赛事类型等"></textarea>
       </div>
@@ -2155,6 +2180,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <li>「成本」填这一场的<b>总投入</b>（含所有 rebuy / add-on），不是单次买入。</li>
           <li>「收益」填这一场拿到的钱，没进钱就填 <b>0</b>。</li>
           <li>「名次」会据此自动判档（进 FT / 进圈 / 圈外），也可以手动改。</li>
+          <li>「比赛人数」填这一场的<b>报名总人次</b>（含重进 / rebuy）。同一比赛会自动带出上一次填的数，改一下就行。</li>
           <li>「手数」只是个标签，用来统计你平均买几手，<b>不影响任何金额</b>。</li>
           <li>同一场比赛可以反复选，比赛管理里就是按它横向对比的。</li>
         </ul></div>
@@ -2171,6 +2197,18 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <li>成绩结构按口径分两个 tab：<b>常规赛</b>看圈外 / 进圈 / 进 FT，<b>卫星赛</b>看赢到票 / 没赢到。每行右边是<b>这一档的场均</b>，不是这一档的总和 —— 6 场一共亏 $6.08，场均就是 −$1.01；想看总数就在记录页把这一档筛出来看顶部。</li>
           <li>成绩结构每行<b>整行可点</b>：点「进圈」就只看进圈场次，再点一次取消；卫星赛点「赢到门票」同理。</li>
           <li>比率只看<b>已记录的场次</b>。没记住的场次不补也不猜 —— 缺记录会让样本有偏，但不会把公式算错。</li>
+        </ul></div>
+      </details>
+
+      <details class="help-d">
+        <summary>比赛人数与进圈基线</summary>
+        <div class="help-body"><ul>
+          <li><b>名次百分位 = 名次 ÷ 人数</b>，记录卡上写成 <b>32/420 · 前7.6%</b>，意思是赢了 92.4% 的人。100 人场和 1000 人场可以直接横比，只看「第 32 名」比不了。</li>
+          <li>「付费比例」在<b>比赛管理</b>里按赛事填一次（12 就是 12% 进钱圈），之后每场不用再填。它是赛事结构，改一次立刻作用于全部历史和未来，不需要逐条刷记录。</li>
+          <li>首页进圈率下面那条基线就是它：<b>基线 12%</b> 表示同样打法随机打也有 12% 进圈。旁边标来源 ——<b>赛事设定</b>是准的，<b>历史反推</b>取你进圈记录里最差的一次名次百分位，一定偏低，样本不足 20 场不显示。</li>
+          <li>人数填得够多之后，这条基线才说明问题：低于基线是生存能力不足，高出 5pt 以上通常意味着你拿决赛桌率换了进圈率。</li>
+          <li>两者都只是<b>分析维度</b>，不进成本、收益、净收益、ROI；卫星赛没有奖金圈，一概不参与。删掉比赛名会连带丢掉它的付费比例，基线退回反推。</li>
+          <li>人数和付费比例都齐了以后，如果名次排在钱圈之外却标了「进圈」，保存时会提醒一句，但<b>不拦截</b> —— 档位还是你定。</li>
         </ul></div>
       </details>
 
@@ -2544,8 +2582,13 @@ function stamp(){
    earnedIn 指向赢票记录，usedIn 指向用掉它的那场记录。记录上的 ticketCost /
    ticketWon 保留为面值快照（兼容旧备份与旧统计），另加 ticketWonN（这张记录赢了几张）
    与 ticketUsedId（这场用掉哪张票）—— 张数/配对只认流水，不再拿记录条数相减。
-   老备份（v1/v2/v3）在 upgraded 里自动补出流水，不用用户做任何事。 */
-var SCHEMA_VERSION = 4;
+   v5 加两个纯分析字段：records.fieldSize（本场报名总人次）、
+   events.paidPct（该赛事付费人数占比，整数百分比）。付费人数由
+   fieldSize × paidPct 算出，不再单独存。两者都不进 cost / income /
+   net / roi，只用于进圈率基线、名次百分位与规模分档。
+   records.itmBB（进圈那一刻筹码，单位 BB）本期预留、界面未开。
+   老备份（v1/v2/v3/v4）在 upgraded 里自动补出流水与默认值，不用用户做任何事。 */
+var SCHEMA_VERSION = 5;
 var db = {
   schemaVersion: SCHEMA_VERSION,
   events: [], records: [], tickets: [],
@@ -2574,6 +2617,75 @@ function buyinOf(e){
   if (!e) return 0;
   var n = money(e.unitPrice != null ? e.unitPrice : e.buyin);
   return n > 0 ? n : 0;
+}
+/* ---- v5：纯分析字段，只读不参与任何金额 ----
+   报名总人次（含 re-entry）。没填一律 null —— 用 0 会让均值 / 中位数被拉低，
+   也会让「填了人数的场次」这个分母算错。 */
+function sizeOf(r){
+  var n = Math.floor(money(r && r.fieldSize));
+  if (!(n > 0)) return null;
+  return Math.min(n, 999999);
+}
+/* 付费比例：读比赛，不读记录快照。
+   它是赛事结构属性，改一次要立刻作用于全部历史与未来；若做成记录快照，
+   改赛事时得批量刷上百条记录，反而容易漏。副作用是删掉比赛后基线会丢，
+   由 basePctOf 的历史反推兜底。 */
+function paidPctOf(r){
+  if (!r) return null;
+  var e = eventById(r.eventId);
+  var p = money(e && e.paidPct);
+  if (!(p > 0)) return null;
+  return Math.min(Math.round(p * 10) / 10, 100);
+}
+/* 该场付费名额（钱圈人数）。算不出来返回 null，不要返回 0 */
+function paidCountOf(r){
+  var fs = sizeOf(r), p = paidPctOf(r);
+  if (!fs || !p) return null;
+  return Math.max(1, Math.round(fs * p / 100));
+}
+/* 名次百分位，0~1，越小越深：420 人第 32 名 → 7.6%，跨规模可横比 */
+function rankPctOf(r){
+  var fs = sizeOf(r), rk = parseInt(r && r.rank, 10);
+  if (!fs || !isFinite(rk) || rk <= 0) return null;
+  return Math.min(rk / fs, 1);
+}
+/* 这个比赛最近一次记过的人数，用来预填。换比赛要重新取 ——
+   420 人的深筹赛和 60 人的快速赛混用，名次百分位会全错。 */
+function lastSizeOfEvent(eid){
+  if (!eid) return '';
+  var prev = db.records.filter(function(x){ return x.eventId === eid && sizeOf(x); })
+    .sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); })[0];
+  return prev ? String(sizeOf(prev)) : '';
+}
+/* 进圈那一刻的筹码（BB），1 位小数。本期只做预留，界面没有入口 */
+function bbOf(r){
+  var n = money(r && r.itmBB);
+  if (!(n > 0)) return null;
+  return Math.min(Math.round(n * 10) / 10, 999);
+}
+/* 进圈率基线。优先用赛事设定的付费比例，按「填了比例的场次」取均值；
+   没有就从数据反推：取进圈记录里 rank/fieldSize 的最大值（你最差的一次
+   进圈位置 ≈ 钱圈边缘）。反推一定偏低，界面上必须标出来源。
+   注意：这里遍历全部场次（含圈外）——进圈率的分母是全部场次，
+   基线也该按全部场次加权，只算进圈场次会让你常进圈的赛事权重被放大。 */
+function basePctOf(list){
+  var arr = Array.isArray(list) ? list : db.records;
+  var sum = 0, cnt = 0;
+  arr.forEach(function(r){
+    if (isSatellite(r)) return;          // 卫星赛没有奖金圈
+    var p = paidPctOf(r);
+    if (p) { sum += p; cnt++; }
+  });
+  if (cnt) return { pct: sum / cnt, src: 'event', n: cnt };
+
+  var mx = 0, n2 = 0;
+  arr.forEach(function(r){
+    if (isSatellite(r) || stageOf(r) === 'out') return;
+    var q = rankPctOf(r);
+    if (q) { if (q > mx) mx = q; n2++; }
+  });
+  // 样本不够时最大值毫无意义，会把基线抬到荒谬的高度
+  return n2 >= 20 ? { pct: mx * 100, src: 'infer', n: n2 } : null;
 }
 /* 门票面值：赢到的票、用掉的票。绑定本人、不能变现，永远不进 income / cost。
    记录上的 eventKind 是当时的快照（和 eventName 一样）：删掉比赛名、后来改了
@@ -2712,6 +2824,9 @@ function cleanRec(r){
   // v4：张数和票 id 是流水层的快照，缺了就补，同样不算「修好了一条」
   var ticketWonN = wonTicketN(r);
   var ticketUsedId = (typeof r.ticketUsedId === 'string' && r.ticketUsedId) ? r.ticketUsedId : null;
+  // v5 新字段：老记录没有就补 null，不算「修好了几条」，别弹误报
+  var fieldSize = sizeOf(r);
+  var itmBB = bbOf(r);
 
   var created = money(r.createdAt);
   if (!(created > 0)) created = Date.now();
@@ -2727,6 +2842,7 @@ function cleanRec(r){
     cost: cost, income: income, cur: cur, buyCount: buyCount,
     eventKind: eventKind, ticketCost: ticketCost, ticketWon: ticketWon,
     ticketWonN: ticketWonN, ticketUsedId: ticketUsedId,
+    fieldSize: fieldSize, itmBB: itmBB,
     note: note, createdAt: created
   };
   if (r.demo === true) o.demo = true;
@@ -2751,12 +2867,17 @@ function cleanEvent(e){
   if (!(created > 0)) created = Date.now();
   var unitPrice = buyinOf(e);
   var kind = eventKindOf(e);   // v3：常规赛 / 卫星赛，老比赛一律常规赛
+  // v5 付费比例：0 / 空 / 非数字都当没填。老比赛没这个键，按 null 比，
+  // 否则「补个默认值」会被算成修好了一条，每次读盘都弹一次误报。
+  var paidPct = money(e.paidPct);
+  paidPct = (paidPct > 0) ? Math.min(Math.round(paidPct * 10) / 10, 100) : null;
   if (id !== e.id || name !== e.name || note !== e.note
       || created !== e.createdAt || (unitPrice > 0 ? unitPrice : null) !== e.unitPrice
+      || ('paidPct' in e ? e.paidPct : null) !== paidPct
       || 'buyin' in e) fix = true;
 
   var o = { id: id, name: name, note: note, createdAt: created,
-    unitPrice: unitPrice > 0 ? unitPrice : null, kind: kind };
+    unitPrice: unitPrice > 0 ? unitPrice : null, kind: kind, paidPct: paidPct };
   return { e: o, fix: fix };
 }
 
@@ -2858,6 +2979,7 @@ function migrateTickets(p){
    v3: openingBalance / fxRate / fxUpdatedAt / fxSource、events.unitPrice / kind、
        records.buyCount / eventKind / ticketCost / ticketWon
    v4: tickets[] 流水、records.ticketWonN / ticketUsedId
+   v5: records.fieldSize / itmBB、events.paidPct
    更早的备份缺的新字段不用在这里逐条补：cleanRec / cleanEvent 会给默认值。 */
 function upgraded(p){
   var o = isObj(p) ? p : {};
@@ -3045,10 +3167,10 @@ function seed(){
   db.tickets = [];
   var base = Date.now();
   db.records = [
-    { id: uid(), eventId: e1.id, eventName: e1.name, time: y + '-11-01T20:00', rank: '18', cost: 1000, income: 0, note: 'rebuy 一次还是没进圈', stage: 'out', cur: 'CNY', buyCount: 2, createdAt: base - 5000, demo: true },
-    { id: uid(), eventId: e3.id, eventName: e3.name, time: y + '-11-02T20:00', rank: '', cost: 500, income: 800, note: '圈外靠淘汰拿了 4 个赏金', stage: 'out', cur: 'CNY', buyCount: 1, createdAt: base - 4500, demo: true },
-    { id: uid(), eventId: e2.id, eventName: e2.name, time: y + '-11-03T15:00', rank: '3', cost: 200, income: 1400, note: '泡沫期翻倍', stage: 'itm', cur: 'CNY', buyCount: 1, createdAt: base - 4000, demo: true },
-    { id: uid(), eventId: e1.id, eventName: e1.name, time: y + '-11-05T20:00', rank: '1', cost: 1000, income: 5200, note: '9 人 FT，单挑赢下', stage: 'ft', cur: 'CNY', buyCount: 2, createdAt: base - 3000, demo: true }
+    { id: uid(), eventId: e1.id, eventName: e1.name, time: y + '-11-01T20:00', rank: '18', fieldSize: 180, cost: 1000, income: 0, note: 'rebuy 一次还是没进圈', stage: 'out', cur: 'CNY', buyCount: 2, createdAt: base - 5000, demo: true },
+    { id: uid(), eventId: e3.id, eventName: e3.name, time: y + '-11-02T20:00', rank: '', fieldSize: 120, cost: 500, income: 800, note: '圈外靠淘汰拿了 4 个赏金', stage: 'out', cur: 'CNY', buyCount: 1, createdAt: base - 4500, demo: true },
+    { id: uid(), eventId: e2.id, eventName: e2.name, time: y + '-11-03T15:00', rank: '3', fieldSize: 60, cost: 200, income: 1400, note: '泡沫期翻倍', stage: 'itm', cur: 'CNY', buyCount: 1, createdAt: base - 4000, demo: true },
+    { id: uid(), eventId: e1.id, eventName: e1.name, time: y + '-11-05T20:00', rank: '1', fieldSize: 220, cost: 1000, income: 5200, note: '9 人 FT，单挑赢下', stage: 'ft', cur: 'CNY', buyCount: 2, createdAt: base - 3000, demo: true }
   ];
   saveDB();
 }
@@ -3436,6 +3558,23 @@ function renderStats(){
   // FT 率 = 进 FT 场次 ÷ 常规赛场次。和进圈率同一个分母，卫星赛不进任何比率。
   // statsOf 里 ft 是独立的计数（进圈率把 ft 也算进 itm），所以这里不会重复计。
   $('#sFt').textContent = regS.n ? Math.round(regS.ft / regS.n * 100) + '%' : '—';
+  paintBaseLine(regS, regularOnly(list));
+}
+
+/* 进圈率基线：范围跟着上面的筛选走，只用常规赛（卫星赛没有奖金圈）。
+   来源分两种 —— 赛事设定（准）/ 历史反推（一定偏低，样本 ≥ 20 场才算）。
+   界面上必须把来源标出来，否则等于把低估的反推值当精确值用。 */
+function paintBaseLine(regS, regList){
+  var box = $('#heroBase');
+  if (!box) return;
+  var b = regS.n ? basePctOf(regList) : null;
+  if (!b) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+  var r1 = function(v){ return Math.round(v * 10) / 10; };
+  var edge = regS.itm / regS.n * 100 - b.pct;
+  box.innerHTML = '进圈基线 <b>' + r1(b.pct) + '%</b>'
+    + ' · ' + (edge >= 0 ? '高出' : '低了') + ' <b>' + r1(Math.abs(edge)) + 'pt</b>'
+    + '<em>' + (b.src === 'event' ? '赛事设定' : '历史反推 · 偏低') + '</em>';
+  box.classList.remove('hidden');
 }
 
 function recCardHTML(r){
@@ -3474,7 +3613,11 @@ function recCardHTML(r){
     metaBits.push('成本 ' + fmtIn(money(r.cost), cur));
   }
   if (buysOf(r) > 1) metaBits.push(buysOf(r) + ' 手');
-  if (st === 'out' && hasRank) metaBits.push('第 ' + rk + ' 名');
+  // 人数 + 名次合成一段：32/420 · 前7.6%，一行读两个信息，比只写「共 420 人」有用
+  var fs = sizeOf(r), rp = rankPctOf(r);
+  if (fs && hasRank) metaBits.push(rk + '/' + fs + (rp ? ' · 前' + (rp * 100).toFixed(1) + '%' : ''));
+  else if (fs) metaBits.push('共 ' + fs + ' 人');
+  else if (st === 'out' && hasRank) metaBits.push('第 ' + rk + ' 名');
   var sub = wonTicketOf(r)
     ? '赢门票 ' + wonTicketN(r) + ' 张' + (tw > 0 ? ' ' + fmtIn(tw, cur) : ' · 面值未填')
       + ' · 现金收益 ' + fmtIn(money(r.income), cur)
@@ -3851,6 +3994,7 @@ function renderEvents(){
     } else if (s.n) {
       bits.push(s.n + ' 场');
       bits.push('进圈率 ' + Math.round(s.itm / s.n * 100) + '%');
+      if (money(e.paidPct) > 0) bits.push('付费 ' + money(e.paidPct) + '%');
       if (s.best) bits.push('最好 #' + s.best);
     } else {
       bits.push('未记录过');
@@ -4550,11 +4694,29 @@ function deleteTicket(id){
    不解释的话看起来就是算错了 */
 function paintStageFxNote(note, list){
   if (!note) return;
-  if (!needsFx(list)) { note.innerHTML = ''; return; }
-  var d = dispCur();
-  note.innerHTML = '<div class="nl">金额按 1$ ≈ ¥' + fxShort() + ' 折算成' + curName(d) + '</div>'
-    + '<div class="nl">想看' + curName(d === 'USD' ? 'CNY' : 'USD') + '，点上面的<b>「'
-    + (d === 'USD' ? '¥ 人民币' : '$ 美元') + '」</b></div>';
+  var nl = [];
+  // 进圈率基线：只在没按档位下钻时给 —— 下钻到「进圈」时进圈率恒为 100%，
+  // 跟基线摆在一起就是废话。范围跟着当前时间筛选走。
+  if (state.filterStage === 'all') {
+    var reg = regularOnly(list || []);
+    var b = reg.length ? basePctOf(reg) : null;
+    if (b) {
+      var st = statsOf(reg);
+      var r1 = function(v){ return Math.round(v * 10) / 10; };
+      var edge = (st.n ? st.itm / st.n * 100 : 0) - b.pct;
+      nl.push('进圈率 <b>' + (st.n ? r1(st.itm / st.n * 100) : 0) + '%</b>'
+        + ' · 基线 <b>' + r1(b.pct) + '%</b>'
+        + '（' + (b.src === 'event' ? '赛事设定' : '历史反推，偏低') + '）'
+        + ' · ' + (edge >= 0 ? '高出 ' : '低了 ') + '<b>' + r1(Math.abs(edge)) + 'pt</b>');
+    }
+  }
+  if (needsFx(list)) {
+    var d = dispCur();
+    nl.push('金额按 1$ ≈ ¥' + fxShort() + ' 折算成' + curName(d));
+    nl.push('想看' + curName(d === 'USD' ? 'CNY' : 'USD') + '，点上面的<b>「'
+      + (d === 'USD' ? '¥ 人民币' : '$ 美元') + '」</b>');
+  }
+  note.innerHTML = nl.map(function(t){ return '<div class="nl">' + t + '</div>'; }).join('');
 }
 
 /* 买入习惯：场均手数 + 「1 手」和「2 手以上」分开算进圈率 */
@@ -5167,6 +5329,7 @@ function paintForm(){
   $('#fTime').textContent = fmtFull(form.time);
   $('#fTime').classList.remove('ph');
   $('#fRank').value = form.rank || '';
+  $('#fFieldSize').value = form.fieldSize || '';
   $('#fCost').value = form.cost || '';
   $('#fIncome').value = form.income || '';
   $('#fTicketWon').value = form.ticketWon || '';
@@ -5176,6 +5339,21 @@ function paintForm(){
   $('#btnDelete').classList.toggle('hidden', !form.id);
   setFormCur(form.cur);   // 顺带刷新净收益预览
   syncTicketUI();
+  syncFieldSizeHint();
+}
+
+/* 人数提示：这个赛事填过付费比例时，边输边把钱圈位置算给你看 ——
+   「420 人 × 12% ≈ 前 50 名有钱」，输完就知道自己填的名次合不合理。 */
+function syncFieldSizeHint(){
+  var h = $('#fieldSizeHint');
+  if (!h) return;
+  var base = '含重进 / rebuy 的总人次。圈外也要填 —— 它是进圈率的分母。';
+  if (!form) { h.textContent = base; return; }
+  var fs = Math.floor(money($('#fFieldSize').value));
+  var p = paidPctOf({ eventId: form.eventId });
+  h.textContent = (fs > 0 && p)
+    ? (fs + ' 人 × ' + p + '% ≈ 前 ' + Math.max(1, Math.round(fs * p / 100)) + ' 名有钱')
+    : base;
 }
 
 /* 进圈档位的界面同步 */
@@ -5206,6 +5384,7 @@ function openRecordForm(id){
     form = {
       id: r.id, eventId: r.eventId || '', eventName: r.eventName || '',
       time: r.time || nowStr(), rank: r.rank == null ? '' : String(r.rank),
+      fieldSize: sizeOf(r) == null ? '' : String(sizeOf(r)),
       cost: r.cost == null ? '' : String(r.cost),
       income: r.income == null ? '' : String(r.income),
       note: r.note || '', stage: stageOf(r), cur: curOf(r), buys: buysOf(r), costAuto: false,
@@ -5226,13 +5405,16 @@ function openRecordForm(id){
     }
     if (!eid && db.events.length === 1) eid = db.events[0].id;
     var ev = eid ? eventById(eid) : null;
+    // 同一比赛最近一次记过的人数直接带过来：大多数赛事规模很稳定，
+    // 每场重打一遍数字，是「记不满 500 场」最常见的原因
+    var lastSize = lastSizeOfEvent(eid);
     // 新记录默认跟上一次用的币种，没记过就跟着当前展示币种
     var lastCur = db.records.length
       ? curOf(db.records.slice().sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); })[0])
       : dispCur();
     form = {
       id: null, eventId: eid, eventName: ev ? ev.name : '',
-      time: nowStr(), rank: '', cost: '', income: '', note: '', stage: 'out', cur: lastCur, buys: 1, costAuto: false,
+      time: nowStr(), rank: '', fieldSize: lastSize, cost: '', income: '', note: '', stage: 'out', cur: lastCur, buys: 1, costAuto: false,
       ticketWon: '', ticketUsedId: null, ticketWonN: 1, costKind: 'cash',
       // 卫星赛默认记「赢门票」，省得每次手切；圈外没赢票再切回现金即可
       incomeKind: (ev && eventKindOf(ev) === 'satellite') ? 'ticket' : 'cash'
@@ -5247,6 +5429,7 @@ function openRecordForm(id){
 function saveRecord(){
   if (!form.eventName) { toast('先选一个比赛'); return; }
   var rankRaw = ($('#fRank').value || '').replace(/[^\d]/g, '');
+  var fieldSize = sizeOf({ fieldSize: $('#fFieldSize').value });
   // 落盘的是 number：v1 存字符串，统计时要到处 parseFloat。
   // 门票面值单独存，不塞进 cost / income —— 净收益公式保持现金口径。
   var cost = (form.costKind === 'ticket') ? 0 : Math.max(0, money($('#fCost').value));
@@ -5302,6 +5485,7 @@ function saveRecord(){
       r.buyCount = buysOf({ buyCount: form.buys });
       r.ticketCost = ticketCost; r.ticketWon = ticketWon;
       r.ticketWonN = wonN; r.ticketUsedId = ticketUsedId;
+      r.fieldSize = fieldSize;
       r.eventKind = eventKind;
       delete r.itm; delete r.demo;
     }
@@ -5312,12 +5496,13 @@ function saveRecord(){
       cur: form.cur || 'CNY', buyCount: buysOf({ buyCount: form.buys }),
       eventKind: eventKind, ticketCost: ticketCost, ticketWon: ticketWon,
       ticketWonN: wonN, ticketUsedId: ticketUsedId,
+      fieldSize: fieldSize,
       createdAt: Date.now()
     });
     // 如果比赛名库里还没有这条（理论上不会），补一条
     if (!eventById(form.eventId)) {
       var ev = { id: form.eventId || uid(), name: form.eventName, note: '',
-        unitPrice: null, kind: 'regular', createdAt: Date.now() };
+        unitPrice: null, kind: 'regular', paidPct: null, createdAt: Date.now() };
       form.eventId = ev.id;
       db.events.push(ev);
     }
@@ -5332,8 +5517,14 @@ function saveRecord(){
     dirty.data = true;
     renderAll();
   }
+  // 人数 + 付费比例都齐了才能判断，缺一不提示，避免误报。
+  // 只提醒、不 return —— 判错的权利留给用户（比如 rebuy 不计人次、或标错档位）
+  var paidCnt = paidCountOf({ fieldSize: fieldSize, eventId: form.eventId });
+  var warn = (form.stage !== 'out' && paidCnt && rankRaw && parseInt(rankRaw, 10) > paidCnt)
+    ? '注意：第 ' + rankRaw + ' 名超出钱圈（前 ' + paidCnt + ' 名），档位可能选错' : '';
   closeModal('mRecord');
-  toast(off ? '已保存 · 已显示全部时间' : (form.id ? '已更新' : '已记录'));
+  var msg = off ? '已保存 · 已显示全部时间' : (form.id ? '已更新' : '已记录');
+  toast(warn ? msg + ' · ' + warn : msg);
 }
 
 $('#btnHelp').addEventListener('click', function(){
@@ -5450,6 +5641,11 @@ $('#fRank').addEventListener('input', function(){
   this.value = this.value.replace(/[^\d]/g, '').slice(0, 5);
 });
 
+$('#fFieldSize').addEventListener('input', function(){
+  this.value = this.value.replace(/[^\d]/g, '').slice(0, 6);
+  syncFieldSizeHint();
+});
+
 $('#btnDelete').addEventListener('click', function(){
   if (!form || !form.id) return;
   var rid = form.id;
@@ -5523,11 +5719,12 @@ function renderPickerList(kw){
     createBtn.addEventListener('click', function(){
       var name = q.trim();
       if (!name) return;
-      var ev = { id: uid(), name: name, note: '', createdAt: Date.now() };
+      var ev = { id: uid(), name: name, note: '', kind: 'regular', paidPct: null, createdAt: Date.now() };
       db.events.push(ev);
       saveDB();
       form.eventId = ev.id;
       form.eventName = ev.name;
+      form.fieldSize = '';
       paintForm();
       renderAll();
       closeModal('mPicker');
@@ -5539,6 +5736,8 @@ function renderPickerList(kw){
       if (!ev) return;
       form.eventId = ev.id;
       form.eventName = ev.name;
+      // 换了比赛，人数按新比赛的历史重取，别把上一场 420 人的数字带过去
+      form.fieldSize = lastSizeOfEvent(ev.id);
       paintForm();
       applyBuyin();
       closeModal('mPicker');
@@ -5557,6 +5756,7 @@ function openEventEditor(id){
   $('#fEventInput').value = editingEvent ? editingEvent.name : '';
   $('#fEventNote').value = editingEvent ? (editingEvent.note || '') : '';
   $('#fEventBuyin').value = (editingEvent && money(editingEvent.unitPrice) > 0) ? String(money(editingEvent.unitPrice)) : '';
+  $('#fEventPaidPct').value = (editingEvent && money(editingEvent.paidPct) > 0) ? String(money(editingEvent.paidPct)) : '';
   paintKindSeg($('#fEventKind'), editingEvent ? eventKindOf(editingEvent) : 'regular');
   $('#btnEventDelete').classList.toggle('hidden', !editingEvent);
   openModal('mEvent');
@@ -5570,6 +5770,10 @@ $('#btnEventSave').addEventListener('click', function(){
   var name = ($('#fEventInput').value || '').trim();
   var note = ($('#fEventNote').value || '').trim();
   var buyin = money(($('#fEventBuyin').value || '').replace(/[^\d.]/g, ''));
+  // 付费比例是赛事结构属性：读时 join，不写进记录快照。
+  // 改了立刻作用于全部历史与未来，不用批量刷记录。
+  var paidRaw = money(($('#fEventPaidPct').value || '').replace(/[^\d.]/g, ''));
+  var paidPct = (paidRaw > 0) ? Math.min(paidRaw, 100) : null;
   var kindBtn = $('#fEventKind button.on');
   var kind = kindBtn ? kindBtn.getAttribute('data-kind') : 'regular';
   if (!name) { toast('请填比赛名称'); return; }
@@ -5584,6 +5788,7 @@ $('#btnEventSave').addEventListener('click', function(){
     editingEvent.name = name;
     editingEvent.note = note;
     editingEvent.unitPrice = buyin > 0 ? buyin : null;
+    editingEvent.paidPct = paidPct;
     editingEvent.kind = kind;
     // 名称与类型都是快照：改比赛时同步历史记录，统计归类不会一半新一半旧
     db.records.forEach(function(r){
@@ -5593,7 +5798,7 @@ $('#btnEventSave').addEventListener('click', function(){
     savedMsg = '已保存';
   } else {
     db.events.push({ id: uid(), name: name, note: note,
-      unitPrice: buyin > 0 ? buyin : null, kind: kind, createdAt: Date.now() });
+      unitPrice: buyin > 0 ? buyin : null, kind: kind, paidPct: paidPct, createdAt: Date.now() });
     savedMsg = '已添加';
   }
   saveDB(); renderAll(); closeModal('mEvent');
@@ -5791,10 +5996,14 @@ $('#btnCsv').addEventListener('click', function(){
   var list = db.records.slice().sort(byTimeAsc);
   if (!list.length) { toast('还没有数据'); return; }
   // 导出走原币：表格是原始事实，折算交给 Excel 或汇率列自己算
-  var rows = [['时间', '比赛', '进圈', '名次', '币种', '成本', '收益', '净收益', '手数', '备注']];
+  var rows = [['时间', '比赛', '进圈', '名次', '人数', '名次百分位', '币种', '成本', '收益', '净收益', '手数', '备注']];
   list.forEach(function(r){
+    var rp = rankPctOf(r);
     rows.push([
-      fmtFull(r.time), r.eventName || '', stageLabel(r), r.rank || '', curName(curOf(r)),
+      fmtFull(r.time), r.eventName || '', stageLabel(r), r.rank || '',
+      sizeOf(r) == null ? '' : String(sizeOf(r)),
+      rp == null ? '' : (rp * 100).toFixed(1) + '%',
+      curName(curOf(r)),
       num2(r.cost), num2(r.income), num2(recNetRaw(r)), String(buysOf(r)), r.note || ''
     ]);
   });
@@ -6091,9 +6300,12 @@ document.addEventListener('click', function(e){
   var stageTabBtn = e.target.closest ? e.target.closest('[data-stagetab]') : null;
   if (stageTabBtn) { setStageTab(stageTabBtn.getAttribute('data-stagetab')); return; }
 
-  // 成绩结构整行点进记录页：再点一次同一档就取消
+  // 成绩结构整行点进记录页：再点一次同一档就取消。
+  // 必须限定在成绩结构那两行里 —— 记一笔表单的「圈外 / 进圈 / 进 FT」也带
+  // data-stage，以前点它会被这里接走，顺手把记录页筛成这一档，看着像丢数据。
   var stageBtn = e.target.closest ? e.target.closest('[data-stage]') : null;
-  if (stageBtn && !stageBtn.disabled) {
+  var inStageList = stageBtn && stageBtn.closest && stageBtn.closest('.stagelist');
+  if (stageBtn && inStageList && !stageBtn.disabled) {
     var sk = stageBtn.getAttribute('data-stage');
     // 数据页的统计本来就不受记录页的这几个筛选影响，点进来时一并清掉，
     // 否则「点进圈只看到 0 场」，因为上一次还留着某个比赛的筛选
