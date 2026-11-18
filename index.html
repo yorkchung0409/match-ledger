@@ -2336,6 +2336,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <li>删掉一个平台，历史记录<b>保留平台名</b>（「这场是在哪儿打的」这个事实不会消失），只是不再参与按平台的筛选，比赛退成「未分类」。</li>
           <li>平台只是<b>分析维度</b>：不进成本、收益、净收益、ROI、进圈率、FT 率里的任何一项，也不影响走势曲线。它只用来筛和分组 —— 比如「线下赚、线上亏」这种事，靠平台横条一眼能看出来。</li>
           <li>记录页和比赛管理页顶部的平台横条是同一个筛选值：在比赛管理点了「GG 线上」，回记录页看到的还是 GG 线上。</li>
+          <li>数据页的「统计范围」里也有一组平台 chips，那是一份<b>独立的</b>值：在这里选 GG，只把数据页的数字收窄到 GG，记录页列表不会被筛掉。因为两页问的不是同一个问题 —— 一页问「给我看哪几场流水」，一页问「统计哪一段」。</li>
           <li>「未标」这一档是没设平台的记录 / 比赛。删掉平台后解绑的历史记录也落在这里，不会凭空消失。</li>
         </ul></div>
       </details>
@@ -2396,9 +2397,10 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         <summary>筛选与时间范围</summary>
         <div class="help-body"><ul>
           <li><b>两页各有一份时间范围</b>：记录页顶部那个时间按钮只管列表，数据页顶部的「统计范围」只管统计。各存各的，在一页改了不会连带把另一页也筛掉。</li>
+          <li><b>平台也一样分两份</b>：记录页 / 比赛管理页用上面那条平台横条，数据页用「统计范围」里的平台分组。在数据页选了某个平台，记录页列表不会跟着被筛掉。</li>
           <li>记录页的比赛筛选点开可以<b>直接输入名字搜</b>，点一行就生效、面板自动关掉；「重置」回到全部比赛。</li>
           <li>从成绩结构点进来的档位筛选会在筛选条下面留一个 chip，点它右边的 × 取消。</li>
-          <li>数据页的统计只认「统计范围」：记录页的输赢 / 比赛 / 时间筛选都不会影响它。</li>
+          <li>数据页的统计只认「统计范围」：记录页的输赢 / 比赛 / 时间 / 平台筛选都不会影响它。</li>
         </ul></div>
       </details>
 
@@ -2427,6 +2429,10 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
       <button class="link gold" id="dpDone">完成</button>
     </div>
     <div class="sheet-body">
+      <div class="dp-group" id="dpPlatGroup">
+        <div class="dp-label">平台</div>
+        <div class="dp-chips" id="dpPlat"></div>
+      </div>
       <div class="dp-group">
         <div class="dp-label">年</div>
         <div class="dp-chips" id="dpYear"></div>
@@ -2443,7 +2449,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         <span id="dpPreviewN">0 场</span>
         <em id="dpPreviewNet">¥0</em>
       </div>
-      <p class="note">只列出有记录的日期。月、日会跟着上一层收窄，点「不限」可以放开某一层。</p>
+      <p class="note" id="dpNote">只列出有记录的日期。月、日会跟着上一层收窄，点「不限」可以放开某一层。</p>
     </div>
   </div>
 </div>
@@ -3430,7 +3436,10 @@ var state = {
   // 以前共用一套，在数据页挑了 11 月切回记录页，列表也被筛掉了 —— 两个页面问的
   // 不是同一个问题，共用一套必然互相污染。
   recDate: { filterY: 'all', filterM: 'all', filterD: 'all' },
-  dataDate: { filterY: 'all', filterM: 'all', filterD: 'all' }
+  dataDate: { filterY: 'all', filterM: 'all', filterD: 'all' },
+  // 平台同理各存各的：记录页问「看哪几场流水」，数据页问「统计哪一段」。
+  // 'none' 是「没标平台的」这一档，不是「全部」
+  dataPlat: 'all'
 };
 var form = null;      // 当前编辑的记录
 var editingEvent = null;
@@ -3647,6 +3656,19 @@ function dateScopeText(f){
   return '';
 }
 
+/* 数据页那句口径说明：平台和时间拼在一起。
+   只挑平台没挑时间 → 「GG 线上」；只挑时间 → 时间；都挑 → 「GG 线上 · 2025年」；
+   都没挑 → 空串（调用方自己兜「全部时间」）。
+   老账本一条平台都没标时，「未标平台」等于全部记录，写上去只是噪声，这里吞掉。 */
+function dataScopeText(){
+  var plat = state.dataPlat || 'all';
+  var p = plat === 'all' ? '' : (plat === 'none' ? '未标平台' : (platformNameById(plat) || '已删除的平台'));
+  if (p && !recordsHavePlatform()) p = '';
+  var t = dateScopeText(state.dataDate);
+  if (p && t) return p + ' · ' + t;
+  return p || t;
+}
+
 function resetFilters(){
   state.filterEvent = 'all';
   state.filterType = 'all';
@@ -3654,6 +3676,7 @@ function resetFilters(){
   state.filterPlat = 'all';
   state.recDate = { filterY: 'all', filterM: 'all', filterD: 'all' };
   state.dataDate = { filterY: 'all', filterM: 'all', filterD: 'all' };
+  state.dataPlat = 'all';
 }
 
 /* 筛选结果按「筛选条件 + 数据版本」缓存：一次渲染里 hero、列表、数据页都要用，
@@ -4141,18 +4164,47 @@ if (window.visualViewport) {
 
 /* ============ 时间筛选面板 ============ */
 /* 面板是共用的，但一次只编辑一份范围：dpScope 记住这次开的是哪一页的。
-   记录页（rec）和数据页（data）各存各的，互不影响。 */
-var dpDraft = { filterY: 'all', filterM: 'all', filterD: 'all' };
+   记录页（rec）和数据页（data）各存各的，互不影响。
+   平台跟时间一样分两份：记录页问「看哪几场流水」，数据页问「统计哪一段」。
+   以前时间共用一套，在数据页挑了 11 月，切回记录页列表也被筛掉了 ——
+   两个页面问的不是同一个问题，共用一套必然互相污染。平台同理。 */
+var dpDraft = { filterY: 'all', filterM: 'all', filterD: 'all', plat: 'all' };
 var dpScope = 'rec';
 
 function dateScopeRef(scope){
   return scope === 'data' ? state.dataDate : state.recDate;
 }
+function platScopeRef(scope){
+  return scope === 'data' ? 'dataPlat' : 'filterPlat';
+}
+function platScopeVal(scope){
+  return state[platScopeRef(scope)] || 'all';
+}
 
-/* 候选池：月跟着年收窄，日跟着年月收窄，只保留真出现过的值 */
+/* 账本里有没有任何一条记录标过平台。老账本、或者压根没用平台功能的人，
+   平台这一维对他们不存在 —— 弹窗里别摆一组点了不变的 chips，口径文案也别写「未标平台」。 */
+function recordsHavePlatform(){
+  return db.records.some(function(r){ return !!recordPlatformId(r); });
+}
+
+/* 数据页的「范围收窄了没有」：时间和平台任一非全部都算。
+   期初、走势标题、空状态文案都靠它判断，别只盯时间。
+   记录全都没标平台时平台这维不成立，落成 all 处理，免得亮着范围条却看不出收窄了哪儿。 */
+function dataScopeActive(){
+  var plat = (state.dataPlat || 'all') !== 'all' && recordsHavePlatform();
+  return dateActive(state.dataDate) || plat;
+}
+
+/* 候选池：月跟着年收窄，日跟着年月收窄，只保留真出现过的值。
+   平台也参与收窄 —— 选了 GG 之后，年份里就不该出现只有线下记录的年份。 */
 function datePool(f){
   var ys = {}, ms = {}, ds = {};
+  var plat = f.plat || 'all';
   db.records.forEach(function(r){
+    if (plat !== 'all') {
+      var pid = recordPlatformId(r);
+      if (plat === 'none' ? !!pid : pid !== plat) return;
+    }
     var b = dateBits(r);
     if (!b.y) return;
     ys[b.y] = 1;
@@ -4178,6 +4230,36 @@ function dpChipsHTML(field, pool, fmt){
   return html;
 }
 
+/* 平台 chips：只列「真有记录」的平台，没记录的平台放上来只会点出一片空。
+   末尾那档「未标平台」对应 'none'，跟记录页筛选条同一套语义。
+   返回 ids 是为了让调用方直接判断「草稿里的值还在不在」，不用去翻 HTML 字符串。 */
+function dpPlatChipsHTML(){
+  var cur = dpDraft.plat || 'all';
+  var cnt = {}, loose = 0, tagged = 0;
+  db.records.forEach(function(r){
+    var pid = recordPlatformId(r);
+    if (pid) { cnt[pid] = (cnt[pid] || 0) + 1; tagged++; }
+    else loose++;
+  });
+  var ids = ['all'];
+  var html = '<button data-dpf="plat" data-dpv="all" class="'
+    + (cur === 'all' ? 'on' : '') + '">不限</button>';
+  platforms().forEach(function(p){
+    if (!cnt[p.id]) return;
+    ids.push(p.id);
+    html += '<button data-dpf="plat" data-dpv="' + esc(p.id) + '" class="'
+      + (cur === p.id ? 'on' : '') + '">' + esc(p.name) + '</button>';
+  });
+  if (loose) {
+    ids.push('none');
+    html += '<button data-dpf="plat" data-dpv="none" class="'
+      + (cur === 'none' ? 'on' : '') + '">未标平台</button>';
+  }
+  // 一条带平台的记录都没有时，整组只有「不限 / 未标平台」两个等价选项，
+  // 点了也不会变，纯粹占地方 —— 老账本进来就属于这种情况
+  return { html: html, ids: ids, empty: tagged === 0 };
+}
+
 function renderDatePicker(){
   // 先按现有草稿收窄一次，把已经不存在选择清掉
   var pool = datePool(dpDraft);
@@ -4186,11 +4268,36 @@ function renderDatePicker(){
   if (dpDraft.filterD !== 'all' && pool.days.indexOf(dpDraft.filterD) < 0) dpDraft.filterD = 'all';
   pool = datePool(dpDraft);
 
+  // 平台被删掉之后草稿里可能还留着旧 id，落不到任何记录上，得放开
+  var pch = dpPlatChipsHTML();
+  if (pch.ids.indexOf(dpDraft.plat) < 0) {
+    dpDraft.plat = 'all';
+    pch = dpPlatChipsHTML();
+  }
+  // 记录页上方本来就有一条平台筛选条，弹窗标题又写着「· 时间」，
+  // 再摆一组平台 chips 就是两个入口改同一个值，只会让人犹豫点哪个
+  var pgroup = $('#dpPlatGroup');
+  if (pgroup) pgroup.classList.toggle('hidden', dpScope !== 'data' || pch.empty);
+  $('#dpPlat').innerHTML = pch.html;
+  var note = $('#dpNote');
+  if (note) {
+    note.textContent = dpScope === 'data'
+      ? '只列出有记录的日期。月、日会跟着上一层收窄，点「不限」可以放开某一层。这里的平台只影响数据页的统计范围，记录页那条筛选条管的是另一件事。'
+      : '只列出有记录的日期。月、日会跟着上一层收窄，点「不限」可以放开某一层。要按平台筛，用上面那条平台筛选条。';
+  }
+
   $('#dpYear').innerHTML = dpChipsHTML('filterY', pool.years, function(v){ return v; });
   $('#dpMonth').innerHTML = dpChipsHTML('filterM', pool.months, function(v){ return +v; });
   $('#dpDay').innerHTML = dpChipsHTML('filterD', pool.days, function(v){ return +v; });
 
-  var list = db.records.filter(function(r){ return passDate(r, dpDraft); });
+  var list = db.records.filter(function(r){
+    // 预览数字要跟「完成」之后看到的一致，平台条件必须一起算
+    if (dpDraft.plat !== 'all') {
+      var pid = recordPlatformId(r);
+      if (dpDraft.plat === 'none' ? !!pid : pid !== dpDraft.plat) return false;
+    }
+    return passDate(r, dpDraft);
+  });
   var s = statsOf(list);
   $('#dpPreviewN').textContent = s.n + ' 场 · ' + fmtMoney(s.cost) + ' 投入';
   var net = $('#dpPreviewNet');
@@ -4201,7 +4308,12 @@ function renderDatePicker(){
 function openDatePicker(scope){
   dpScope = scope === 'data' ? 'data' : 'rec';
   var ref = dateScopeRef(dpScope);
-  dpDraft = { filterY: ref.filterY, filterM: ref.filterM, filterD: ref.filterD };
+  // 记录页这份草稿的平台恒为 all：那边平台由筛选条管，弹窗只管时间。
+  // 顺手把平台写进草稿会让年份候选也跟着收窄，用户却看不到是哪一层在收
+  dpDraft = {
+    filterY: ref.filterY, filterM: ref.filterM, filterD: ref.filterD,
+    plat: dpScope === 'data' ? platScopeVal('data') : 'all'
+  };
   // 同名面板干两件事，标题得说清这次改的是谁的范围
   var h = $('#mDate .sheet-head h2');
   if (h) h.textContent = dpScope === 'data' ? '统计范围' : '记录筛选 · 时间';
@@ -4516,7 +4628,7 @@ function renderTrendMon(recs){
     + '<span>月均<b class="' + cls(sum / n) + '">' + signed(Math.round(sum / n)) + '</b></span>';
 
   var nl = [];
-  var spanWord = dateActive(state.dataDate) ? '这段时间跨 ' : '记账跨 ';
+  var spanWord = dataScopeActive() ? '这段时间跨 ' : '记账跨 ';
   if (all.length > keys.length) {
     nl.push(spanWord + all.length + ' 个月，这里显示最近 ' + keys.length + ' 个'
       + (emptyN ? '（其中 ' + emptyN + ' 个月没记录）' : '') + '；更早的用上面的「统计范围」看');
@@ -4592,7 +4704,7 @@ function renderTrendSeq(recs){
   var body = $('#chartBody'), axis = $('#chartAxis'), foot = $('#chartFoot');
   // 曲线只画「记账以来」的累计：期初金额塞进同一条线会把后半段压成一条平线，
   // 所以期初只进 hero 的总账，在这里用一行文案对账。
-  var base = dateActive(state.dataDate) ? 0 : openingOf();
+  var base = dataScopeActive() ? 0 : openingOf();
 
   var vals = [0], stages = [''], cum = 0, i;
   recs.forEach(function(r){ cum += recNet(r); vals.push(cum); stages.push(stageOf(r)); });
@@ -4672,15 +4784,16 @@ function renderTrendSeq(recs){
   });
 
   // 口径：这条线从哪算起、跟期初怎么对账
+  var scopeOn = dataScopeActive();
   var titleEl = $('#trendTitle');
   if (titleEl) {
-    titleEl.textContent = (base !== 0 && !dateActive(state.dataDate)) ? '记账以来走势' : '累计净收益走势';
+    titleEl.textContent = (base !== 0 && !scopeOn) ? '记账以来走势' : '累计净收益走势';
   }
   var noteEl = $('#chartNote');
   if (noteEl) {
     var nl = [];
-    if (dateActive(state.dataDate)) {
-      nl.push('只累计 ' + dateScopeText(state.dataDate) + '的 ' + recs.length + ' 场' + (hasOpening() ? '，期初不参与' : ''));
+    if (scopeOn) {
+      nl.push('只累计 ' + dataScopeText() + '的 ' + recs.length + ' 场' + (hasOpening() ? '，期初不参与' : ''));
     } else if (base !== 0) {
       nl.push('记账以来 <b class="' + cls(cur) + '">' + signed(cur) + '</b> · 期初 <b class="' + cls(base) + '">'
         + signed(base) + '</b> 另计 · 合计 <b class="' + cls(cur + base) + '">' + signed(cur + base) + '</b>');
@@ -5123,9 +5236,19 @@ function renderBests(list){
     + cell('最长连亏', lRun ? lRun + ' 场' : '—', lRun ? 'loss' : 'zero', '当前 ' + curL + ' 场');
 }
 
-/* 数据页只受自己那份时间范围影响：记录页的输赢 / 比赛 / 时间筛选都不进来 */
+/* 数据页只受自己那份范围影响：记录页的输赢 / 比赛 / 平台 / 时间筛选都不进来。
+   平台和时间一样，数据页有独立的一份（state.dataPlat）。 */
 function dateFilteredRecords(){
-  return db.records.filter(function(r){ return passDate(r, state.dataDate); });
+  var plat = state.dataPlat || 'all';
+  // 全库没有一条标过平台时，「未标平台」= 全部，按全部算；否则会给老账本凭空加一层筛
+  if (!recordsHavePlatform()) plat = 'all';
+  return db.records.filter(function(r){
+    if (plat !== 'all') {
+      var pid = recordPlatformId(r);
+      if (plat === 'none' ? !!pid : pid !== plat) return false;
+    }
+    return passDate(r, state.dataDate);
+  });
 }
 
 function num4(v){ return String(parseFloat(money(v).toFixed(4))); }
@@ -5173,11 +5296,11 @@ function rateSourceText(){
 function renderDataScope(list, n){
   var btn = $('#btnDateData');
   if (!btn) return;
-  var on = dateActive(state.dataDate);
+  var on = dataScopeActive();
   btn.classList.toggle('on', on);
   var box = $('#dataScope');
   if (box) box.classList.toggle('on', on);
-  $('#dateLabelData').textContent = on ? dateScopeText(state.dataDate) : '全部时间';
+  $('#dateLabelData').textContent = on ? dataScopeText() : '全部时间';
   $('#dataScopeN').textContent = (n === undefined ? statsOf(list).n : n) + ' 场';
   paintCurSegs();
 }
@@ -5207,8 +5330,8 @@ function renderDataEmpty(){
     return;
   }
   box.innerHTML = '<div class="empty" style="padding:32px 14px 24px">'
-    + '<h3>这个时间范围没有记录</h3>'
-    + '<p>' + esc(dateScopeText(state.dataDate)) + '里没有比赛<br>换一段时间，或者看全部</p>'
+    + '<h3>这个范围没有记录</h3>'
+    + '<p>' + esc(dataScopeText()) + '里没有比赛<br>换一个范围，或者看全部</p>'
     + '<div class="empty-acts">'
       + '<button class="cta" data-date>换个范围</button>'
       + '<button class="cta plain" data-cleardate>全部时间</button>'
@@ -6312,7 +6435,9 @@ $('#platList').addEventListener('click', function(e){
       db.events.forEach(function(x){ if (x.platformId === p2.id) x.platformId = ''; });
       // 记录上的 platformId 清空但名字留着：历史可读，筛选不再命中
       db.records.forEach(function(r){ if (r.platformId === p2.id) r.platformId = ''; });
+      // 两页各有一份平台筛选值，删了就得一起放开，否则数据页会空成一片
       if (state.filterPlat === p2.id) state.filterPlat = 'all';
+      if (state.dataPlat === p2.id) state.dataPlat = 'all';
       saveDB(); renderPlatList(); renderAll();
       if ($('#mEvent').classList.contains('open')) paintEventPlatPick(eventPlatPick);
       toast('已删除');
@@ -6868,9 +6993,12 @@ document.addEventListener('click', function(e){
 
   var dateClear = e.target.closest ? e.target.closest('[data-cleardate]') : null;
   if (dateClear) {
-    // 空状态里的「全部时间」只清当前这页那份，别顺手把另一页也放开了
-    var cref = dateScopeRef(state.view === 'data' ? 'data' : 'rec');
+    // 空状态里的「全部时间」只清当前这页那份，别顺手把另一页也放开了。
+    // 平台也算范围的一部分，一起放开 —— 否则清了时间还是空，按钮等于没反应
+    var cscope = state.view === 'data' ? 'data' : 'rec';
+    var cref = dateScopeRef(cscope);
     cref.filterY = 'all'; cref.filterM = 'all'; cref.filterD = 'all';
+    state[platScopeRef(cscope)] = 'all';
     renderFilters(); renderStats(); renderRecords(); renderData();
     return;
   }
@@ -6930,7 +7058,7 @@ $('#btnDate').addEventListener('click', function(){ openDatePicker('rec'); });
 $('#btnDateData').addEventListener('click', function(){ openDatePicker('data'); });
 
 $('#dpReset').addEventListener('click', function(){
-  dpDraft = { filterY: 'all', filterM: 'all', filterD: 'all' };
+  dpDraft = { filterY: 'all', filterM: 'all', filterD: 'all', plat: 'all' };
   renderDatePicker();
 });
 
@@ -6939,6 +7067,8 @@ $('#dpDone').addEventListener('click', function(){
   ref.filterY = dpDraft.filterY;
   ref.filterM = dpDraft.filterM;
   ref.filterD = dpDraft.filterD;
+  // 只有数据页这一份走平台；记录页的平台由筛选条改，别在这里顺手覆盖
+  if (dpScope === 'data') state.dataPlat = dpDraft.plat || 'all';
   closeModal('mDate');
   renderFilters(); renderStats(); renderRecords(); renderData();
 });
