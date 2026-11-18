@@ -927,6 +927,14 @@ input,textarea,select{font-family:inherit;color:inherit}
 .ev-foot b.gain{color:var(--gain)}
 .ev-foot b.loss{color:var(--loss)}
 .ev-foot b.zero{color:var(--muted)}
+/* 平台标签：比 meta 行更淡，只是一枚归属标记 */
+.ev-plat{
+  display:inline-block;margin-top:6px;padding:2px 7px;border-radius:5px;
+  font-size:10px;font-weight:600;letter-spacing:.02em;
+  color:var(--muted-2);background:var(--surface-2);
+  border:var(--bw) solid var(--line-2);
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:1px;
+}
 
 /* ---------- section title ---------- */
 .sec{display:flex;align-items:center;gap:9px;margin:22px 0 12px}
@@ -956,6 +964,79 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
   transition:.15s;
 }
 .subnew:active{transform:scale(.96)}
+
+/* ---------- v6 平台 ---------- */
+/* 比赛管理页顶部的平台横条：胶囊区横向滚动，「＋ 平台」固定在右边 ——
+   放在滚动区里会被挤到看不见，用户就找不到入口了 */
+.platbar{
+  display:flex;align-items:center;gap:6px;margin:0 0 12px;
+  min-width:0;
+}
+.platbar-scroll{
+  flex:1;min-width:0;display:flex;gap:6px;
+  overflow-x:auto;overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;padding:1px 0 2px;
+}
+.platbar-scroll::-webkit-scrollbar{display:none}
+.platbar button{
+  flex:0 0 auto;white-space:nowrap;font:inherit;cursor:pointer;
+  padding:6px 11px;border-radius:var(--r-pill);font-size:11.5px;
+  color:var(--muted);background:var(--surface);
+  border:var(--bw) solid var(--line-2);transition:.15s;
+  font-variant-numeric:tabular-nums;
+}
+.platbar button.on{
+  color:var(--brand);font-weight:600;
+  background:rgba(var(--brand-rgb),.09);border-color:rgba(var(--brand-rgb),.28);
+}
+.platbar button:active{transform:scale(.97)}
+.platbar .platbar-manage{color:var(--muted-2);border-style:dashed}
+/* 比赛编辑里的平台选择：胶囊换行排，选中的实心 */
+.platpick{display:flex;flex-wrap:wrap;gap:6px}
+.platpick button{
+  font:inherit;cursor:pointer;white-space:nowrap;
+  padding:8px 12px;border-radius:var(--r-btn);font-size:12.5px;
+  color:var(--muted);background:var(--surface-2);
+  border:var(--bw) solid var(--line-2);transition:.15s;
+}
+.platpick button.on{
+  color:var(--brand);font-weight:600;background:var(--surface-3);
+  border-color:rgba(var(--brand-rgb),.32);box-shadow:0 0 0 2px rgba(var(--brand-rgb),.10);
+}
+.platpick button:active{transform:scale(.97)}
+.platpick .platpick-empty{font-size:11.5px;color:var(--muted-3);line-height:1.7;padding:2px 0}
+.miniedit{
+  font:inherit;cursor:pointer;font-size:11px;color:var(--brand);
+  background:var(--surface-3);border:var(--bw) solid var(--soft-line);
+  border-radius:var(--r-xs);padding:4px 8px;
+}
+.miniedit:active{transform:scale(.96)}
+/* 平台管理弹窗 */
+.platadd{
+  flex:0 0 auto;font:inherit;cursor:pointer;font-size:12px;font-weight:600;
+  color:var(--brand);background:var(--surface-3);
+  border:var(--bw) solid var(--soft-line);border-radius:var(--r-xs);padding:7px 11px;
+}
+.platadd:active{transform:scale(.96)}
+.platlist{margin-top:14px;display:flex;flex-direction:column}
+.platrow{
+  display:flex;align-items:center;gap:9px;padding:10px 2px;
+  border-top:var(--bw) solid var(--line-2);
+}
+.platrow:first-child{border-top:0}
+.platrow-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.platrow-b{
+  display:block;font-size:13px;font-weight:600;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.platrow-s{display:block;font-size:10.5px;color:var(--muted-3);font-variant-numeric:tabular-nums}
+.platrow button{
+  flex:0 0 auto;font:inherit;cursor:pointer;font-size:11px;
+  color:var(--muted-2);background:none;border:0;padding:6px 4px;
+}
+.platrow button.del:active{color:var(--loss)}
+.platrow button.edit:active{color:var(--brand)}
+.platempty{font-size:11.5px;color:var(--muted-3);line-height:1.75;padding:14px 2px}
 
 /* ---------- 入口行 ---------- */
 .linkrow{
@@ -1677,6 +1758,8 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         </div>
       </div>
 
+      <div class="platbar hidden" id="recPlatBar"></div>
+
       <div class="chiprow hidden" id="stageChip">
         <button class="chip" type="button" data-chipclear="1">
           <span>只看 <b id="stageChipLabel">进 FT</b></span><i>×</i>
@@ -1700,12 +1783,13 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           新建
         </button>
       </div>
-      <div class="field" style="margin-bottom:12px">
+      <div class="field" style="margin-bottom:8px">
         <span class="fi">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
         </span>
         <div class="fbody"><input class="finput" id="eventSearch" placeholder="搜索比赛名"></div>
       </div>
+      <div class="platbar" id="platBar"></div>
       <div id="eventList"></div>
       <div class="totals hidden" id="evTotals">
         <span id="evTotalsLabel"></span>
@@ -1909,6 +1993,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <span class="fbody"><span class="fcap">参加的比赛名称</span><span class="fval ph" id="fEventName">选择或新建比赛</span></span>
           <span class="fchev">›</span>
         </button>
+        <p class="fhint hidden" id="fEventPlatHint"></p>
       </div>
 
       <div class="fgroup">
@@ -2083,6 +2168,13 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         </div>
       </div>
       <div class="fgroup">
+        <span class="flabel-row"><span class="flabel">平台<em class="opt">可选</em></span>
+          <button type="button" class="miniedit" id="btnManagePlat">管理平台</button>
+        </span>
+        <div class="platpick" id="fEventPlat"></div>
+        <p class="fhint">在哪打的：线上平台或线下场子。选一次就够，这个比赛以后每场都算在这个平台下；平台上没找到就点「管理平台」新加一个。</p>
+      </div>
+      <div class="fgroup">
         <span class="flabel">比赛类型</span>
         <div class="itmseg" id="fEventKind" role="group" aria-label="比赛类型">
           <button type="button" data-kind="regular" class="on">常规赛</button>
@@ -2110,6 +2202,30 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         <textarea class="fta" id="fEventNote" placeholder="场地、买入档位、赛事类型等"></textarea>
       </div>
       <button class="btn danger hidden" id="btnEventDelete" style="margin-top:4px">删除这个比赛</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 平台管理 ========== -->
+<div class="modal" id="mPlat" style="z-index:58">
+  <div class="modal-bg" data-close="mPlat"></div>
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <button class="link" data-close="mPlat">关闭</button>
+      <h2>平台管理</h2>
+      <span class="link" style="visibility:hidden">关闭</span>
+    </div>
+    <div class="sheet-body">
+      <div class="field">
+        <span class="fi">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13M5.5 12h13"/></svg>
+        </span>
+        <div class="fbody"><input class="finput" id="platNewName" placeholder="新平台名，如 GG / 线下俱乐部" autocomplete="off"></div>
+        <button type="button" class="platadd" id="btnPlatAdd">添加</button>
+      </div>
+      <p class="fhint">平台只是「在哪儿打的」这个标签，不影响任何金额。改名会同步到已记录的历史场次；删除后历史记录保留，退成「未分类」。</p>
+      <div class="platlist" id="platList"></div>
     </div>
   </div>
 </div>
@@ -2209,6 +2325,18 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <li>人数填得够多之后，这条基线才说明问题：低于基线是生存能力不足，高出 5pt 以上通常意味着你拿决赛桌率换了进圈率。</li>
           <li>两者都只是<b>分析维度</b>，不进成本、收益、净收益、ROI；卫星赛没有奖金圈，一概不参与。删掉比赛名会连带丢掉它的付费比例，基线退回反推。</li>
           <li>人数和付费比例都齐了以后，如果名次排在钱圈之外却标了「进圈」，保存时会提醒一句，但<b>不拦截</b> —— 档位还是你定。</li>
+        </ul></div>
+      </details>
+
+      <details class="help-d">
+        <summary>平台（在哪儿打的）</summary>
+        <div class="help-body"><ul>
+          <li>平台是「在哪儿打的」这个标签：线上平台（GG、PokerStars、国内 app）或线下场子。名字自己定，在<b>比赛管理 → 平台 → ＋ 平台</b>里增删改。</li>
+          <li>平台挂在<b>比赛</b>上，不挂在单场记录上：这个比赛以后每场都算在这个平台下。改平台名会同步刷到历史记录，不用逐条改。</li>
+          <li>删掉一个平台，历史记录<b>保留平台名</b>（「这场是在哪儿打的」这个事实不会消失），只是不再参与按平台的筛选，比赛退成「未分类」。</li>
+          <li>平台只是<b>分析维度</b>：不进成本、收益、净收益、ROI、进圈率、FT 率里的任何一项，也不影响走势曲线。它只用来筛和分组 —— 比如「线下赚、线上亏」这种事，靠平台横条一眼能看出来。</li>
+          <li>记录页和比赛管理页顶部的平台横条是同一个筛选值：在比赛管理点了「GG 线上」，回记录页看到的还是 GG 线上。</li>
+          <li>「未标」这一档是没设平台的记录 / 比赛。删掉平台后解绑的历史记录也落在这里，不会凭空消失。</li>
         </ul></div>
       </details>
 
@@ -2587,11 +2715,16 @@ function stamp(){
    fieldSize × paidPct 算出，不再单独存。两者都不进 cost / income /
    net / roi，只用于进圈率基线、名次百分位与规模分档。
    records.itmBB（进圈那一刻筹码，单位 BB）本期预留、界面未开。
-   老备份（v1/v2/v3/v4）在 upgraded 里自动补出流水与默认值，不用用户做任何事。 */
-var SCHEMA_VERSION = 5;
+   v6 加平台：db.platforms[]（可自定义增删改的名字表，只有 id / name / order）、
+   events.platformId（这场赛事属于哪个平台）、records.platformName（快照）。
+   平台和比赛名一样是「赛事身份」而不是「这一场的数字」，所以快照跟着赛事走：
+   改平台名时同步刷历史记录，删平台时记录保留（退成「未分类」）。
+   平台不进 cost / income / net / roi / 任何比率，只用于筛选与分组。
+   老备份（v1..v5）在 upgraded 里自动补齐，不用用户做任何事。 */
+var SCHEMA_VERSION = 6;
 var db = {
   schemaVersion: SCHEMA_VERSION,
-  events: [], records: [], tickets: [],
+  events: [], records: [], tickets: [], platforms: [],
   openingBalance: null, openingCur: 'CNY',
   fxRate: null, fxUpdatedAt: null, fxSource: null
 };
@@ -2749,6 +2882,47 @@ function isSatellite(r){
 function regularOnly(list){
   return (list || []).filter(function(r){ return !isSatellite(r); });
 }
+/* ---- v6 平台 ----
+   平台是「在哪儿打的」：线上平台（GG / PokerStars / 国内 app）或线下场子。
+   名字可自定义，所以不写死枚举，只维护一张 db.platforms 表。
+   记录上存 platformName 快照（跟 eventName 一个道理）：删了平台、改了平台名，
+   历史记录自己解释得清，不会变成一条查不到平台的孤儿。 */
+function platforms(){
+  return (Array.isArray(db.platforms) ? db.platforms : []).slice().sort(function(a, b){
+    var oa = money(a.order), ob = money(b.order);
+    if (oa !== ob) return oa - ob;
+    return cmpName(a.name, b.name);
+  });
+}
+function platformById(id){
+  if (!id) return null;
+  var list = Array.isArray(db.platforms) ? db.platforms : [];
+  for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+  return null;
+}
+/* 平台名：优先快照，其次按 id 查（老记录可能只有 id），都没有就是空 */
+function platformNameOf(r){
+  if (!r) return '';
+  if (typeof r.platformName === 'string') return r.platformName;
+  var p = platformById(r.platformId);
+  return p ? String(p.name) : '';
+}
+/* 平台 id：先看记录，没有就从赛事上借 —— 记录上的 eventId 指向的赛事改了平台，
+   这条记录应该跟着走（平台是赛事属性，不是单场临时选择） */
+function platformIdOf(r, e){
+  if (r && typeof r.platformId === 'string' && r.platformId) return r.platformId;
+  var ev = e || (r ? eventById(r.eventId) : null);
+  return (ev && typeof ev.platformId === 'string' && ev.platformId) ? ev.platformId : '';
+}
+function platformNameById(id){
+  var p = platformById(id);
+  return p ? String(p.name) : '';
+}
+/* 按平台筛选时，某条记录的归属以「快照名」为准再回落到赛事 —— 删掉平台后
+   快照名还在，筛选条件（值）失效，所以筛选统一用 id；没 id 的老记录只能靠赛事 */
+function recordPlatformId(r){
+  return platformIdOf(r);
+}
 function dispCur(){
   return (typeof state !== 'undefined' && state && state.dispCur === 'USD') ? 'USD' : 'CNY';
 }
@@ -2827,6 +3001,9 @@ function cleanRec(r){
   // v5 新字段：老记录没有就补 null，不算「修好了几条」，别弹误报
   var fieldSize = sizeOf(r);
   var itmBB = bbOf(r);
+  // v6 平台：快照名字与 id 都只是标注，缺了补空，不算修复
+  var platformId = (typeof r.platformId === 'string' && r.platformId) ? r.platformId : '';
+  var platformName = (typeof r.platformName === 'string') ? r.platformName.slice(0, 40) : '';
 
   var created = money(r.createdAt);
   if (!(created > 0)) created = Date.now();
@@ -2843,6 +3020,7 @@ function cleanRec(r){
     eventKind: eventKind, ticketCost: ticketCost, ticketWon: ticketWon,
     ticketWonN: ticketWonN, ticketUsedId: ticketUsedId,
     fieldSize: fieldSize, itmBB: itmBB,
+    platformId: platformId, platformName: platformName,
     note: note, createdAt: created
   };
   if (r.demo === true) o.demo = true;
@@ -2871,14 +3049,34 @@ function cleanEvent(e){
   // 否则「补个默认值」会被算成修好了一条，每次读盘都弹一次误报。
   var paidPct = money(e.paidPct);
   paidPct = (paidPct > 0) ? Math.min(Math.round(paidPct * 10) / 10, 100) : null;
+  // v6 平台：只存 id，名字读的时候按 id 查（平台改名一次就全改）。
+  // 指向已不存在的平台时解绑成空 —— 与记录上的快照名互不影响。
+  var platformId = (typeof e.platformId === 'string' && e.platformId) ? e.platformId : '';
   if (id !== e.id || name !== e.name || note !== e.note
       || created !== e.createdAt || (unitPrice > 0 ? unitPrice : null) !== e.unitPrice
       || ('paidPct' in e ? e.paidPct : null) !== paidPct
+      || ('platformId' in e ? e.platformId : '') !== platformId
       || 'buyin' in e) fix = true;
 
   var o = { id: id, name: name, note: note, createdAt: created,
-    unitPrice: unitPrice > 0 ? unitPrice : null, kind: kind, paidPct: paidPct };
+    unitPrice: unitPrice > 0 ? unitPrice : null, kind: kind, paidPct: paidPct,
+    platformId: platformId };
   return { e: o, fix: fix };
+}
+
+/* v6 平台表：一条 = 一个平台名。order 只用来定展示顺序，撞号按名字排，
+   不强制唯一 —— 用户手动加了一堆，没必要为了排序去重排别人的序号。 */
+function cleanPlatform(p){
+  if (!isObj(p)) return null;
+  var name = (typeof p.name === 'string') ? p.name.trim() : '';
+  if (!name) return null;
+  var fix = false;
+  var id = (typeof p.id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(p.id)) ? p.id : uid();
+  if (id !== p.id) fix = true;
+  var o2 = money(p.order);
+  var order = isFinite(o2) && o2 > 0 ? o2 : 0;
+  if (order !== p.order) fix = true;
+  return { p: { id: id, name: name.slice(0, 40), order: order }, fix: fix };
 }
 
 /* v4 门票流水：一条票一条记录。票不是比赛，不产生场次。
@@ -2980,6 +3178,7 @@ function migrateTickets(p){
        records.buyCount / eventKind / ticketCost / ticketWon
    v4: tickets[] 流水、records.ticketWonN / ticketUsedId
    v5: records.fieldSize / itmBB、events.paidPct
+   v6: platforms[] 平台表、events.platformId、records.platformId / platformName
    更早的备份缺的新字段不用在这里逐条补：cleanRec / cleanEvent 会给默认值。 */
 function upgraded(p){
   var o = isObj(p) ? p : {};
@@ -2989,6 +3188,7 @@ function upgraded(p){
     events: o.events,
     records: o.records,
     tickets: Array.isArray(o.tickets) ? o.tickets : null,
+    platforms: Array.isArray(o.platforms) ? o.platforms : [],
     openingCur: o.openingCur,
     openingBalance: ('openingBalance' in o) ? o.openingBalance : o.opening,
     fxRate: ('fxRate' in o) ? o.fxRate : o.rate,
@@ -3007,7 +3207,7 @@ function sanitizeDB(src){
   var p = upgraded(src);
   var out = {
     schemaVersion: SCHEMA_VERSION,
-    events: [], records: [], tickets: [],
+    events: [], records: [], tickets: [], platforms: [],
     openingBalance: null, openingCur: 'CNY',
     fxRate: null, fxUpdatedAt: null, fxSource: null
   };
@@ -3017,6 +3217,19 @@ function sanitizeDB(src){
   // 用无原型的对象：备份里若把 "__proto__" 当 id，普通 {} 会被污染。
   var renamed = Object.create(null);
 
+  // 平台表要先落，后面 events / records 才能校验 platformId 指向是否存在
+  var platIds = Object.create(null);
+  var platNames = Object.create(null);
+  (Array.isArray(p.platforms) ? p.platforms : []).forEach(function(raw){
+    var c = cleanPlatform(raw);
+    if (!c) { dropped++; return; }
+    if (platIds[c.p.id] || platNames[c.p.name]) { dropped++; return; }  // 撞 id / 重名，留第一个
+    platIds[c.p.id] = 1;
+    platNames[c.p.name] = c.p.id;
+    if (c.fix) fixed++;
+    out.platforms.push(c.p);
+  });
+
   (Array.isArray(p.events) ? p.events : []).forEach(function(raw){
     var c = cleanEvent(raw);
     if (!c) { dropped++; return; }
@@ -3024,6 +3237,8 @@ function sanitizeDB(src){
     if (seen[c.e.id]) { c.e.id = uid(); c.fix = true; }   // 撞 id 会让"按比赛筛选"串场
     if (orig && orig !== c.e.id) renamed[orig] = c.e.id;
     seen[c.e.id] = 1;
+    // 指向已不存在的平台：解绑，不让筛选里出现幽灵平台
+    if (c.e.platformId && !platIds[c.e.platformId]) { c.e.platformId = ''; c.fix = true; }
     if (c.fix) fixed++;
     out.events.push(c.e);
   });
@@ -3034,6 +3249,28 @@ function sanitizeDB(src){
     if (c.r.eventId && renamed[c.r.eventId]) { c.r.eventId = renamed[c.r.eventId]; c.fix = true; }
     if (c.fix) fixed++;
     out.records.push(c.r);
+  });
+
+  // 记录上的平台快照补齐：只有 id 没名字就按 id 取，只有名字没 id 就按名字反查。
+  // 两边都没有的（老账本）保持空 —— 那叫「未分类」，不是错误。
+  var evById = Object.create(null);
+  out.events.forEach(function(e){ evById[e.id] = e; });
+  out.records.forEach(function(r){
+    var pid = r.platformId;
+    if (!pid) {
+      var ev = evById[r.eventId];
+      // 记录没标平台，但它的赛事标了：跟随赛事（平台是赛事属性）
+      if (ev && ev.platformId) pid = ev.platformId;
+    }
+    if (!pid && r.platformName && platNames[r.platformName]) pid = platNames[r.platformName];
+    if (pid && !platIds[pid]) pid = '';       // 名字对得上但 id 已失效的，宁可清空
+    r.platformId = pid;
+    if (pid) {
+      r.platformName = out.platforms.filter(function(x){ return x.id === pid; })[0].name;
+    } else if (r.platformName && !platNames[r.platformName]) {
+      // 平台被删了：保留快照名让历史可读，只是不再参与按平台的筛选
+      r.platformId = '';
+    }
   });
 
   // 门票流水：id 撞了重分配；指向已不存在记录的指针一律解绑，
@@ -3081,6 +3318,7 @@ function adoptData(src, persist){
   db.events = s.data.events;
   db.records = s.data.records;
   db.tickets = s.data.tickets;
+  db.platforms = s.data.platforms;
   db.openingBalance = s.data.openingBalance;
   db.openingCur = s.data.openingCur;
   db.fxRate = s.data.fxRate;
@@ -3160,17 +3398,20 @@ function saveDB(){
 }
 function seed(){
   var y = new Date().getFullYear();
-  var e1 = { id: uid(), name: '周末深筹赛', note: '买入 500', unitPrice: 500, createdAt: Date.now() };
-  var e2 = { id: uid(), name: '周日快速赛', note: '买入 200', unitPrice: 200, createdAt: Date.now() - 1000 };
-  var e3 = { id: uid(), name: '周中赏金赛', note: '买入 500，赏金制', unitPrice: 500, createdAt: Date.now() - 2000 };
+  var p1 = { id: uid(), name: '线下俱乐部', order: 1 };
+  var p2 = { id: uid(), name: 'GG 线上', order: 2 };
+  db.platforms = [p1, p2];
+  var e1 = { id: uid(), name: '周末深筹赛', note: '买入 500', unitPrice: 500, platformId: p1.id, createdAt: Date.now() };
+  var e2 = { id: uid(), name: '周日快速赛', note: '买入 200', unitPrice: 200, platformId: p1.id, createdAt: Date.now() - 1000 };
+  var e3 = { id: uid(), name: '周中赏金赛', note: '买入 500，赏金制', unitPrice: 500, platformId: p2.id, createdAt: Date.now() - 2000 };
   db.events = [e1, e2, e3];
   db.tickets = [];
   var base = Date.now();
   db.records = [
-    { id: uid(), eventId: e1.id, eventName: e1.name, time: y + '-11-01T20:00', rank: '18', fieldSize: 180, cost: 1000, income: 0, note: 'rebuy 一次还是没进圈', stage: 'out', cur: 'CNY', buyCount: 2, createdAt: base - 5000, demo: true },
-    { id: uid(), eventId: e3.id, eventName: e3.name, time: y + '-11-02T20:00', rank: '', fieldSize: 120, cost: 500, income: 800, note: '圈外靠淘汰拿了 4 个赏金', stage: 'out', cur: 'CNY', buyCount: 1, createdAt: base - 4500, demo: true },
-    { id: uid(), eventId: e2.id, eventName: e2.name, time: y + '-11-03T15:00', rank: '3', fieldSize: 60, cost: 200, income: 1400, note: '泡沫期翻倍', stage: 'itm', cur: 'CNY', buyCount: 1, createdAt: base - 4000, demo: true },
-    { id: uid(), eventId: e1.id, eventName: e1.name, time: y + '-11-05T20:00', rank: '1', fieldSize: 220, cost: 1000, income: 5200, note: '9 人 FT，单挑赢下', stage: 'ft', cur: 'CNY', buyCount: 2, createdAt: base - 3000, demo: true }
+    { id: uid(), eventId: e1.id, eventName: e1.name, platformId: p1.id, platformName: p1.name, time: y + '-11-01T20:00', rank: '18', fieldSize: 180, cost: 1000, income: 0, note: 'rebuy 一次还是没进圈', stage: 'out', cur: 'CNY', buyCount: 2, createdAt: base - 5000, demo: true },
+    { id: uid(), eventId: e3.id, eventName: e3.name, platformId: p2.id, platformName: p2.name, time: y + '-11-02T20:00', rank: '', fieldSize: 120, cost: 500, income: 800, note: '圈外靠淘汰拿了 4 个赏金', stage: 'out', cur: 'CNY', buyCount: 1, createdAt: base - 4500, demo: true },
+    { id: uid(), eventId: e2.id, eventName: e2.name, platformId: p1.id, platformName: p1.name, time: y + '-11-03T15:00', rank: '3', fieldSize: 60, cost: 200, income: 1400, note: '泡沫期翻倍', stage: 'itm', cur: 'CNY', buyCount: 1, createdAt: base - 4000, demo: true },
+    { id: uid(), eventId: e1.id, eventName: e1.name, platformId: p1.id, platformName: p1.name, time: y + '-11-05T20:00', rank: '1', fieldSize: 220, cost: 1000, income: 5200, note: '9 人 FT，单挑赢下', stage: 'ft', cur: 'CNY', buyCount: 2, createdAt: base - 3000, demo: true }
   ];
   saveDB();
 }
@@ -3181,6 +3422,7 @@ function hasDemo(){
 /* ================= 状态 ================= */
 var state = {
   view: 'records', filterType: 'all', filterEvent: 'all', filterStage: 'all',
+  filterPlat: 'all',    // v6：按平台筛比赛管理页 / 记录页
   dispCur: 'CNY',
   trend: 'seq',         // 走势图维度：seq 场次 / mon 月度 / ev 比赛
   stageTab: 'reg',      // 成绩结构 tab：reg 常规赛 / sat 卫星赛
@@ -3409,6 +3651,7 @@ function resetFilters(){
   state.filterEvent = 'all';
   state.filterType = 'all';
   state.filterStage = 'all';
+  state.filterPlat = 'all';
   state.recDate = { filterY: 'all', filterM: 'all', filterD: 'all' };
   state.dataDate = { filterY: 'all', filterM: 'all', filterD: 'all' };
 }
@@ -3419,12 +3662,19 @@ var _fKey = '', _fList = null;
 function filtered(){
   var f = state.recDate;
   var key = state.filterType + '|' + state.filterEvent + '|' + state.filterStage + '|'
+    + state.filterPlat + '|'
     + f.filterY + '|' + f.filterM + '|' + f.filterD + '|' + db.records.length + '|' + dbRev;
   if (_fKey === key && _fList) return _fList;
   var out = db.records.filter(function(r){
     if (state.filterType === 'win' && recNet(r) <= 0) return false;
     if (state.filterType === 'loss' && recNet(r) >= 0) return false;
     if (state.filterEvent !== 'all' && r.eventId !== state.filterEvent) return false;
+    // 平台筛选：'none' 是「没标平台的」，不是「全部」。删掉平台后的历史记录
+    // 已经解绑成空，正好落在这一档里，不会凭空消失
+    if (state.filterPlat !== 'all') {
+      var pid = recordPlatformId(r);
+      if (state.filterPlat === 'none' ? !!pid : pid !== state.filterPlat) return false;
+    }
     if (state.filterStage !== 'all') {
       // 两套口径互斥：常规赛按名次档，卫星赛按有没有赢到票。
       // 卫星赛没有「进圈 / 圈外」之分，混进来点「进圈」就会多出一堆票赛。
@@ -3500,7 +3750,8 @@ function hasOpening(){
 /* 只有完全没筛选时，累计数才代表「记账以来的总账」，期初才有意义 */
 function noFilter(){
   return state.filterType === 'all' && state.filterEvent === 'all'
-    && state.filterStage === 'all' && !dateActive(state.recDate);
+    && state.filterStage === 'all' && state.filterPlat === 'all'
+    && !dateActive(state.recDate);
 }
 
 /* ================= 渲染：记录 ================= */
@@ -3522,6 +3773,9 @@ function renderStats(){
 
   var parts = [];
   if (dateActive(state.recDate)) parts.push(dateScopeText(state.recDate));
+  if (state.filterPlat !== 'all') {
+    parts.push(state.filterPlat === 'none' ? '未标平台' : (platformNameById(state.filterPlat) || '已删除的平台'));
+  }
   if (state.filterEvent !== 'all') {
     var ev = eventById(state.filterEvent);
     parts.push(ev ? ev.name : '已删除的比赛');
@@ -3603,6 +3857,9 @@ function recCardHTML(r){
   // 副行拆成几段：窄屏放不下时整段折行，不会把「3 手」拆成「3」和「手」
   var tc = ticketCostOf(r), tw = ticketWonOf(r);
   var metaBits = [esc(fmtWhen(r.time))];
+  // 平台放最前面：它回答的是「这场在哪儿」，比成本更接近「这是哪一场」
+  var pname0 = platformNameOf(r);
+  if (pname0) metaBits.push(esc(pname0));
   if (isSatellite(r)) metaBits.push('卫星赛');
   if (usedTicketOf(r) && money(r.cost) > 0) {
     metaBits.push('成本 票' + (tc > 0 ? ' ' + fmtIn(tc, cur) : '（面值未填）')
@@ -3732,6 +3989,7 @@ function renderFilters(){
   if (bar) bar.classList.toggle('hidden', db.records.length === 0);
 
   paintEventBtn();
+  paintPlatBar($('#recPlatBar'), 'rec');
 
   $$('#filterType button').forEach(function(b){
     b.classList.toggle('on', b.getAttribute('data-type') === state.filterType);
@@ -3742,6 +4000,63 @@ function renderFilters(){
   if (dbtn) dbtn.classList.toggle('on', dateActive(state.recDate));
 
   paintStageChip();
+}
+
+/* ============ v6 平台横条 ============
+   比赛管理页和记录页共用一套渲染，只差「选中后管哪个状态」：
+   mode='ev' → state.filterPlat 管比赛管理页的列表；mode='rec' → 管记录页。
+   两个页面共用同一个筛选值反而是对的：在比赛管理里点了 GG，回记录页
+   看到的还是 GG —— 同一个问题问两遍会很怪。 */
+function platCounts(){
+  var m = Object.create(null);
+  db.records.forEach(function(r){
+    var k = recordPlatformId(r) || 'none';
+    m[k] = (m[k] || 0) + 1;
+  });
+  return m;
+}
+/* 平台横条上的数字按「这一页会看到多少条」来数：
+   记录页数场次、比赛页数比赛 —— 同一个筛选值在两个页面问的确实是不同的东西，
+   一律显示场次会让比赛页的「全部 4」看着像 4 个比赛。 */
+function platEventCounts(){
+  var m = Object.create(null);
+  db.events.forEach(function(e){
+    var k = (typeof e.platformId === 'string' && e.platformId) ? e.platformId : 'none';
+    m[k] = (m[k] || 0) + 1;
+  });
+  return m;
+}
+function paintPlatBar(box, mode){
+  if (!box) return;
+  var list = platforms();
+  var isEv = mode === 'ev';
+  var used = isEv ? platEventCounts() : platCounts();
+  var total = isEv ? db.events.length : db.records.length;
+  // 一个平台都没有、也没东西分过类，就别占地方
+  if (!list.length && !(used.none > 0)) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+  box.classList.remove('hidden');
+
+  var html = '<span class="platbar-scroll">';
+  html += '<button type="button" data-plat="all"'
+    + (state.filterPlat === 'all' ? ' class="on" aria-pressed="true"' : ' aria-pressed="false"')
+    + '>全部 ' + total + '</button>';
+  list.forEach(function(p){
+    var n = used[p.id] || 0;
+    var on = state.filterPlat === p.id;
+    html += '<button type="button" data-plat="' + esc(p.id) + '"'
+      + (on ? ' class="on" aria-pressed="true"' : ' aria-pressed="false"')
+      + '>' + esc(p.name) + (n ? ' ' + n : '') + '</button>';
+  });
+  if (used.none > 0) {
+    html += '<button type="button" data-plat="none"'
+      + (state.filterPlat === 'none' ? ' class="on" aria-pressed="true"' : ' aria-pressed="false"')
+      + '>未标 ' + used.none + '</button>';
+  }
+  html += '</span>';
+  if (mode === 'ev') {
+    html += '<button type="button" class="platbar-manage" data-plat-manage="1">＋ 平台</button>';
+  }
+  box.innerHTML = html;
 }
 
 /* ============ 比赛筛选面板 ============
@@ -3948,11 +4263,17 @@ function renderEvents(){
   var tot = $('#evTotals');
   var cnt = $('#evCount');
   if (cnt) cnt.textContent = db.events.length + ' 个';
+  paintPlatBar($('#platBar'), 'ev');
 
   var byEvent = groupByEvent();
   var list = db.events.filter(function(e){
-    if (!kw) return true;
-    return String(e.name).toLowerCase().indexOf(kw) >= 0;
+    if (kw && String(e.name).toLowerCase().indexOf(kw) < 0) return false;
+    // 平台筛选：'none' = 没设平台的比赛
+    if (state.filterPlat !== 'all') {
+      var pid = (typeof e.platformId === 'string') ? e.platformId : '';
+      if (state.filterPlat === 'none' ? !!pid : pid !== state.filterPlat) return false;
+    }
+    return true;
   }).sort(function(a, b){
     var na = (byEvent[a.id] || []).length;
     var nb = (byEvent[b.id] || []).length;
@@ -4008,11 +4329,16 @@ function renderEvents(){
         + '</span>'
       : '';
 
+    // 平台用一枚小标签放在名字后面：它属于「这是哪一场」，不是成绩的一部分，
+    // 混进 meta 那行会跟「进圈率 / 最好 #3」抢注意力
+    var pname = platformNameById(e.platformId);
+
     return '<button class="ev" data-event="' + e.id + '">'
       + '<span class="ev-top">'
         + '<span class="ev-name">' + esc(e.name) + '</span>'
         + '<span class="ev-net ' + (s.n ? cls(s.net) : 'zero') + '">' + (s.n ? signed(s.net) : signed(0)) + '</span>'
       + '</span>'
+      + (pname ? '<span class="ev-plat">' + esc(pname) + '</span>' : '')
       + '<span class="ev-meta">' + bits.join(' · ') + '</span>'
       + foot
     + '</button>';
@@ -5326,6 +5652,15 @@ function paintForm(){
     nameEl.textContent = '选择或新建比赛';
     nameEl.classList.add('ph');
   }
+  // 平台跟着比赛走，只读展示：要改就点进比赛管理改，不在记一笔里改 ——
+  // 同一场比赛一次线下一次线上，会让「按平台统计」失去意义
+  var ph = $('#fEventPlatHint');
+  if (ph) {
+    var pn = platformNameById((eventById(form.eventId) || {}).platformId);
+    if (pn) { ph.textContent = '平台 · ' + pn; ph.classList.remove('hidden'); }
+    else if (form.eventId) { ph.textContent = '平台 · 未指定（在比赛管理里可以选）'; ph.classList.remove('hidden'); }
+    else { ph.classList.add('hidden'); }
+  }
   $('#fTime').textContent = fmtFull(form.time);
   $('#fTime').classList.remove('ph');
   $('#fRank').value = form.rank || '';
@@ -5435,6 +5770,10 @@ function saveRecord(){
   var cost = (form.costKind === 'ticket') ? 0 : Math.max(0, money($('#fCost').value));
   var income = (form.incomeKind === 'ticket') ? 0 : Math.max(0, money($('#fIncome').value));
   var eventKind = eventKindOf(eventById(form.eventId));
+  // v6：平台跟着赛事走，记录上存 id + 名字快照
+  var evPlat = eventById(form.eventId);
+  var platformId = (evPlat && typeof evPlat.platformId === 'string') ? evPlat.platformId : '';
+  var platformName = platformNameById(platformId);
   var note = ($('#fNote').value || '').trim();
 
   // v4：用票必须指到台账里具体的一张（赠票也一样），面值从票上取，不再手填
@@ -5487,6 +5826,7 @@ function saveRecord(){
       r.ticketWonN = wonN; r.ticketUsedId = ticketUsedId;
       r.fieldSize = fieldSize;
       r.eventKind = eventKind;
+      r.platformId = platformId; r.platformName = platformName;
       delete r.itm; delete r.demo;
     }
   } else {
@@ -5497,12 +5837,13 @@ function saveRecord(){
       eventKind: eventKind, ticketCost: ticketCost, ticketWon: ticketWon,
       ticketWonN: wonN, ticketUsedId: ticketUsedId,
       fieldSize: fieldSize,
+      platformId: platformId, platformName: platformName,
       createdAt: Date.now()
     });
     // 如果比赛名库里还没有这条（理论上不会），补一条
     if (!eventById(form.eventId)) {
       var ev = { id: form.eventId || uid(), name: form.eventName, note: '',
-        unitPrice: null, kind: 'regular', paidPct: null, createdAt: Date.now() };
+        unitPrice: null, kind: 'regular', paidPct: null, platformId: platformId, createdAt: Date.now() };
       form.eventId = ev.id;
       db.events.push(ev);
     }
@@ -5758,10 +6099,39 @@ function openEventEditor(id){
   $('#fEventBuyin').value = (editingEvent && money(editingEvent.unitPrice) > 0) ? String(money(editingEvent.unitPrice)) : '';
   $('#fEventPaidPct').value = (editingEvent && money(editingEvent.paidPct) > 0) ? String(money(editingEvent.paidPct)) : '';
   paintKindSeg($('#fEventKind'), editingEvent ? eventKindOf(editingEvent) : 'regular');
+  paintEventPlatPick(editingEvent ? (editingEvent.platformId || '') : '');
   $('#btnEventDelete').classList.toggle('hidden', !editingEvent);
   openModal('mEvent');
   setTimeout(function(){ $('#fEventInput').focus(); }, 260);
 }
+
+/* 比赛编辑里的平台选择：没设平台也可以先不选（那就是「未分类」）。
+   这里不写「新建平台」的输入框 —— 管理平台是单独一个弹窗，输入框挤在
+   两个弹窗里会让人不知道该在哪填。 */
+var eventPlatPick = '';   // 当前正在编辑的比赛，选了哪个平台
+function paintEventPlatPick(pid){
+  eventPlatPick = pid || '';
+  var box = $('#fEventPlat');
+  if (!box) return;
+  var list = platforms();
+  var html = '<button type="button" data-eplat=""'
+    + (!eventPlatPick ? ' class="on"' : '') + '>不指定</button>';
+  list.forEach(function(p){
+    html += '<button type="button" data-eplat="' + esc(p.id) + '"'
+      + (eventPlatPick === p.id ? ' class="on"' : '') + '>' + esc(p.name) + '</button>';
+  });
+  if (!list.length) {
+    html += '<span class="platpick-empty">还没有平台。点上面「管理平台」加一个，比如 GG、PokerStars、线下俱乐部。</span>';
+  }
+  box.innerHTML = html;
+}
+$('#fEventPlat').addEventListener('click', function(e){
+  var b = e.target.closest ? e.target.closest('[data-eplat]') : null;
+  if (!b) return;
+  paintEventPlatPick(b.getAttribute('data-eplat'));
+});
+$('#btnManagePlat').addEventListener('click', function(){ openPlatManager(); });
+
 $('#btnNewEvent').addEventListener('click', function(){ openEventEditor(null); });
 $('#goEvents').addEventListener('click', function(){ switchView('events'); });
 $('#btnBackData').addEventListener('click', function(){ switchView('data'); });
@@ -5776,6 +6146,8 @@ $('#btnEventSave').addEventListener('click', function(){
   var paidPct = (paidRaw > 0) ? Math.min(paidRaw, 100) : null;
   var kindBtn = $('#fEventKind button.on');
   var kind = kindBtn ? kindBtn.getAttribute('data-kind') : 'regular';
+  var pid = eventPlatPick && platformById(eventPlatPick) ? eventPlatPick : '';
+  var pname = platformNameById(pid);
   if (!name) { toast('请填比赛名称'); return; }
 
   var dup = db.events.filter(function(e){
@@ -5790,15 +6162,22 @@ $('#btnEventSave').addEventListener('click', function(){
     editingEvent.unitPrice = buyin > 0 ? buyin : null;
     editingEvent.paidPct = paidPct;
     editingEvent.kind = kind;
-    // 名称与类型都是快照：改比赛时同步历史记录，统计归类不会一半新一半旧
+    editingEvent.platformId = pid;
+    // 名称、类型、平台都是快照：改比赛时同步历史记录，统计归类不会一半新一半旧。
+    // 记录上的平台只跟着「赛事改平台」走 —— 单场临时换平台不在界面上开放，
+    // 免得同一场比赛的记录分属两个平台，看着像数据错。
     db.records.forEach(function(r){
-      if (r.eventId === editingEvent.id) { r.eventName = name; r.eventKind = kind; }
+      if (r.eventId === editingEvent.id) {
+        r.eventName = name; r.eventKind = kind;
+        r.platformId = pid; r.platformName = pname;
+      }
     });
     // 提示放到 saveDB 之后，写盘失败时 toast 才知道要带警示，不能先报「已保存」
     savedMsg = '已保存';
   } else {
     db.events.push({ id: uid(), name: name, note: note,
-      unitPrice: buyin > 0 ? buyin : null, kind: kind, paidPct: paidPct, createdAt: Date.now() });
+      unitPrice: buyin > 0 ? buyin : null, kind: kind, paidPct: paidPct,
+      platformId: pid, createdAt: Date.now() });
     savedMsg = '已添加';
   }
   saveDB(); renderAll(); closeModal('mEvent');
@@ -5823,6 +6202,123 @@ $('#btnEventDelete').addEventListener('click', function(){
 });
 
 $('#eventSearch').addEventListener('input', renderEvents);
+
+/* ================= 平台管理 =================
+   平台表很小（一般 2~5 个），改名/删除都直接改 db.platforms 并同步快照。
+   删除不删历史：记录上的 platformName 保留，platformId 清空 —— 这样
+   「这场是在哪个平台打的」这个事实不会因为整理名单而消失。 */
+function openPlatManager(){
+  $('#platNewName').value = '';
+  renderPlatList();
+  openModal('mPlat');
+}
+function renderPlatList(){
+  var box = $('#platList');
+  if (!box) return;
+  var list = platforms();
+  var used = platCounts();
+  if (!list.length) {
+    box.innerHTML = '<div class="platempty">还没有平台。<br>上面输入名字点「添加」，比如 GG、PokerStars、线下俱乐部。</div>';
+    return;
+  }
+  box.innerHTML = list.map(function(p){
+    var n = used[p.id] || 0;
+    var evN = db.events.filter(function(e){ return e.platformId === p.id; }).length;
+    var sub = [];
+    if (evN) sub.push(evN + ' 个比赛');
+    sub.push(n ? n + ' 场记录' : '还没有记录');
+    return '<div class="platrow" data-platrow="' + esc(p.id) + '">'
+      + '<span class="platrow-main">'
+        + '<span class="platrow-b">' + esc(p.name) + '</span>'
+        + '<span class="platrow-s">' + sub.join(' · ') + '</span>'
+      + '</span>'
+      + '<button type="button" class="edit" data-platedit="' + esc(p.id) + '">改名</button>'
+      + '<button type="button" class="del" data-platdel="' + esc(p.id) + '">删除</button>'
+    + '</div>';
+  }).join('');
+}
+function addPlatform(){
+  var name = ($('#platNewName').value || '').trim();
+  if (!name) { toast('请填平台名'); return; }
+  if (platforms().some(function(p){ return p.name === name; })) { toast('已有同名平台'); return; }
+  var maxOrder = 0;
+  platforms().forEach(function(p){ maxOrder = Math.max(maxOrder, money(p.order)); });
+  var p = { id: uid(), name: name.slice(0, 40), order: maxOrder + 1 };
+  db.platforms.push(p);
+  saveDB();
+  $('#platNewName').value = '';
+  renderPlatList();
+  // 新建的平台顺手选中：刚加完通常就是要用它
+  if ($('#mEvent').classList.contains('open')) paintEventPlatPick(p.id);
+  renderAll();
+  toast('已添加');
+}
+$('#btnPlatAdd').addEventListener('click', addPlatform);
+$('#platNewName').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') { e.preventDefault(); addPlatform(); }
+});
+$('#platList').addEventListener('click', function(e){
+  var editBtn = e.target.closest ? e.target.closest('[data-platedit]') : null;
+  if (editBtn) {
+    var p1 = platformById(editBtn.getAttribute('data-platedit'));
+    if (!p1) return;
+    var row = editBtn.closest('.platrow');
+    var main = row ? row.querySelector('.platrow-main') : null;
+    if (!main || main.querySelector('input')) return;
+    var oldName = p1.name;
+    main.innerHTML = '<input class="finput" type="text" maxlength="40" value="' + esc(oldName) + '">';
+    var inp = main.querySelector('input');
+    inp.focus();
+    inp.select();
+    var done = false;
+    function commit(){
+      if (done) return;
+      done = true;
+      var v = (inp.value || '').trim();
+      if (!v || v === oldName) { renderPlatList(); return; }
+      if (platforms().some(function(x){ return x.name === v && x.id !== p1.id; })) {
+        toast('已有同名平台'); renderPlatList(); return;
+      }
+      p1.name = v.slice(0, 40);
+      // 快照同步：历史记录上存的是平台名，不改就会一半新一半旧
+      db.records.forEach(function(r){ if (r.platformId === p1.id) r.platformName = p1.name; });
+      saveDB(); renderPlatList(); renderAll();
+      if ($('#mEvent').classList.contains('open')) paintEventPlatPick(eventPlatPick);
+      toast('已改名');
+    }
+    inp.addEventListener('blur', commit);
+    inp.addEventListener('keydown', function(ev){
+      if (ev.key === 'Enter') { ev.preventDefault(); inp.blur(); }
+      else if (ev.key === 'Escape') { ev.preventDefault(); done = true; renderPlatList(); }
+    });
+    return;
+  }
+  var delBtn = e.target.closest ? e.target.closest('[data-platdel]') : null;
+  if (delBtn) {
+    var p2 = platformById(delBtn.getAttribute('data-platdel'));
+    if (!p2) return;
+    var n = db.records.filter(function(r){ return r.platformId === p2.id; }).length;
+    var evN = db.events.filter(function(x){ return x.platformId === p2.id; }).length;
+    var desc = [];
+    if (evN) desc.push(evN + ' 个比赛会变成「未分类」');
+    if (n) desc.push(n + ' 条记录保留平台名，只是不再参与按平台的筛选');
+    askConfirm({
+      title: '删除平台「' + p2.name + '」？',
+      desc: desc.length ? esc(desc.join('；')) + '。' : '删除后可以重新添加。',
+      ok: '删除', danger: true
+    }).then(function(ok){
+      if (!ok) return;
+      db.platforms = db.platforms.filter(function(x){ return x.id !== p2.id; });
+      db.events.forEach(function(x){ if (x.platformId === p2.id) x.platformId = ''; });
+      // 记录上的 platformId 清空但名字留着：历史可读，筛选不再命中
+      db.records.forEach(function(r){ if (r.platformId === p2.id) r.platformId = ''; });
+      if (state.filterPlat === p2.id) state.filterPlat = 'all';
+      saveDB(); renderPlatList(); renderAll();
+      if ($('#mEvent').classList.contains('open')) paintEventPlatPick(eventPlatPick);
+      toast('已删除');
+    });
+  }
+});
 
 /* ================= 时间选择器 ================= */
 var wheelData = { y: [], mo: [], d: [], h: [], mi: [] };
@@ -5996,11 +6492,11 @@ $('#btnCsv').addEventListener('click', function(){
   var list = db.records.slice().sort(byTimeAsc);
   if (!list.length) { toast('还没有数据'); return; }
   // 导出走原币：表格是原始事实，折算交给 Excel 或汇率列自己算
-  var rows = [['时间', '比赛', '进圈', '名次', '人数', '名次百分位', '币种', '成本', '收益', '净收益', '手数', '备注']];
+  var rows = [['时间', '平台', '比赛', '进圈', '名次', '人数', '名次百分位', '币种', '成本', '收益', '净收益', '手数', '备注']];
   list.forEach(function(r){
     var rp = rankPctOf(r);
     rows.push([
-      fmtFull(r.time), r.eventName || '', stageLabel(r), r.rank || '',
+      fmtFull(r.time), platformNameOf(r), r.eventName || '', stageLabel(r), r.rank || '',
       sizeOf(r) == null ? '' : String(sizeOf(r)),
       rp == null ? '' : (rp * 100).toFixed(1) + '%',
       curName(curOf(r)),
@@ -6028,7 +6524,8 @@ function exportJSON(){
     app: 'matchledger', schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(),
     openingBalance: db.openingBalance, openingCur: db.openingCur || 'CNY',
     fxRate: db.fxRate, fxUpdatedAt: db.fxUpdatedAt, fxSource: db.fxSource,
-    events: db.events, records: plainRecords(db.records), tickets: db.tickets || []
+    events: db.events, records: plainRecords(db.records), tickets: db.tickets || [],
+    platforms: db.platforms || []
   }, null, 2);
   download(data, '赛场账本备份_' + stamp() + '.json', 'application/json;charset=utf-8');
 }
@@ -6230,11 +6727,11 @@ $('#btnRateSave').addEventListener('click', function(){
 $('#btnClear').addEventListener('click', function(){
   askConfirm({
     title: '清空全部数据？',
-    desc: '所有比赛名（' + db.events.length + ' 个）和记录（' + db.records.length + ' 条）都会被删除，无法恢复。建议先导出备份。',
+    desc: '所有比赛名（' + db.events.length + ' 个）、平台（' + (db.platforms || []).length + ' 个）和记录（' + db.records.length + ' 条）都会被删除，无法恢复。建议先导出备份。',
     ok: '全部清空', danger: true
   }).then(function(ok){
     if (!ok) return;
-    db.events = []; db.records = []; db.tickets = [];
+    db.events = []; db.records = []; db.tickets = []; db.platforms = [];
     db.openingBalance = null; db.openingCur = 'CNY';
     resetFilters();
     saveDB(); renderAll(); toast('已清空');
@@ -6336,6 +6833,23 @@ document.addEventListener('click', function(e){
     return;
   }
 
+  /* v6 平台横条：点胶囊筛平台，点「＋ 平台」开管理弹窗 */
+  var platManageBtn = e.target.closest ? e.target.closest('[data-plat-manage]') : null;
+  if (platManageBtn) { openPlatManager(); return; }
+  var platBtn = e.target.closest ? e.target.closest('[data-plat]') : null;
+  if (platBtn) {
+    state.filterPlat = platBtn.getAttribute('data-plat');
+    // 换了平台筛选，原来的比赛筛选可能一场都不剩 —— 顺手清掉，
+    // 否则会出现「点了 GG 显示 0 场」这种看起来像 bug 的状态
+    if (state.filterPlat !== 'all' && state.filterEvent !== 'all') {
+      var ev0 = eventById(state.filterEvent);
+      var evPid = ev0 ? (ev0.platformId || '') : '';
+      if ((state.filterPlat === 'none' ? evPid : evPid !== state.filterPlat)) state.filterEvent = 'all';
+    }
+    renderFilters(); renderStats(); renderRecords(); renderEvents();
+    return;
+  }
+
   var segBtn = e.target.closest ? e.target.closest('#filterType button') : null;
   if (segBtn) {
     state.filterType = segBtn.getAttribute('data-type');
@@ -6365,12 +6879,16 @@ document.addEventListener('click', function(e){
     // 全是示例数据就整库清空；混着你自己的记录时只摘掉示例，别误删
     var allDemo = db.records.length > 0 && db.records.every(function(r){ return r.demo; });
     if (allDemo) {
-      db.events = []; db.records = []; db.tickets = [];
+      db.events = []; db.records = []; db.tickets = []; db.platforms = [];
       db.openingBalance = null; db.openingCur = 'CNY';
       resetFilters();
       saveDB(); renderAll(); toast('已清空示例');
     } else {
       db.records = db.records.filter(function(r){ return !r.demo; });
+      // 示例数据带的平台也一起摘掉：留着两个空平台，用户还得自己删
+      var usedP = Object.create(null);
+      db.events.forEach(function(e){ if (e.platformId) usedP[e.platformId] = 1; });
+      db.platforms = (db.platforms || []).filter(function(p){ return usedP[p.id]; });
       resetFilters();
       saveDB(); renderAll(); toast('已移除示例记录');
     }
