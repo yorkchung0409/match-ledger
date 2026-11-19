@@ -5649,9 +5649,17 @@ function renderAll(){
 /* ================= 视图切换 ================= */
 /* ================= 返回手势（hash 路由） =================
    安卓的返回键/侧滑默认直接退出页面。这里让「弹层」和「比赛管理」各压一条历史：
-   返回时先关弹层、再退二级页、再回记录页；已经在记录页就交给浏览器退出。
+   返回时先关弹层、再退二级页；已经在记录页就交给浏览器退出。
    底部 tab 之间横跳不压历史 —— 否则按两次返回才退得出去，很烦。 */
-var navSelf = 0;   // 自己调 history.back() 的时间戳，用来吞掉随之而来的 popstate
+var navSelf = 0;     // 自己调 history.* 的时间戳，用来吞掉随之而来的 popstate / hashchange
+var navPending = ''; // 自己退二级页后要落到的视图：back 是异步的，目标先存这里
+
+/* 当前这条历史是不是我们 push 出来的「比赛管理」。
+   不能只看 hash：用户手改地址栏到 #/events 时 state 里没有这条标记，
+   对他点 tab 去 back() 会把页面退出到上一个网站。 */
+function atPushedEvents(){
+  return !!(history.state && history.state.h === 'events');
+}
 
 function pushNav(h){
   try { history.pushState({ h: h }, '', '#/' + h); } catch(e) {}
@@ -5670,7 +5678,27 @@ function paintTabs(v){
   });
 }
 
+/* 离开比赛管理：先把它压进去的那条历史退掉，再落到目标视图。
+   back() 之后 popstate 里再改 UI + 改 hash，避免「界面走了、历史还停在二级页」。
+   不是我们 push 出来的（手改 hash 进来的）就直接换掉当前条目，不 back。 */
+function leaveSubpage(target){
+  // 连点两个 tab 时 back 已经在路上，只更新落点，别再退一条
+  if (navPending) { navPending = target; return; }
+  if (atPushedEvents()) {
+    navPending = target;
+    navSelf = Date.now();
+    try { history.back(); return; } catch(e) {}
+  }
+  navPending = '';
+  switchView(target, true);
+  replaceNav(target);
+}
+
 function switchView(v, fromPop){
+  // 从二级页切到任意顶层 tab 都先退栈；不能只 replaceNav —— 那样下面还压着
+  // 一条 events，下次按返回会莫名其妙回到比赛管理。
+  if (!fromPop && v !== 'events' && atPushedEvents()) { leaveSubpage(v); return; }
+
   state.view = v;
   ['records', 'events', 'data'].forEach(function(k){
     $('#view-' + k).classList.toggle('hidden', k !== v);
@@ -5681,35 +5709,48 @@ function switchView(v, fromPop){
   // 数据页的曲线宽度依赖真实布局：宽度变了要重算，否则按脏标记收敛
   paintView(v, v === 'data' && chartWidthChanged());
   if (!fromPop) {
-    var cur = (history.state && history.state.h) || '';
-    if (v === 'events') {
-      pushNav(v);
-    } else if (v === 'records' && (cur === 'data' || cur === 'events')) {
-      // 从子页面回记录页 = 后退一层，而不是再压一条（否则要按好几次才退得出去）
-      navSelf = Date.now();
-      try { history.back(); } catch(e) { replaceNav(v); }
-    } else {
-      pushNav(v);
-    }
+    // 顶层 tab 只替换当前条目：tab 是平级的，横跳不该堆历史。
+    // 只有二级页需要压一条，让返回键有东西可退。
+    if (v === 'events') pushNav('events');
+    else replaceNav(v);
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 window.addEventListener('popstate', function(){
-  // 600ms 内的 popstate 基本是自己刚才 back() 引发的那一条，UI 已经处理过了
-  if (navSelf && Date.now() - navSelf < 600) { navSelf = 0; return; }
+  var self = !!(navSelf && Date.now() - navSelf < 800);
+  if (self) navSelf = 0;
+
   var open = $$('.modal.open');
   if (open.length) { closeModal(open[open.length - 1].id); return; }
-  if (state.view !== 'records') {
-    switchView('records', true);
+
+  if (navPending) {
+    var t = navPending;
+    navPending = '';
+    switchView(t, true);
+    // back 落到了旧的那条（多半是 data），把它的 hash 改成目标 tab，
+    // 否则刷新/分享会打开另一个页面
+    replaceNav(t);
+    // 紧接着还会来一条 hashchange（#/events → #/data），标一下时间把它吞掉，
+    // 不然它会按 URL 把界面又切回 data —— 这正是「点记录却停在数据」的原因
+    navSelf = Date.now();
     return;
   }
-  // 已经在记录页：history 还有上一条就让它继续退，没有就什么都不做
+  if (self) return;
+
+  // 真正的浏览器返回：跟着落点那条历史的 hash 走，而不是一律回记录页
+  var m = /^#\/(records|data|events)$/.exec(location.hash);
+  var target = (m && m[1] !== state.view) ? m[1] : (state.view === 'events' ? 'records' : state.view);
+  if (target !== state.view) switchView(target, true);
 });
 
-/* 手改地址栏、从书签/外链跳到 #/data 时页面不会重载，这里补一次；
-   popstate 已经切好的情况 state.view 已经对上了，不会重复处理 */
+/* 手改地址栏、从书签/外链跳到 #/data 时页面不会重载，这里补一次。
+   自己发起的 back() 也会触发 hashchange —— 那一条必须忽略，
+   否则会把刚切好的界面按旧 URL 再切回去。 */
 window.addEventListener('hashchange', function(){
+  // 自己发起的 back() 也会触发 hashchange —— 必须忽略，否则会把刚切好的界面
+  // 按旧 URL 再切回去；navPending 还没消费时更不能抢先切页。
+  if (navPending || (navSelf && Date.now() - navSelf < 800)) return;
   var m = /^#\/(records|data|events)$/.exec(location.hash);
   if (m && m[1] !== state.view) switchView(m[1], true);
 });
