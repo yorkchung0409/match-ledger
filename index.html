@@ -1456,6 +1456,21 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 .nettag b{font-family:var(--num-font);font-size:18px;font-weight:680;font-variant-numeric:tabular-nums}
 
 /* ---------- picker list ---------- */
+/* 快速新建时顺手定类型 / 平台的那一小块：
+   只在输入了不重复的新名字时出现，跟下面的「＋ 新建」按钮是一体的 */
+.newbox{
+  margin-top:12px;padding:12px 13px 13px;
+  border-radius:var(--r-btn);background:var(--surface-2);
+  border:var(--bw) solid var(--soft-line);
+  display:flex;flex-direction:column;gap:9px;
+}
+.newbox-t{
+  margin:0;font-size:11.5px;line-height:1.5;color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.newbox .itmseg{background:var(--surface)}
+.newbox .platpick{margin-top:-2px}
+
 .picklist{margin-top:12px;display:flex;flex-direction:column;gap:7px}
 .pick{
   display:flex;align-items:center;gap:11px;width:100%;text-align:left;
@@ -2145,6 +2160,15 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         </span>
         <div class="fbody"><input class="finput" id="pickerSearch" placeholder="搜索，或直接输入新比赛名" autocomplete="off"></div>
       </div>
+      <!-- 快速新建时顺手定下类型和平台：建完再去比赛管理改，等于让人跑两趟 -->
+      <div class="newbox hidden" id="pickerNew">
+        <p class="newbox-t" id="pickerNewTitle"></p>
+        <div class="itmseg" id="pickerKind" role="group" aria-label="比赛类型">
+          <button type="button" data-pkind="regular" class="on">常规赛</button>
+          <button type="button" data-pkind="satellite">卫星赛</button>
+        </div>
+        <div class="platpick" id="pickerPlat"></div>
+      </div>
       <div class="picklist" id="pickerList"></div>
     </div>
   </div>
@@ -2299,6 +2323,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <li>「比赛人数」填这一场的<b>报名总人次</b>（含重进 / rebuy）。同一比赛会自动带出上一次填的数，改一下就行。</li>
           <li>「手数」只是个标签，用来统计你平均买几手，<b>不影响任何金额</b>。</li>
           <li>同一场比赛可以反复选，比赛管理里就是按它横向对比的。</li>
+          <li>没录过的比赛，在比赛选择器的搜索框里直接输入新名字，下面会露出「＋ 新建」—— <b>类型（常规赛 / 卫星赛）和平台可以当场定</b>，不用再跑去比赛管理补。</li>
         </ul></div>
       </details>
 
@@ -4142,24 +4167,44 @@ function openEventFilter(){
   fitSheetToKeyboard();
 }
 
-/* 手机上键盘弹起来会盖住半个屏幕，而这个面板就贴在底部。
-   用 visualViewport 量一下被盖掉多少，把面板抬到键盘上面；键盘收起时原样还原。 */
-function fitSheetToKeyboard(){
-  var sheet = document.querySelector('#mEventFilter .sheet');
-  if (!sheet) return;
-  var vv = window.visualViewport;
-  var covered = vv ? (window.innerHeight - vv.height - vv.offsetTop) : 0;
-  if (covered > 60) {
-    sheet.style.bottom = Math.round(covered) + 'px';
-    sheet.style.maxHeight = Math.max(220, Math.round(vv.height - 12)) + 'px';
-  } else {
-    sheet.style.bottom = '';
-    sheet.style.maxHeight = '';
-  }
+/* 手机上键盘弹起来会盖住半个屏幕，而面板都贴在底部。
+   用 visualViewport 量一下被盖掉多少，把面板抬到键盘上面；键盘收起时原样还原。
+
+   以前只处理「按比赛筛选」那一个面板 —— 因为只有它会主动 focus 输入框。
+   结果「选择比赛」弹窗（快速新建比赛名）和「新建比赛」也主动 focus 了，
+   键盘一起就盖住输入框：用户打得进字但看不见自己打了什么。
+   现在对所有弹窗里贴底的面板统一处理。 */
+function sheetOfModal(el){
+  return el ? el.querySelector('.sheet') : null;
 }
+function sheetNeedsFit(el){
+  if (!el) return false;
+  var body = el.querySelector('.sheet-body');
+  // 没有滚动区 / 没有输入框的弹窗（确认框、说明页）抬起来反而怪
+  return !!(body && el.querySelector('input, textarea'));
+}
+function fitSheetsToKeyboard(){
+  var vv = window.visualViewport;
+  var covered = vv ? Math.round(window.innerHeight - vv.height - vv.offsetTop) : 0;
+  $$('.modal.open').forEach(function(el){
+    var sheet = sheetOfModal(el);
+    if (!sheet) return;
+    if (covered > 60 && sheetNeedsFit(el)) {
+      sheet.style.bottom = covered + 'px';
+      // 抬起来之后可用高度变少，让内容区自己滚，别把头部顶出屏幕
+      sheet.style.maxHeight = Math.max(220, Math.round(vv.height - 12)) + 'px';
+    } else {
+      sheet.style.bottom = '';
+      sheet.style.maxHeight = '';
+    }
+  });
+}
+/* 老名字留着：中文注释里提过这个函数，别的调用点也还在用 */
+function fitSheetToKeyboard(){ fitSheetsToKeyboard(); }
+
 if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', fitSheetToKeyboard);
-  window.visualViewport.addEventListener('scroll', fitSheetToKeyboard);
+  window.visualViewport.addEventListener('resize', fitSheetsToKeyboard);
+  window.visualViewport.addEventListener('scroll', fitSheetsToKeyboard);
 }
 
 /* ============ 时间筛选面板 ============ */
@@ -5266,10 +5311,13 @@ function paintSeg(box, val){
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
 }
-function paintKindSeg(box, val){
+/* 选项段的高亮。默认找 data-kind；选择器里的类型段用 data-pkind，
+   传第三个参数区分开，免得跟「成本来源 / 收益类型」那几组串味。 */
+function paintKindSeg(box, val, attr){
   if (!box) return;
+  var a = attr || 'data-kind';
   $$('button', box).forEach(function(b){
-    var on = b.getAttribute('data-kind') === val;
+    var on = b.getAttribute(a) === val;
     b.classList.toggle('on', on);
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
@@ -5533,11 +5581,10 @@ function closeModal(id){
   if (!el) return;
   el.classList.remove('open');
   el.setAttribute('aria-hidden', 'true');
-  // 抬起来等键盘的那点 offset 是临时的，关掉就还原
-  if (id === 'mEventFilter') {
-    var sh = el.querySelector('.sheet');
-    if (sh) { sh.style.bottom = ''; sh.style.maxHeight = ''; }
-  }
+  // 抬起来等键盘的那点 offset 是临时的，关掉就还原（所有面板都要还原，
+  // 否则下次打开会带着上一轮算出来的 bottom，键盘没弹也悬在半空）
+  var sh = el.querySelector('.sheet');
+  if (sh) { sh.style.bottom = ''; sh.style.maxHeight = ''; }
   syncLock();
   // 主动关闭时把压进去的那条历史也退掉，别让返回键白按一次；
   // 若这次关闭本身就是 popstate 触发的，history.state 已经不是它，不会再退
@@ -6138,11 +6185,46 @@ $('#btnDelete').addEventListener('click', function(){
 });
 
 /* ================= 比赛选择器 ================= */
+/* 快速新建时先定下的类型和平台。只在「还没按下去建」之前有效，
+   建完就落进赛事对象里，这里清空等下一条新比赛重新选。 */
+var pickKind = 'regular';
+var pickPlat = '';
+
 function openPicker(){
   $('#pickerSearch').value = '';
+  pickKind = 'regular';
+  pickPlat = '';
   renderPickerList('');
   openModal('mPicker');
   setTimeout(function(){ $('#pickerSearch').focus(); }, 260);
+  fitSheetToKeyboard();
+}
+
+/* 快速新建那块只在「有可建的名字」时露出来：输入框空着、
+   或者名字已经存在时，露出「新建 xxx」的类型/平台等于给个点不动的按钮。 */
+function paintPickerNew(q){
+  var box = $('#pickerNew');
+  if (!box) return;
+  var name = String(q || '').trim();
+  var dup = db.events.some(function(e){ return String(e.name) === name; });
+  if (!name || dup) { box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+
+  var t = $('#pickerNewTitle');
+  if (t) t.textContent = '「' + name + '」是新的，顺手定一下';
+
+  paintKindSeg($('#pickerKind'), pickKind, 'data-pkind');
+
+  var pb = $('#pickerPlat');
+  if (!pb) return;
+  var list = platforms();
+  var html = '<button type="button" data-pplat=""'
+    + (!pickPlat ? ' class="on"' : '') + '>不指定</button>';
+  list.forEach(function(p){
+    html += '<button type="button" data-pplat="' + esc(p.id) + '"'
+      + (pickPlat === p.id ? ' class="on"' : '') + '>' + esc(p.name) + '</button>';
+  });
+  pb.innerHTML = html;
 }
 
 function renderPickerList(kw){
@@ -6177,18 +6259,25 @@ function renderPickerList(kw){
     html = '<div class="pick-empty">还没有比赛名，上面输入后点「新建」</div>';
   }
   box.innerHTML = html;
+  paintPickerNew(q);
 
   var createBtn = box.querySelector('[data-create]');
   if (createBtn) {
     createBtn.addEventListener('click', function(){
       var name = q.trim();
       if (!name) return;
-      var ev = { id: uid(), name: name, note: '', kind: 'regular', paidPct: null, createdAt: Date.now() };
+      // 类型和平台按上面那次选择落库：卫星赛要单独归类，平台要能按平台统计，
+      // 建的时候定了就不用再跑一趟比赛管理
+      var pid = pickPlat && platformById(pickPlat) ? pickPlat : '';
+      var ev = { id: uid(), name: name, note: '', kind: pickKind, paidPct: null,
+        platformId: pid, createdAt: Date.now() };
       db.events.push(ev);
       saveDB();
       form.eventId = ev.id;
       form.eventName = ev.name;
       form.fieldSize = '';
+      // 建完就把草稿清掉，下一条新比赛从「常规赛 + 不指定平台」重新起
+      pickKind = 'regular'; pickPlat = '';
       paintForm();
       renderAll();
       closeModal('mPicker');
@@ -6209,6 +6298,21 @@ function renderPickerList(kw){
   });
 }
 
+/* 选择器里的类型 / 平台切换。用委托，列表重画不需要重新绑定。 */
+$('#pickerKind').addEventListener('click', function(e){
+  var b = e.target.closest ? e.target.closest('[data-pkind]') : null;
+  if (!b) return;
+  pickKind = b.getAttribute('data-pkind') === 'satellite' ? 'satellite' : 'regular';
+  paintKindSeg($('#pickerKind'), pickKind, 'data-pkind');
+});
+
+$('#pickerPlat').addEventListener('click', function(e){
+  var b = e.target.closest ? e.target.closest('[data-pplat]') : null;
+  if (!b) return;
+  pickPlat = b.getAttribute('data-pplat') || '';
+  paintPickerNew($('#pickerSearch').value);
+});
+
 $('#pickerSearch').addEventListener('input', function(){
   renderPickerList(this.value);
 });
@@ -6225,6 +6329,8 @@ function openEventEditor(id){
   paintEventPlatPick(editingEvent ? (editingEvent.platformId || '') : '');
   $('#btnEventDelete').classList.toggle('hidden', !editingEvent);
   openModal('mEvent');
+  // 打开就 focus 名称框：建比赛第一件事就是打字，让用户再点一次是多余动作。
+  // 键盘弹起来之后 visualViewport 会触发 fitSheetsToKeyboard 把面板抬上去。
   setTimeout(function(){ $('#fEventInput').focus(); }, 260);
 }
 
