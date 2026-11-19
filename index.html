@@ -6871,6 +6871,22 @@ $('#fFieldSize').addEventListener('input', function(){
   syncFieldSizeHint();
 });
 
+/* 输入要实时写回 form：paintForm() 会用 form 的值重填输入框。
+   以前只在保存时读 DOM，于是「先填了金额/备注，再改时间或换比赛」会被
+   重填成空 —— 看起来像输入被吞了。 */
+[['#fRank', 'rank'], ['#fFieldSize', 'fieldSize'], ['#fCost', 'cost'],
+ ['#fIncome', 'income'], ['#fTicketWon', 'ticketWon'], ['#fNote', 'note']
+].forEach(function(p){
+  var el = $(p[0]);
+  if (!el) return;
+  el.addEventListener('input', function(){
+    if (!form) return;
+    form[p[1]] = this.value;
+    // 手改过成本就不再算「自动带出的」，换比赛时别把它覆盖掉
+    if (p[1] === 'cost') form.costAuto = false;
+  });
+});
+
 $('#btnDelete').addEventListener('click', function(){
   if (!form || !form.id) return;
   var rid = form.id;
