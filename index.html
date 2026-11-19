@@ -2893,6 +2893,13 @@ function basePctOf(list){
    比赛类型，都不该让历史记录的统计归类跟着漂。 */
 function ticketWonOf(r){ return Math.max(0, money(r && r.ticketWon)); }
 function ticketCostOf(r){ return Math.max(0, money(r && r.ticketCost)); }
+/* 票面快照的币种。之前只存了数字，票是 $ 而记录是 ¥ 时会被按 ¥ 显示；
+   老数据没有这个字段就跟着记录币种走（当时的行为），新记录一律写死。 */
+function ticketCostCurOf(r){
+  if (!r) return 'CNY';
+  if (r.ticketCostCur === 'USD' || r.ticketCostCur === 'CNY') return r.ticketCostCur;
+  return curOf(r);
+}
 /* v4：面值可留空，所以「赢到票」不能再靠 ticketWon > 0 判断。
    ticketWonN 是这张记录赢的张数；老备份没这个字段时退回面值判断。 */
 function wonTicketN(r){
@@ -3024,7 +3031,10 @@ function cleanRec(r){
   if (!isObj(r)) return null;
   var fix = false;
 
-  var id = (typeof r.id === 'string' && r.id) ? r.id : uid();
+  // 记录 id 会进 data-open 这类 HTML 属性，只校验「非空字符串」拦不住属性注入
+  // （导入的备份里可以塞 `" autofocus onfocus="…`）。和赛事 / 门票同一条规则：
+  // 不合规就重新分配，宁可换 id 也不能让它进模板。
+  var id = (typeof r.id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(r.id)) ? r.id : uid();
   if (id !== r.id) fix = true;
 
   var eid = (typeof r.eventId === 'string') ? r.eventId : '';
@@ -3066,6 +3076,10 @@ function cleanRec(r){
   // v4：张数和票 id 是流水层的快照，缺了就补，同样不算「修好了一条」
   var ticketWonN = wonTicketN(r);
   var ticketUsedId = (typeof r.ticketUsedId === 'string' && r.ticketUsedId) ? r.ticketUsedId : null;
+  // 票面币种：老记录没存过，按记录币种兜底；新记录保存时写死，跨币种票才不会串符号
+  var ticketCostCur = (r.ticketCostCur === 'USD' || r.ticketCostCur === 'CNY')
+    ? r.ticketCostCur
+    : (ticketCost > 0 ? cur : null);
   // v5 新字段：老记录没有就补 null，不算「修好了几条」，别弹误报
   var fieldSize = sizeOf(r);
   var itmBB = bbOf(r);
@@ -3085,7 +3099,8 @@ function cleanRec(r){
   var o = {
     id: id, eventId: eid, eventName: name, time: t, rank: rank, stage: stage,
     cost: cost, income: income, cur: cur, buyCount: buyCount,
-    eventKind: eventKind, ticketCost: ticketCost, ticketWon: ticketWon,
+    eventKind: eventKind, ticketCost: ticketCost, ticketCostCur: ticketCostCur,
+    ticketWon: ticketWon,
     ticketWonN: ticketWonN, ticketUsedId: ticketUsedId,
     fieldSize: fieldSize, itmBB: itmBB,
     platformId: platformId, platformName: platformName,
@@ -3178,9 +3193,10 @@ function cleanTicket(t){
 }
 
 /* v3 → v4：老账本只记了「赢票面值 / 用票面值」两笔数字，没有票这个实体。
-   补出来的流水按时间就近配对：先赢的票先用；找不到更早的未用票，就把这场
-   当作「用了一张来源没记下来的票」，标成赠票带入 —— 免费送的票本来就打不了
-   卫星赛，不会凭空多出一场比赛。迁移只补流水，记录的现金数字一个都不动。 */
+   补出来的流水按时间配对：只挑不晚于这场、且还没被用掉的票；同币种、同面值
+   优先（旧账本没存票 id，只能靠这两个线索判断「大概是哪一张」）。找不到能对上
+   的票，就把这场当作「用了一张来源没记下来的票」，标成赠票带入 —— 免费送的票
+   本来就打不了卫星赛，不会凭空多出一场比赛。迁移只补流水，现金数字一个都不动。 */
 function migrateTickets(p){
   var recs = Array.isArray(p.records) ? p.records : [];
   var tickets = [], pool = [];
@@ -3214,21 +3230,36 @@ function migrateTickets(p){
     tickets.push(t); pool.push(t);
   });
 
+  /* 同分钟也算「不晚于」：旧数据只有分钟精度，赢票和用票写在同一分钟是常事，
+     以前用严格 `<` 会把它们判成「来源不明」的赠票。自己赢的票不能自己用。
+     币种对不上宁可判成「来源未记」：旧快照本来就按记录自己的币种存的，
+     拿一张 $ 票去配一条 ¥ 记录只会造出更隐蔽的错账。 */
+  function pickTicket(r, tc, rt){
+    var best = -1, bestScore = 1;      // 2 = 币种一致；+3 = 面值也一致
+    for (var j = 0; j < pool.length; j++) {
+      var t = pool[j];
+      if (t.usedIn) continue;
+      if (t.earnedIn && t.earnedIn === rid(r)) continue;
+      if (rt && t.date && t.date > rt) continue;
+      if ((t.cur || 'CNY') !== curOf(r)) continue;
+      var score = 2;
+      if (money(t.face) > 0 && Math.abs(money(t.face) - tc) < 0.005) score += 3;
+      if (score > bestScore) { bestScore = score; best = j; }
+    }
+    return best;
+  }
+
   idx.forEach(function(i){
     var r = recOut[i];
     if (!isObj(r)) return;
     var tc = ticketCostOf(r);
     if (tc <= 0) return;
-    var rt = tOf(r), pick = -1;
-    for (var j = 0; j < pool.length; j++) {
-      if (pool[j].usedIn) continue;
-      if (rt && pool[j].date >= rt) continue;   // 只用严格早于这场记录的票
-      pick = j; break;
-    }
+    var rt = tOf(r), pick = pickTicket(r, tc, rt);
     var t;
     if (pick >= 0) {
       t = pool[pick];
       t.usedIn = rid(r);
+      // 票面以票为准；老记录上的 ticketCost 只用来找票，不改写票本身
     } else {
       t = { id: uid(), source: 'gift', face: tc, cur: curOf(r), date: dateFor(r),
         earnedIn: null, usedIn: rid(r), note: '旧账本带入 · 来源未记',
@@ -3236,6 +3267,7 @@ function migrateTickets(p){
       tickets.push(t);
     }
     r.ticketUsedId = t.id;
+    r.ticketCostCur = t.cur === 'USD' ? 'USD' : 'CNY';
   });
   return { tickets: tickets, records: recOut };
 }
@@ -3311,9 +3343,15 @@ function sanitizeDB(src){
     out.events.push(c.e);
   });
 
+  // 记录 id 撞了必须分开：编辑取第一条、删除按 id 过滤全删，一旦重复就是
+  // 「改了 A 结果 B 也没了」。撞 id 时保留第一条、后面的重分配；票据仍指第一条，
+  // 这是确定的归属，不会把引用随机挪到另一个对象上。
+  var seenRec = Object.create(null);
   (Array.isArray(p.records) ? p.records : []).forEach(function(raw){
     var c = cleanRec(raw);
     if (!c) { dropped++; return; }
+    if (seenRec[c.r.id]) { c.r.id = uid(); c.fix = true; }
+    seenRec[c.r.id] = 1;
     if (c.r.eventId && renamed[c.r.eventId]) { c.r.eventId = renamed[c.r.eventId]; c.fix = true; }
     if (c.fix) fixed++;
     out.records.push(c.r);
@@ -3344,7 +3382,8 @@ function sanitizeDB(src){
   // 门票流水：id 撞了重分配；指向已不存在记录的指针一律解绑，
   // 否则「这张票用在哪场」会跳到一条查不到的记录。
   var recIds = Object.create(null);
-  out.records.forEach(function(r){ recIds[r.id] = 1; });
+  var recById = Object.create(null);
+  out.records.forEach(function(r){ recIds[r.id] = 1; recById[r.id] = r; });
   var seenT = Object.create(null);
   (Array.isArray(p.tickets) ? p.tickets : []).forEach(function(raw){
     var c = cleanTicket(raw);
@@ -3356,10 +3395,64 @@ function sanitizeDB(src){
     if (c.fix) fixed++;
     out.tickets.push(c.t);
   });
-  var ticketIds = Object.create(null);
-  out.tickets.forEach(function(t){ ticketIds[t.id] = 1; });
+
+  /* 票和记录是双向引用（record.ticketUsedId ↔ ticket.usedIn），导入的备份里
+     两边经常对不上：票说用在这、记录说用的是另一张，或者一张票被两场认领。
+     以前只校验「指向的东西还在」，于是界面出现两套真相（台账显示已用、
+     记录卡显示没选票）。这里做一次归一化，并以记录侧为主来源 ——
+     用户是在记录表单里选票的，那里才是编辑入口。
+     规则：一张票最多属于一条记录；一条记录最多用一张票。 */
+  var tById = Object.create(null);
+  out.tickets.forEach(function(t){ tById[t.id] = t; });
+  var claimed = Object.create(null);      // ticketId -> recordId
+
   out.records.forEach(function(r){
-    if (r.ticketUsedId && !ticketIds[r.ticketUsedId]) r.ticketUsedId = null;
+    if (!r.ticketUsedId) return;
+    var tk = tById[r.ticketUsedId];
+    if (!tk) {
+      // 票本身没了：解绑指针，但保留票面快照 —— 那是这场用过票的唯一证据
+      r.ticketUsedId = null;
+      fixed++;
+      return;
+    }
+    if (claimed[r.ticketUsedId]) {
+      // 这张票已经被前面的记录认领：后一条放手，票面也清零，避免同一张票算两场
+      r.ticketUsedId = null;
+      r.ticketCost = 0;
+      r.ticketCostCur = null;
+      fixed++;
+      return;
+    }
+    claimed[r.ticketUsedId] = r.id;
+    // 票面以票实体为准（票是真相来源）；票面没填时保留记录上的旧快照
+    if (money(tk.face) > 0) {
+      r.ticketCost = Math.max(0, money(tk.face));
+      r.ticketCostCur = tk.cur === 'USD' ? 'USD' : 'CNY';
+    }
+  });
+
+  out.tickets.forEach(function(t){
+    // 赠票不可能「从某场赢来」，这类脏数据直接解绑
+    if (t.source === 'gift' && t.earnedIn) { t.earnedIn = null; fixed++; }
+    var owner = claimed[t.id];
+    if (owner) {
+      if (t.usedIn !== owner) { t.usedIn = owner; fixed++; }
+      return;
+    }
+    if (!t.usedIn) return;
+    var r = recById[t.usedIn];
+    if (r && !r.ticketUsedId) {
+      // 只有票这一侧记着用在哪：补回记录指针，让表单能回显出这张票
+      r.ticketUsedId = t.id;
+      r.ticketCost = Math.max(0, money(t.face));
+      r.ticketCostCur = t.cur === 'USD' ? 'USD' : 'CNY';
+      claimed[t.id] = r.id;
+      fixed++;
+    } else {
+      // 记录已经用了别的票（或记录不存在）：这条 usedIn 落不到唯一归属上，解绑
+      t.usedIn = null;
+      fixed++;
+    }
   });
 
   // 期初：0 等同于没设，免得 hero 上挂一句「含期初 +¥0」
@@ -3379,8 +3472,10 @@ function sanitizeDB(src){
   };
 }
 
-/* 把清洗后的数据装进 db。persist=true 时无论如何落盘（导入用） */
-function adoptData(src, persist){
+/* 把清洗后的数据装进 db。persist=true 时无论如何落盘（导入用）。
+   silent=true 只装内存、不落盘：读盘发现原文损坏时用 —— 那时候主键里是唯一
+   能捞回的原文，绝不能拿清洗后的空库覆盖它。 */
+function adoptData(src, persist, silent){
   var s = sanitizeDB(src);
   db.schemaVersion = SCHEMA_VERSION;
   db.events = s.data.events;
@@ -3392,8 +3487,8 @@ function adoptData(src, persist){
   db.fxRate = s.data.fxRate;
   db.fxUpdatedAt = s.data.fxUpdatedAt;
   db.fxSource = s.data.fxSource;
-  // 老版本数据读上来会顺手写成 v2，下次打开就不用再转
-  if (persist || s.upgraded || s.dropped || s.fixed) saveDB();
+  // 老版本数据读上来会顺手写成最新版，下次打开就不用再转
+  if (!silent && (persist || s.upgraded || s.dropped || s.fixed)) saveDB();
   return s;
 }
 
@@ -3401,6 +3496,7 @@ var dbIssue = null;       // 读盘时发现的问题，启动后提示一次
 var storageOK = true;     // 本次会话写盘是否正常
 var rawBackup = null;     // 坏 JSON 原文的内存副本：.broken 写失败时最后一条线索
 var suspendWrites = false;// 原文没保住时禁止一切自动写盘，绝不覆盖原始账本
+var writeBlockMsg = '';   // 暂停写入时给用户看的原因（另存成功 / 失败文案不同）
 
 /* 写盘失败不能只靠一闪而过的 toast：这条常驻在页面顶部，还带导出入口 */
 function showStoreWarn(msg){
@@ -3416,20 +3512,31 @@ function loadDB(){
   try { raw = localStorage.getItem(LS_KEY); } catch(e) {}
   if (raw) {
     var p = null;
+    var brokenRaw = false;
     try { p = JSON.parse(raw); } catch(e) { p = null; }
-    if (!isObj(p)) {
+    // 合法 JSON 不等于合法账本：{"schemaVersion":6} 这种对象以前会被当成
+    // 「正常空账本」，随后一次保存就把原数据盖掉。records / events 不是数组
+    // 一律按读取失败处理，原文留底、暂停写入。
+    if (!isObj(p) || !Array.isArray(p.records) || !Array.isArray(p.events)) {
+      brokenRaw = true;
       // 解析不了先别急着覆盖：原文另存一份，还有手工捞回来的机会。
-      // 但「另存」本身也可能失败（配额满 / 隐私模式），这时内存里必须留一份，
-      // 并且禁止 adoptData 顺手把空库写回原键 —— 否则唯一能捞回的原文就没了。
+      // 关键点：无论另存成功与否，本次会话都不许写主键。
+      // 以前只有「另存失败」才 suspendWrites，另存成功时 adoptData 会顺手把
+      // 清洗后的空库写回 matchledger.v1 —— 主键里的原文就此消失，
+      // 兜底页再想「尝试修复」也只能修出一个空账本。
       rawBackup = raw;
       var backedUp = false;
       try { localStorage.setItem(LS_KEY + '.broken', raw); backedUp = true; } catch(e) {}
-      suspendWrites = !backedUp;
-      if (!backedUp) showStoreWarn('账本原文没能另存，已暂停自动写入。请先导出留底，别刷新页面。');
+      suspendWrites = true;
+      writeBlockMsg = backedUp
+        ? '账本读取失败，已暂停自动写入，防止覆盖原文。请先导出备份。'
+        : '账本原文没能另存，已暂停自动写入。请先导出留底，别刷新页面。';
+      if (!backedUp) showStoreWarn(writeBlockMsg);
       dbIssue = { kind: 'read', backedUp: backedUp };
       p = {};
     }
-    var s = adoptData(p, false);
+    // 原文损坏时只装内存不落盘；正常路径照旧顺手升级/整理
+    var s = adoptData(p, false, brokenRaw);
     // 老版本升到 v2 时每条记录都会"被整理"（金额转 number、buys→buyCount），
     // 这是格式升级不是数据损坏，不该弹「已整理 N 条」吓人
     if (!dbIssue && (s.dropped || (s.fixed && !s.upgraded))) {
@@ -3453,11 +3560,16 @@ function saveDB(){
   dbRev++;          // 内存数据已变，筛选缓存无论如何都要失效
   markAllDirty();
   if (suspendWrites) {
-    showStoreWarn('账本原文没能另存，已暂停自动写入。请先导出留底，别刷新页面。');
+    showStoreWarn(writeBlockMsg || '账本原文没能另存，已暂停自动写入。请先导出留底，别刷新页面。');
     return false;
   }
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(db));
+    // 之前失败过一次（配额满 / 隐私模式）后来又能写了，提示要跟着恢复，
+    // 否则用户释放了空间、后续每次都还被告知「没存上」
+    storageOK = true;
+    var w = document.getElementById('storeWarn');
+    if (w) w.classList.add('hidden');
     return true;
   } catch(e) {
     showStoreWarn('本机存储不可用，改动还没存上。请先导出备份，刷新会丢。');
@@ -3941,16 +4053,18 @@ function recCardHTML(r){
 
   // 副行拆成几段：窄屏放不下时整段折行，不会把「3 手」拆成「3」和「手」
   var tc = ticketCostOf(r), tw = ticketWonOf(r);
+  // 票面按票自己的币种显示：$500 的票用在一场 ¥ 记录里，不能写成 ¥500
+  var tcur = ticketCostCurOf(r);
   var metaBits = [esc(fmtWhen(r.time))];
   // 平台放最前面：它回答的是「这场在哪儿」，比成本更接近「这是哪一场」
   var pname0 = platformNameOf(r);
   if (pname0) metaBits.push(esc(pname0));
   if (isSatellite(r)) metaBits.push('卫星赛');
   if (usedTicketOf(r) && money(r.cost) > 0) {
-    metaBits.push('成本 票' + (tc > 0 ? ' ' + fmtIn(tc, cur) : '（面值未填）')
+    metaBits.push('成本 票' + (tc > 0 ? ' ' + fmtIn(tc, tcur) : '（面值未填）')
       + ' + 现金 ' + fmtIn(money(r.cost), cur));
   } else if (usedTicketOf(r)) {
-    metaBits.push('成本 门票' + (tc > 0 ? ' ' + fmtIn(tc, cur) : '（面值未填）'));
+    metaBits.push('成本 门票' + (tc > 0 ? ' ' + fmtIn(tc, tcur) : '（面值未填）'));
   } else {
     metaBits.push('成本 ' + fmtIn(money(r.cost), cur));
   }
@@ -3968,7 +4082,7 @@ function recCardHTML(r){
       + (incCash > 0 ? ' · 现金 ' + fmtIn(incCash, cur) : ''))
     : '收益 ' + fmtIn(incCash, cur);
 
-  return '<button class="rec" data-open="' + r.id + '">'
+  return '<button class="rec" data-open="' + esc(r.id) + '">'
     + '<span class="rank' + rankCls + '">' + rankTxt + '</span>'
     + '<span class="rec-main">'
       + '<span class="rec-title">' + esc(r.eventName || '未命名比赛') + '</span>'
@@ -4530,7 +4644,7 @@ function renderEvents(){
     // 混进 meta 那行会跟「进圈率 / 最好 #3」抢注意力
     var pname = platformNameById(e.platformId);
 
-    return '<button class="ev" data-event="' + e.id + '">'
+    return '<button class="ev" data-event="' + esc(e.id) + '">'
       + '<span class="ev-top">'
         + '<span class="ev-name">' + esc(e.name) + '</span>'
         + '<span class="ev-net ' + (s.n ? cls(s.net) : 'zero') + '">' + (s.n ? signed(s.net) : signed(0)) + '</span>'
@@ -5199,7 +5313,7 @@ function deleteTicket(id){
     if (!ok) return;
     db.tickets = (db.tickets || []).filter(function(x){ return x.id !== id; });
     db.records.forEach(function(r){
-      if (r.ticketUsedId === id) { r.ticketUsedId = null; r.ticketCost = 0; }
+      if (r.ticketUsedId === id) { r.ticketUsedId = null; r.ticketCost = 0; r.ticketCostCur = null; }
     });
     if (t.earnedIn) {
       var er = db.records.filter(function(x){ return x.id === t.earnedIn; })[0];
@@ -5466,8 +5580,8 @@ function showFatal(err, mode){
   var backedUp = !(dbIssue && dbIssue.backedUp === false);
   if (p) p.innerHTML = readMode
     ? (backedUp
-        ? '账本文件没能解析。<br><b>原始内容已另存</b>：先导出留底，再决定怎么恢复。'
-        : '账本文件没能解析，本机存储也写不进去。<br><b>原文只在内存里</b>：立刻导出留底，刷新就没了。')
+        ? '账本文件没能解析或结构不完整。<br><b>原始内容已另存</b>：先导出留底，再决定怎么恢复。'
+        : '账本文件没能解析或结构不完整，本机存储也写不进去。<br><b>原文只在内存里</b>：立刻导出留底，刷新就没了。')
     : '数据里有一条格式不对，界面画到一半停了。<br><b>记录都还在</b>：先备份，再点「尝试修复」。';
   if (msg) msg.textContent = readMode
     ? (backedUp ? '原文：matchledger.v1.broken' : '原文：暂存在内存中，刷新即丢失')
@@ -5725,11 +5839,19 @@ function renderTicketChips(){
   var box = $('#fTicketChips');
   if (!box || !form) return;
   var cur = form.ticketUsedId || '';
+  var recTime = form.time || '';
   var list = ticketSorted((Array.isArray(db.tickets) ? db.tickets : []).filter(function(t){
-    return !t.usedIn || t.id === cur;
+    if (t.usedIn && t.id !== cur) return false;      // 已经被别的场用掉了
+    if (t.id === cur) return true;                   // 当前选中的那张始终列出来
+    // 补录更早的比赛时，不该能选「后来才赢到」的票 —— 那会造出
+    // 「先用了、后来又赢」的不可能流水。保存时还有一道同样的校验。
+    if (recTime && t.date && t.date > recTime) return false;
+    return true;
   }));
   if (!list.length) {
-    box.innerHTML = '<div class="tkempty">台账里还没有可用的票。<br>'
+    var anyT = (Array.isArray(db.tickets) ? db.tickets : []).length;
+    box.innerHTML = '<div class="tkempty">'
+      + (anyT ? '这个时间点之前还没有赢到或登记的票。<br>' : '台账里还没有可用的票。<br>')
       + '免费获赠的票需要先登记：</div>'
       + '<button type="button" class="tkchip" data-gotogift>'
       + '<span class="tkchip-main"><span class="tkchip-b">去登记一张赠票 ›</span>'
@@ -5989,7 +6111,12 @@ function openRecordForm(id){
       costKind: usedTicketOf(r) ? (money(r.cost) > 0 ? 'both' : 'ticket') : 'cash',
       // 三个态反推：赢到票 + 有现金 → 票 + 现金；只赢票 → 赢门票；否则现金。
       // 老数据没有 both 这一态，靠这两个条件自然落回原来那两种，不用迁移。
-      incomeKind: wonTicketOf(r) ? (money(r.income) > 0 ? 'both' : 'ticket') : 'cash'
+      incomeKind: wonTicketOf(r) ? (money(r.income) > 0 ? 'both' : 'ticket') : 'cash',
+      // 赛事整条被删掉时（记录还留着），这两个快照就是唯一能证明「当时是什么赛」
+      // 的东西。保存时赛事查不到就回落到这里，不能默默变成常规赛 / 无平台。
+      eventKind: r.eventKind === 'satellite' ? 'satellite' : 'regular',
+      platformId: r.platformId || '',
+      platformName: r.platformName || ''
     };
   } else {
     // 新记录不带任何上一场的东西：人数、金额、币种、票、收益类型全空。
@@ -6021,22 +6148,41 @@ function saveRecord(){
   // 门票面值单独存，不塞进 cost / income —— 净收益公式保持现金口径。
   var cost = (form.costKind === 'ticket') ? 0 : Math.max(0, money($('#fCost').value));
   var income = (form.incomeKind === 'ticket') ? 0 : Math.max(0, money($('#fIncome').value));
-  var eventKind = eventKindOf(eventById(form.eventId));
-  // v6：平台跟着赛事走，记录上存 id + 名字快照
-  var evPlat = eventById(form.eventId);
-  var platformId = (evPlat && typeof evPlat.platformId === 'string') ? evPlat.platformId : '';
-  var platformName = platformNameById(platformId);
+  // 编辑时的原记录：赛事被删掉后，它是类型 / 平台快照的唯一来源
+  var prev = form.id ? db.records.filter(function(x){ return x.id === form.id; })[0] : null;
+  var evNow = eventById(form.eventId);
+  // 类型：新建记录跟赛事走；编辑已有记录一律保留它自己的快照 —— 即使赛事后来
+  // 改过类型，也不该因为「改了个备注」就把这一场重新归类。要改归类就重建记录
+  // 或在比赛管理里明确处理，不能让它悄悄漂。
+  var eventKind = prev
+    ? (prev.eventKind === 'satellite' ? 'satellite' : 'regular')
+    : (evNow ? eventKindOf(evNow) : (form.eventKind || 'regular'));
+  var platformId = evNow
+    ? ((typeof evNow.platformId === 'string') ? evNow.platformId : '')
+    : (prev ? (prev.platformId || '') : (form.platformId || ''));
+  var platformName = evNow
+    ? platformNameById(platformId)
+    : (prev ? (prev.platformName || '') : (form.platformName || ''));
   var note = ($('#fNote').value || '').trim();
 
   // v4：用票必须指到台账里具体的一张（赠票也一样），面值从票上取，不再手填
   var needTicket = form.costKind !== 'cash';
   var ticketUsedId = needTicket ? (form.ticketUsedId || null) : null;
-  if (needTicket && (!ticketUsedId || !ticketById(ticketUsedId))) {
+  var usedT = ticketUsedId ? ticketById(ticketUsedId) : null;
+  if (needTicket && !usedT) {
     toast('先选一张要用的门票；赠票要先在门票台账登记');
     return;
   }
-  var usedT = ticketUsedId ? ticketById(ticketUsedId) : null;
+  // 不能用「还没赢到」的票：补录更早的比赛时，台账里后来的票不该出现。
+  // 例外：编辑一条本来就绑着这张票的旧记录时放行，不能因为历史数据不合规就锁死编辑。
+  var keptOldTicket = !!(prev && usedT && prev.ticketUsedId === usedT.id);
+  if (usedT && usedT.date && form.time && usedT.date > form.time && !keptOldTicket) {
+    toast('这张票是 ' + fmtWhen(usedT.date) + ' 才赢到的，不能用在更早的比赛上');
+    return;
+  }
   var ticketCost = usedT ? Math.max(0, money(usedT.face)) : 0;
+  // 票面快照带上票自己的币种：$ 票用在一场 ¥ 记录里，显示不能变成 ¥
+  var ticketCostCur = usedT ? (usedT.cur === 'USD' ? 'USD' : 'CNY') : null;
   var wonN = (form.incomeKind === 'cash') ? 0
     : Math.max(1, Math.min(5, parseInt(form.ticketWonN, 10) || 1));
   var wonEach = (form.incomeKind === 'cash') ? 0 : Math.max(0, money($('#fTicketWon').value));
@@ -6068,13 +6214,14 @@ function saveRecord(){
   }
 
   if (form.id) {
-    var r = db.records.filter(function(x){ return x.id === form.id; })[0];
+    var r = prev;
     if (r) {
       r.eventId = form.eventId; r.eventName = form.eventName; r.time = form.time;
       r.rank = rankRaw; r.cost = cost; r.income = income; r.note = note;
       r.stage = form.stage; r.cur = form.cur || 'CNY';
       r.buyCount = buysOf({ buyCount: form.buys });
-      r.ticketCost = ticketCost; r.ticketWon = ticketWon;
+      r.ticketCost = ticketCost; r.ticketCostCur = ticketCostCur;
+      r.ticketWon = ticketWon;
       r.ticketWonN = wonN; r.ticketUsedId = ticketUsedId;
       r.fieldSize = fieldSize;
       r.eventKind = eventKind;
@@ -6086,7 +6233,8 @@ function saveRecord(){
       id: rid, eventId: form.eventId, eventName: form.eventName, time: form.time,
       rank: rankRaw, cost: cost, income: income, note: note, stage: form.stage,
       cur: form.cur || 'CNY', buyCount: buysOf({ buyCount: form.buys }),
-      eventKind: eventKind, ticketCost: ticketCost, ticketWon: ticketWon,
+      eventKind: eventKind, ticketCost: ticketCost, ticketCostCur: ticketCostCur,
+      ticketWon: ticketWon,
       ticketWonN: wonN, ticketUsedId: ticketUsedId,
       fieldSize: fieldSize,
       platformId: platformId, platformName: platformName,
@@ -6259,7 +6407,7 @@ $('#btnDelete').addEventListener('click', function(){
     });
     db.tickets.forEach(function(t){ if (t.usedIn === rid) t.usedIn = null; });
     db.records.forEach(function(r){
-      if (r.ticketUsedId && gone[r.ticketUsedId]) { r.ticketUsedId = null; r.ticketCost = 0; }
+      if (r.ticketUsedId && gone[r.ticketUsedId]) { r.ticketUsedId = null; r.ticketCost = 0; r.ticketCostCur = null; }
     });
     db.records = db.records.filter(function(x){ return x.id !== rid; });
     saveDB(); renderAll(); closeModal('mRecord'); toast('已删除');
@@ -6332,7 +6480,7 @@ function renderPickerList(kw){
   list.forEach(function(e){
     var n = db.records.filter(function(r){ return r.eventId === e.id; }).length;
     var cur = form && form.eventId === e.id ? ' cur' : '';
-    html += '<button class="pick' + cur + '" data-pick="' + e.id + '">'
+    html += '<button class="pick' + cur + '" data-pick="' + esc(e.id) + '">'
       + '<span class="pname">' + esc(e.name) + '</span>'
       + '<span class="pmeta">' + (n ? n + ' 场' : '未使用') + '</span>'
     + '</button>';
@@ -6473,12 +6621,15 @@ $('#btnEventSave').addEventListener('click', function(){
     editingEvent.paidPct = paidPct;
     editingEvent.kind = kind;
     editingEvent.platformId = pid;
-    // 名称、类型、平台都是快照：改比赛时同步历史记录，统计归类不会一半新一半旧。
+    // 名称和平台是快照：改比赛时同步历史记录，统计归类不会一半新一半旧。
     // 记录上的平台只跟着「赛事改平台」走 —— 单场临时换平台不在界面上开放，
     // 免得同一场比赛的记录分属两个平台，看着像数据错。
+    // eventKind 故意不同步：它是「当时那场是什么赛制」的历史事实。把常规赛
+    // 改成卫星赛，不该让已经打过的成绩集体改口径（进圈率 / FT 率会全变），
+    // 门票流水也不会跟着重建。类型只影响之后新建的记录。
     db.records.forEach(function(r){
       if (r.eventId === editingEvent.id) {
-        r.eventName = name; r.eventKind = kind;
+        r.eventName = name;
         r.platformId = pid; r.platformName = pname;
       }
     });
@@ -6899,9 +7050,24 @@ $('#fatalExport').addEventListener('click', function(){
   download(raw, '赛场账本备份_' + stamp() + '.json', 'application/json;charset=utf-8');
 });
 $('#fatalFix').addEventListener('click', function(){
+  // 依次试主键、.broken、内存原文，取第一份「能解析且真的是账本」的。
+  // 以前只读主键：主键若被写成空库，点「修复」只会把空库再洗一遍。
+  var cands = [];
+  try { cands.push(localStorage.getItem(LS_KEY) || ''); } catch(e) {}
+  try { cands.push(localStorage.getItem(LS_KEY + '.broken') || ''); } catch(e) {}
+  if (rawBackup) cands.push(rawBackup);
   var p = null;
-  try { p = JSON.parse(localStorage.getItem(LS_KEY) || ''); } catch(e) {}
-  adoptData(p || {}, true);   // 认不出来的记录会被丢掉，能救的照旧保留
+  for (var i = 0; i < cands.length && !p; i++) {
+    if (!cands[i]) continue;
+    var parsed = null;
+    try { parsed = JSON.parse(cands[i]); } catch(e) { parsed = null; }
+    if (isObj(parsed) && Array.isArray(parsed.records) && Array.isArray(parsed.events)) p = parsed;
+  }
+  if (!p) { toast('没找到能修复的账本，先导出备份'); return; }
+  // 用户主动修复：解除读盘时的写入封锁，让清洗后的数据能重新落盘
+  suspendWrites = false;
+  writeBlockMsg = '';
+  adoptData(p, true);   // 认不出来的记录会被丢掉，能救的照旧保留
   toast('已整理，正在重新加载');
   setTimeout(function(){ location.reload(); }, 400);
 });
