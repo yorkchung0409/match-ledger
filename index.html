@@ -1166,12 +1166,6 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 .panel{padding:14px 15px;border-radius:var(--r-md);background:var(--card-bg);border:var(--bw) solid var(--line-2);box-shadow:var(--shadow-md)}
 .share{display:flex;gap:3px;height:7px;margin-bottom:13px}
 .share i{display:block;border-radius:var(--r-pill);min-width:6px}
-.s-ft{background:var(--brand)}
-.s-itm{background:rgba(var(--brand-rgb),.38)}
-.s-out{background:rgba(var(--line-rgb),.22)}
-/* 卫星赛的两档：赢到票 / 没赢到。用同一套深浅，别让两个 tab 像两套设计 */
-.s-win{background:var(--brand)}
-.s-miss{background:rgba(var(--line-rgb),.22)}
 /* 命中率下面那条占比，和上面的数字拉开一点 */
 .sat-share{margin-top:12px}
 .stagelist{list-style:none;margin:0;padding:0}
@@ -1631,7 +1625,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
   z-index:80;padding:10px 18px;border-radius:var(--r-btn);font-size:13px;
   background:var(--toast-bg);border:var(--bw) solid var(--toast-line);color:#fff;
   box-shadow:0 12px 30px rgba(var(--sh-rgb),.24);opacity:0;pointer-events:none;transition:.25s;
-  max-width:80vw;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:86vw;text-align:center;line-height:1.5;word-break:break-word;
   backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
 }
 #toast.show{opacity:1;transform:translate(-50%,0)}
@@ -1708,6 +1702,16 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
   .buyrow-l{font-size:10px}
   .buychips{gap:3px}
   .buychips button{min-width:27px;font-size:10.5px}
+}
+
+/* 系统开了「减少动态效果」就关掉过渡和动画；滚动由 JS 的 scrollToTop 处理 */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.001ms!important;
+    scroll-behavior:auto!important;
+  }
 }
 </style>
 </head>
@@ -2157,7 +2161,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
                 <div style="display:flex;align-items:center;gap:4px"><span class="fprefix" data-cursym>¥</span><input class="finput" id="fTicketWon" placeholder="0" inputmode="decimal" autocomplete="off"></div>
               </div>
             </div>
-            <div class="kindrow" id="fTicketWonNRow">
+            <div class="kindrow">
               <span class="kindrow-l">赢票张数</span>
               <div class="buychips" id="fTicketWonN" role="group" aria-label="本场赢到几张票">
                 <button type="button" data-n="1">×1</button>
@@ -2673,7 +2677,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 </div>
 
 <input type="file" id="fileInput" accept=".json,application/json" style="display:none">
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 
 <!-- 渲染中断时的兜底页：静态写死在 HTML 里，不依赖任何渲染函数 -->
 <div class="fatal hidden" id="fatal">
@@ -2703,6 +2707,25 @@ var ITEM_H = 40;
 
 var $ = function(s, r){ return (r||document).querySelector(s); };
 var $$ = function(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+
+/* 输入框防抖：搜索是每敲一个字就重画整份列表，记录多了会明显掉帧 */
+function debounce(fn, ms){
+  var t = null;
+  return function(){
+    var self = this, args = arguments;
+    clearTimeout(t);
+    t = setTimeout(function(){ fn.apply(self, args); }, ms);
+  };
+}
+
+/* 回到顶部：系统开了「减少动态效果」就别再滑，直接跳 */
+function scrollToTop(){
+  var reduce = false;
+  try {
+    reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  } catch(e) {}
+  window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+}
 
 function uid(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -3627,6 +3650,7 @@ var state = {
   dataPlat: 'all'
 };
 var form = null;      // 当前编辑的记录
+var formSnapshot = ''; // 打开表单时的字段快照，用来拦「误触关闭」
 var editingEvent = null;
 
 /* 展示币种存在独立的 key 里：它是「看的方式」，不属于要备份的数据 */
@@ -5633,7 +5657,7 @@ function jumpToRecords(){
   dirty.records = true;
   if (state.view === 'records') paintView('records', true);
   else switchView('records');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  scrollToTop();
 }
 
 function renderAll(){
@@ -5715,7 +5739,7 @@ function switchView(v, fromPop){
     if (v === 'events') pushNav('events');
     else replaceNav(v);
   }
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  scrollToTop();
 }
 
 window.addEventListener('popstate', function(){
@@ -5840,7 +5864,12 @@ document.addEventListener('keydown', function(e){
   var open = $$('.modal.open');
   if (!open.length) return;
   e.preventDefault();
-  closeModal(open[open.length - 1].id);
+  var top = open[open.length - 1];
+  // 记一笔改过内容时，Esc 也走「确认放弃」，和点遮罩/取消一致
+  if (top.id === 'mRecord') { closeRecordSafely(); return; }
+  // Esc 关确认框要当作「取消」，否则 askConfirm 的 Promise 永远不 resolve
+  if (top.id === 'mConfirm' && confirmResolve) { confirmResolve(false); confirmResolve = null; }
+  closeModal(top.id);
 });
 
 /* ================= toast ================= */
@@ -5848,11 +5877,15 @@ var toastTimer = null;
 function toast(msg){
   var t = $('#toast');
   // 写盘失败期间，所有「已保存 / 已删除 / 已恢复」都不能原样报成功
-  t.textContent = (!storageOK && typeof msg === 'string')
+  var text = (!storageOK && typeof msg === 'string')
     ? msg + ' · 未存上本机，先导出备份' : msg;
+  t.textContent = text;
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(function(){ t.classList.remove('show'); }, storageOK ? 1800 : 3000);
+  // 长提示（比如「第 88 名超出钱圈」的自检）要留够读完的时间；
+  // 以前固定 1.8s，长句还没看完就没了
+  var ms = Math.max(1800, Math.min(6000, String(text || '').length * 80));
+  toastTimer = setTimeout(function(){ t.classList.remove('show'); }, storageOK ? ms : Math.max(ms, 3000));
 }
 
 /* ================= 确认框 ================= */
@@ -6154,6 +6187,35 @@ function syncItmUI(){
   }
 }
 
+/* 记录表单改过没有：只比对会落进记录的那些字段。
+   金额/名次/人数是用户直接敲在 input 里的，form 上的副本不一定同步，所以读 DOM。 */
+function formSignature(){
+  if (!form) return '';
+  var v = function(sel){ var el = $(sel); return el ? String(el.value || '') : ''; };
+  return [
+    form.id, form.eventId, form.time, form.stage, form.cur, form.buys,
+    form.costKind, form.incomeKind, form.ticketUsedId, form.ticketWonN,
+    v('#fRank'), v('#fFieldSize'), v('#fCost'), v('#fIncome'),
+    v('#fTicketWon'), v('#fNote')
+  ].join('\u0001');
+}
+function formDirty(){
+  return !!form && formSnapshot !== '' && formSignature() !== formSnapshot;
+}
+/* 遮罩 / 取消 / Esc 都可能误触：改过就先问一句，别让人白填一场 */
+function closeRecordSafely(){
+  if (!formDirty()) { closeModal('mRecord'); return; }
+  askConfirm({
+    title: '放弃这笔记录？',
+    desc: '已经填的内容还没保存，关掉就没了。',
+    ok: '放弃', danger: true
+  }).then(function(ok){
+    if (!ok) return;
+    formSnapshot = '';
+    closeModal('mRecord');
+  });
+}
+
 function openRecordForm(id){
   var r = id ? db.records.filter(function(x){ return x.id === id; })[0] : null;
   if (r) {
@@ -6197,6 +6259,7 @@ function openRecordForm(id){
   // 预选了比赛（记录页正筛着它）就把这场的一手买入价带出来 —— 那是赛事的固定设定，
   // 不属于「上一场的记忆」，不带反而要人去比赛管理里查一遍。没预选就什么都不填。
   if (!form.id) applyBuyin();
+  formSnapshot = formSignature();   // 关窗时用它判断「有没有改过」
   openModal('mRecord');
 }
 
@@ -6332,6 +6395,7 @@ function saveRecord(){
   var paidCnt = paidCountOf({ fieldSize: fieldSize, eventId: form.eventId });
   var warn = (form.stage !== 'out' && paidCnt && rankRaw && parseInt(rankRaw, 10) > paidCnt)
     ? '注意：第 ' + rankRaw + ' 名超出钱圈（前 ' + paidCnt + ' 名），档位可能选错' : '';
+  formSnapshot = '';   // 已经存了，关窗不该再提示「放弃」
   closeModal('mRecord');
   var msg = off ? '已保存 · 已显示全部时间' : (form.id ? '已更新' : '已记录');
   toast(warn ? msg + ' · ' + warn : msg);
@@ -6479,7 +6543,7 @@ $('#btnDelete').addEventListener('click', function(){
       if (r.ticketUsedId && gone[r.ticketUsedId]) { r.ticketUsedId = null; r.ticketCost = 0; r.ticketCostCur = null; }
     });
     db.records = db.records.filter(function(x){ return x.id !== rid; });
-    saveDB(); renderAll(); closeModal('mRecord'); toast('已删除');
+    saveDB(); renderAll(); formSnapshot = ''; closeModal('mRecord'); toast('已删除');
   });
 });
 
@@ -6532,9 +6596,12 @@ function renderPickerList(kw){
   var list = db.events.filter(function(e){
     return !q || String(e.name).toLowerCase().indexOf(q.toLowerCase()) >= 0;
   });
+  // 场次数一次算完：以前排序和渲染各对每个赛事 filter 一遍全量记录，
+  // 是 O(赛事 × 记录)，搜索每敲一个字都重算一次
+  var cnt = eventCounts();
   list.sort(function(a, b){
-    var na = db.records.filter(function(r){ return r.eventId === a.id; }).length;
-    var nb = db.records.filter(function(r){ return r.eventId === b.id; }).length;
+    var na = cnt[a.id] || 0;
+    var nb = cnt[b.id] || 0;
     if (na !== nb) return nb - na;
     return String(a.name).localeCompare(String(b.name), 'zh');
   });
@@ -6547,7 +6614,7 @@ function renderPickerList(kw){
       + '</button>';
   }
   list.forEach(function(e){
-    var n = db.records.filter(function(r){ return r.eventId === e.id; }).length;
+    var n = cnt[e.id] || 0;
     var cur = form && form.eventId === e.id ? ' cur' : '';
     html += '<button class="pick' + cur + '" data-pick="' + esc(e.id) + '">'
       + '<span class="pname">' + esc(e.name) + '</span>'
@@ -6611,8 +6678,11 @@ $('#pickerPlat').addEventListener('click', function(e){
   paintPickerNew($('#pickerSearch').value);
 });
 
+/* 搜索防抖 120ms：每敲一个字就重画整份列表，记录多了会掉帧；
+   停止输入后 120ms 内一定重画，点「新建」时列表也是最新的 */
+var renderPickerListSoon = debounce(function(v){ renderPickerList(v); }, 120);
 $('#pickerSearch').addEventListener('input', function(){
-  renderPickerList(this.value);
+  renderPickerListSoon(this.value);
 });
 
 /* ================= 比赛管理 ================= */
@@ -6731,7 +6801,7 @@ $('#btnEventDelete').addEventListener('click', function(){
   });
 });
 
-$('#eventSearch').addEventListener('input', renderEvents);
+$('#eventSearch').addEventListener('input', debounce(renderEvents, 120));
 
 /* ================= 平台管理 =================
    平台表很小（一般 2~5 个），改名/删除都直接改 db.platforms 并同步快照。
@@ -7319,7 +7389,9 @@ document.addEventListener('click', function(e){
 
   var closeBtn = e.target.closest ? e.target.closest('[data-close]') : null;
   if (closeBtn) {
-    closeModal(closeBtn.getAttribute('data-close'));
+    var closeId = closeBtn.getAttribute('data-close');
+    if (closeId === 'mRecord') { closeRecordSafely(); return; }
+    closeModal(closeId);
     return;
   }
   var addBtn = e.target.closest ? e.target.closest('[data-add]') : null;
