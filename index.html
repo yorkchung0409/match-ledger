@@ -1057,7 +1057,10 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 .lr-meta.gain{color:var(--gain)}
 .lr-meta.loss{color:var(--loss)}
 .lr-chev{flex:0 0 auto;color:var(--muted-3);font-size:18px;line-height:1;margin-right:-3px}
-
+/* 数据页顶部那个「比赛管理」入口：不加标题行，靠这行留白跟下面的统计范围拉开 */
+.toprow{margin-bottom:12px}
+/* 数据管理里两条设置项叠在一起，统一间距，别再各自 margin 打架 */
+.stack{display:flex;flex-direction:column;gap:9px}
 /* ---------- empty ---------- */
 .empty{text-align:center;padding:52px 20px 40px;color:var(--muted-2)}
 .empty .ico{width:64px;height:64px;margin:0 auto 16px;border-radius:calc(var(--r-md) + 2px);display:grid;place-items:center;
@@ -1829,6 +1832,20 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 
     <!-- ========== 数据 ========== -->
     <section id="view-data" class="hidden">
+      <!-- 比赛管理放最上面：它是数据页唯一的「编辑入口」，其余都是看数。
+           埋在最底部要滚一屏半才找得到，找它的人每次都得先路过一堆图表。 -->
+      <button class="linkrow toprow" id="goEvents">
+        <span class="lr-ico">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M17 5.5h2.2a1.8 1.8 0 0 1 0 3.6H17"/><path d="M7 5.5H4.8a1.8 1.8 0 0 0 0 3.6H7"/><path d="M12 15v4"/><path d="M8 21h8"/></svg>
+        </span>
+        <span class="lr-body">
+          <b>比赛管理</b>
+          <em>赛事、类型、一手买入与平台</em>
+        </span>
+        <span class="lr-meta" id="evCount">0 个</span>
+        <span class="lr-chev">›</span>
+      </button>
+
       <div class="dscope" id="dataScope">
         <button class="dscope-btn" id="btnDateData" aria-label="选择统计时间范围" aria-haspopup="dialog">
           <span class="ds-ico">
@@ -1923,43 +1940,32 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         <div class="recbook" id="recBook"></div>
       </div>
 
-      <div class="sec"><span class="bar"></span><h2>比赛管理</h2></div>
-      <button class="linkrow" id="goEvents">
-        <span class="lr-ico">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M17 5.5h2.2a1.8 1.8 0 0 1 0 3.6H17"/><path d="M7 5.5H4.8a1.8 1.8 0 0 0 0 3.6H7"/><path d="M12 15v4"/><path d="M8 21h8"/></svg>
-        </span>
-        <span class="lr-body">
-          <b>全部比赛</b>
-          <em>每场的成绩与收支汇总</em>
-        </span>
-        <span class="lr-meta" id="evCount">0 个</span>
-        <span class="lr-chev">›</span>
-      </button>
+      <div class="sec"><span class="bar"></span><h2>数据管理</h2><span class="spacer"></span><span class="hint">设置与备份</span></div>
+      <div class="stack">
+        <button class="linkrow" id="goOpening">
+          <span class="lr-ico">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 11.6a8.4 8.4 0 1 0 2.5-5.9"/><path d="M3.4 4.4v4.4h4.4"/><path d="M12 8v4.4l3 1.7"/></svg>
+          </span>
+          <span class="lr-body">
+            <b>期初结余</b>
+            <em>记账之前已经累计的盈亏</em>
+          </span>
+          <span class="lr-meta" id="openingMeta">未设置</span>
+          <span class="lr-chev">›</span>
+        </button>
 
-      <div class="sec"><span class="bar"></span><h2>数据管理</h2></div>
-      <button class="linkrow" id="goOpening">
-        <span class="lr-ico">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 11.6a8.4 8.4 0 1 0 2.5-5.9"/><path d="M3.4 4.4v4.4h4.4"/><path d="M12 8v4.4l3 1.7"/></svg>
-        </span>
-        <span class="lr-body">
-          <b>期初结余</b>
-          <em>记账之前已经累计的盈亏</em>
-        </span>
-        <span class="lr-meta" id="openingMeta">未设置</span>
-        <span class="lr-chev">›</span>
-      </button>
-
-      <button class="linkrow" id="goRate">
-        <span class="lr-ico">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 8.4h13.2l-3-3"/><path d="M20.4 15.6H7.2l3 3"/></svg>
-        </span>
-        <span class="lr-body">
-          <b>美元汇率</b>
-          <em>美元桌换算成人民币的比例</em>
-        </span>
-        <span class="lr-meta" id="rateMeta">默认 1 : 7.0</span>
-        <span class="lr-chev">›</span>
-      </button>
+        <button class="linkrow" id="goRate">
+          <span class="lr-ico">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 8.4h13.2l-3-3"/><path d="M20.4 15.6H7.2l3 3"/></svg>
+          </span>
+          <span class="lr-body">
+            <b>美元汇率</b>
+            <em>美元桌换算成人民币的比例</em>
+          </span>
+          <span class="lr-meta" id="rateMeta">默认 1 : 7.0</span>
+          <span class="lr-chev">›</span>
+        </button>
+      </div>
 
       <div class="acts">
         <button class="btn" id="btnCsv">
