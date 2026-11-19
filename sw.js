@@ -2,7 +2,7 @@
    目标：断网也能打开并记账。页面只有 index.html 一份，其余是图标与 manifest。
    策略：导航请求 network-first（在线总拿最新，离线回缓存），静态资源 cache-first + 后台更新。 */
 
-const VERSION = 'v26';
+const VERSION = 'v27';
 const CACHE = 'matchledger-' + VERSION;
 /* 主题化 manifest 的小仓库。故意不叫 matchledger- 开头 —— activate 会把旧版本
    缓存全清掉，而这个得跨版本留着，否则每次更新后第一次冷启动又退回浅色。 */
@@ -78,18 +78,26 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // 页面本身：先网络，失败（断网）再给缓存
+  // 页面本身：先网络，失败（断网 / Pages 暂时回 404、500）再给缓存
   if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req)
         .then((res) => {
-          if (res && res.ok) {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put('./index.html', copy)).catch(() => {});
-          }
+          // 只有 2xx 才算「拿到了页面」。部署窗口期 Pages 可能短暂返回 404/500，
+          // 那是「现在打不开」，不是「页面长这样」—— 把错误页递给用户，
+          // 等于连已缓存的账本都不给看。非 2xx 一律走下面的缓存回退。
+          if (!res || !res.ok) throw new Error('navigation failed: ' + (res ? res.status : 'no response'));
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put('./index.html', copy)).catch(() => {});
           return res;
         })
-        .catch(() => caches.match('./index.html').then((hit) => hit || caches.match('./')))
+        .catch(async () => {
+          const hit = await caches.match('./index.html') || await caches.match('./');
+          return hit || new Response('离线且本机还没有缓存，联网后再打开一次。', {
+            status: 503,
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+          });
+        })
     );
     return;
   }

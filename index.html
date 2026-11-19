@@ -3051,8 +3051,11 @@ function cleanRec(r){
     fix = true;
   } else if (t !== r.time) fix = true;
 
+  // 名次必须 ≥ 1：0 不是名次，存成 "0" 只会在界面上变成「#—」，还会让
+  // 进圈记录看起来像没填名次。顺手去掉前导 0（"007" → "7"）。
   var rank = String(r.rank == null ? '' : r.rank).trim();
-  if (!/^\d{1,9}$/.test(rank)) rank = '';
+  if (!/^\d{1,9}$/.test(rank) || !(parseInt(rank, 10) > 0)) rank = '';
+  else if (String(parseInt(rank, 10)) !== rank) rank = String(parseInt(rank, 10));
   if (rank !== r.rank) fix = true;
 
   // 金额：负数没有意义（成本记错了应该改记录，不是留个负成本参与统计）
@@ -3334,8 +3337,16 @@ function sanitizeDB(src){
     var c = cleanEvent(raw);
     if (!c) { dropped++; return; }
     var orig = (isObj(raw) && typeof raw.id === 'string') ? raw.id : '';
-    if (seen[c.e.id]) { c.e.id = uid(); c.fix = true; }   // 撞 id 会让"按比赛筛选"串场
-    if (orig && orig !== c.e.id) renamed[orig] = c.e.id;
+    if (seen[c.e.id]) {
+      // 撞 id：后来的重分配，但**不写进 renamed** —— 原来指向这个 id 的记录
+      // 属于第一个赛事，不能被挪到后一个同名 id 上（以前后一个会覆盖映射，
+      // 导致整批记录串场）。只有 id 非法被换掉时才需要重映射引用。
+      c.e.id = uid();
+      c.fix = true;
+    } else if (orig && orig !== c.e.id && !renamed[orig]) {
+      // 同一个非法 id 出现多次时保留第一条的映射，后面的不再覆盖
+      renamed[orig] = c.e.id;
+    }
     seen[c.e.id] = 1;
     // 指向已不存在的平台：解绑，不让筛选里出现幽灵平台
     if (c.e.platformId && !platIds[c.e.platformId]) { c.e.platformId = ''; c.fix = true; }
@@ -4619,7 +4630,9 @@ function renderEvents(){
     var bits = [];
     if (eventKindOf(e) === 'satellite') {
       var wonN = 0;
-      rs.forEach(function(r){ if (ticketWonOf(r) > 0) wonN++; });
+      // 面值可以留空，所以不能用 ticketWon > 0 判断赢没赢到票；
+      // 一场赢 2 张也不该只算 1，直接累加张数。
+      rs.forEach(function(r){ wonN += wonTicketN(r); });
       bits.push('卫星赛');
       bits.push(s.n ? s.n + ' 场' : '未记录过');
       if (wonN) bits.push('赢票 ' + wonN + ' 张');
@@ -6143,6 +6156,15 @@ function openRecordForm(id){
 function saveRecord(){
   if (!form.eventName) { toast('先选一个比赛'); return; }
   var rankRaw = ($('#fRank').value || '').replace(/[^\d]/g, '');
+  var rankNum = parseInt(rankRaw, 10);
+  // 名次从 1 开始：0 存下去只会显示成「#—」，进圈记录还会看着像漏填
+  if (rankRaw && !(rankNum > 0)) {
+    toast('名次要从 1 开始');
+    var rkEl = $('#fRank');
+    if (rkEl) rkEl.focus();
+    return;
+  }
+  if (rankNum > 0) rankRaw = String(rankNum);   // 去掉前导 0
   var fieldSize = sizeOf({ fieldSize: $('#fFieldSize').value });
   // 落盘的是 number：v1 存字符串，统计时要到处 parseFloat。
   // 门票面值单独存，不塞进 cost / income —— 净收益公式保持现金口径。
