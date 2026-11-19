@@ -1410,6 +1410,10 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 /* v4 门票流水：表单里选具体哪张票 / 台账里列票 */
 .tkbox{display:flex;flex-direction:column;gap:9px;margin-top:9px}
 .tkpick{margin:2px 0 0}
+/* 面值是从台账带出来的只读展示，不是输入框。用 min-height 顶住原来 finput 的高度，
+   避免换成纯文本后这一格塌下去。同时去掉可点击的观感 —— 它点不动，就别像能点。 */
+.tkface{display:flex;align-items:center;min-height:21px}
+.tkface .fval{font-variant-numeric:tabular-nums}
 /* 票列表默认收起：只在用票时展开，一屏放得下成本整条流 */
 .tkpick-head{display:flex;align-items:center;gap:8px;width:100%;text-align:left;
   padding:10px 12px;border-radius:var(--r-btn);background:var(--surface-2);
@@ -2100,8 +2104,11 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <!-- 用哪张票跟着成本走：票顶的是买入成本，不是收益 -->
           <div class="tkbox hidden" id="fCostTicketBox">
             <div class="field">
-              <div class="fbody"><span class="fcap">这张票的面值（来自台账）</span>
-                <div style="display:flex;align-items:center;gap:4px"><input class="finput" id="fTicketCost" placeholder="面值未填" readonly autocomplete="off"></div>
+              <!-- 面值只是从台账带出来的展示值，不给点击：readonly 的 input 在手机上
+                   照样能聚焦、照样弹键盘，键盘一弹键盘避让就把整个面板推走压扁，
+                   看着就像「整个弹窗都没反应了」。换成纯文本节点，从根本上不可聚焦。 -->
+              <div class="fbody"><span class="fcap">下方选择门票（来自台账）</span>
+                <div class="tkface"><span class="fval ph" id="fTicketCost">未选择门票</span></div>
               </div>
             </div>
             <div class="tkpick" id="fTicketPick">
@@ -5767,7 +5774,12 @@ function paintUsedTicketFace(){
   var el = $('#fTicketCost');
   if (!el) return;
   var t = form && form.ticketUsedId ? ticketById(form.ticketUsedId) : null;
-  el.value = (t && money(t.face) > 0) ? ticketFaceText(t) : '';
+  // 纯文本节点：不再是 input，所以写 textContent 而不是 value。
+  // 没选票时给一句「未选择门票」而不是空着 —— 标签已经写着「下方选择门票」，
+  // 这行再空着会让人以为漏加载了。
+  var hasFace = t && money(t.face) > 0;
+  el.textContent = hasFace ? ticketFaceText(t) : '未选择门票';
+  el.classList.toggle('ph', !hasFace);
   // 收起状态下也要能看出选了哪张 —— 否则折叠等于把信息藏起来
   var cur = $('#fTicketPickCur');
   if (cur) {
