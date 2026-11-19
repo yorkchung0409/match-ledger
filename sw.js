@@ -2,7 +2,7 @@
    目标：断网也能打开并记账。页面只有 index.html 一份，其余是图标与 manifest。
    策略：导航请求 network-first（在线总拿最新，离线回缓存），静态资源 cache-first + 后台更新。 */
 
-const VERSION = 'v28';
+const VERSION = 'v29';
 const CACHE = 'matchledger-' + VERSION;
 /* 主题化 manifest 的小仓库。故意不叫 matchledger- 开头 —— activate 会把旧版本
    缓存全清掉，而这个得跨版本留着，否则每次更新后第一次冷启动又退回浅色。 */
@@ -81,7 +81,10 @@ self.addEventListener('fetch', (e) => {
   // 页面本身：先网络，失败（断网 / Pages 暂时回 404、500）再给缓存
   if (req.mode === 'navigate') {
     e.respondWith(
-      fetch(req)
+      // cache: 'no-store' 是必须的：GitHub Pages 给 index.html 发的是
+      // Cache-Control: max-age=600，普通 fetch 会先吃这层 10 分钟的 HTTP 缓存，
+      // 表现就是「明明发了新版本，PWA 里还是旧的」。
+      fetch(req, { cache: 'no-store' })
         .then((res) => {
           // 只有 2xx 才算「拿到了页面」。部署窗口期 Pages 可能短暂返回 404/500，
           // 那是「现在打不开」，不是「页面长这样」—— 把错误页递给用户，

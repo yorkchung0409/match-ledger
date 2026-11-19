@@ -5653,6 +5653,7 @@ function renderAll(){
    底部 tab 之间横跳不压历史 —— 否则按两次返回才退得出去，很烦。 */
 var navSelf = 0;     // 自己调 history.* 的时间戳，用来吞掉随之而来的 popstate / hashchange
 var navPending = ''; // 自己退二级页后要落到的视图：back 是异步的，目标先存这里
+var pendingReload = false; // 新 SW 已接管、等最后一层弹窗关掉再刷新
 
 /* 当前这条历史是不是我们 push 出来的「比赛管理」。
    不能只看 hash：用户手改地址栏到 #/events 时 state 里没有这条标记，
@@ -5803,6 +5804,11 @@ function closeModal(id){
   if (!$$('.modal.open').length && _lastFocus && _lastFocus.focus) {
     try { _lastFocus.focus({ preventScroll: true }); } catch(e) {}
     _lastFocus = null;
+  }
+  // 新版本已经接管、只等这一层关掉：这时候刷新不会打断正在填的表单
+  if (!$$('.modal.open').length && pendingReload) {
+    pendingReload = false;
+    location.reload();
   }
 }
 function syncLock(){
@@ -7544,11 +7550,47 @@ if (firstRun) {
 }
 
 /* ================= 离线 ================= */
-/* 装到主屏后断网也能打开。file:// 打开时 register 会抛错，忽略即可。 */
+/* 装到主屏后断网也能打开。file:// 打开时 register 会抛错，忽略即可。
+
+   版本更新为什么这么绕：GitHub Pages 给 index.html 发 Cache-Control: max-age=600，
+   而「已安装的 PWA」常年不重新导航 —— 它既不会重新拉 HTML，也不会去问 SW 有没有新版。
+   所以这里补三件事：
+   1. 回到前台（visibilitychange）就主动 reg.update()，不等下一次导航；
+   2. 新 SW 接管（controllerchange）后自动刷新一次，拿新的 HTML；
+   3. 如果当时有弹层开着（可能正在填一笔），先记下来，等最后一层关掉再刷新。
+   首次安装不算「更新」，否则会在第一次打开时白刷一次。 */
 if ('serviceWorker' in navigator) {
+  var hadController = !!navigator.serviceWorker.controller;
+
+  function checkForUpdate(){
+    navigator.serviceWorker.getRegistration().then(function(reg){
+      if (reg) reg.update();
+    }).catch(function(){});
+  }
+
+  navigator.serviceWorker.addEventListener('controllerchange', function(){
+    if (!hadController) { hadController = true; return; }   // 首次接管：页面本来就是新的
+    pendingReload = true;
+    if (!$$('.modal.open').length) {
+      pendingReload = false;
+      location.reload();
+    }
+  });
+
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState !== 'visible') return;
+    checkForUpdate();
+  });
+  // iOS 从 bfcache 恢复时未必有 visibilitychange，补一条
+  window.addEventListener('pageshow', function(e){
+    if (e && e.persisted) checkForUpdate();
+  });
+
   window.addEventListener('load', function(){
     try {
-      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function(){});
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+        .then(function(){ checkForUpdate(); })
+        .catch(function(){});
     } catch(e) {}
   });
 }
