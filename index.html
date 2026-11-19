@@ -1107,6 +1107,27 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 .chart-note .nl{display:block;white-space:normal}
 .chart-note .nl + .nl{margin-top:3px}
 
+/* ---------- 深度分析 ---------- */
+.insight{padding:14px 15px}
+.insight-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.insight-top b{font-family:var(--font-display);font-size:13.5px;letter-spacing:calc(.02em + var(--track-h))}
+.insight-n{font-size:11px;color:var(--muted-3);white-space:nowrap}
+.insight-list{list-style:none;margin:10px 0 0;padding:0}
+.insight-list li{position:relative;padding-left:13px;font-size:12.5px;line-height:1.65;color:var(--text)}
+.insight-list li + li{margin-top:7px}
+.insight-list li::before{content:'';position:absolute;left:2px;top:.66em;width:3px;height:3px;border-radius:50%;background:var(--brand);opacity:.75}
+.insight-list b{font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+.insight-list li.insight-empty{padding-left:0;color:var(--muted-2);font-size:12px}
+.insight-list li.insight-empty::before{display:none}
+.insight-empty{font-size:12px;line-height:1.6;color:var(--muted-2);margin-top:10px}
+.insight-toggle{margin-top:11px;padding:0;border:0;background:none;font-size:11.5px;color:var(--muted-2);cursor:pointer}
+.insight-toggle:active{opacity:.6}
+.insight-detail{margin-top:9px;padding-top:9px;border-top:var(--bw) solid var(--line-2)}
+.insight-detail .nl{display:block;font-size:12px;line-height:1.7;color:var(--muted-2)}
+.insight-detail .nl + .nl{margin-top:4px}
+.insight-detail b{color:var(--text);font-weight:650;font-variant-numeric:tabular-nums}
+.insight-detail .warn{color:var(--muted-3)}
+
 /* 维度切换：场次 / 月度 / 比赛 */
 .tseg{display:flex;flex:0 0 auto;background:rgba(var(--line-rgb),.055);
   border:var(--bw) solid rgba(var(--line-rgb),.05);border-radius:10px;padding:2px;gap:1px}
@@ -1904,6 +1925,18 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
       </div>
 
       <div id="dataStats">
+        <!-- 深度分析：全部本地规则计算，不联网、不调模型。
+             结论在上，依据可展开；样本不够的指标不硬给结论。 -->
+        <div class="panel insight" id="insightCard">
+          <div class="insight-top">
+            <b>这组数据说明什么</b>
+            <span class="insight-n" id="insightMeta"></span>
+          </div>
+          <ul class="insight-list" id="insightList"></ul>
+          <button type="button" class="insight-toggle" id="insightToggle" aria-expanded="false" aria-controls="insightDetail">看依据与样本 ›</button>
+          <div class="insight-detail hidden" id="insightDetail"></div>
+        </div>
+
         <div class="sec">
           <span class="bar"></span><h2>成绩结构</h2>
           <span class="spacer"></span>
@@ -2438,6 +2471,16 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <li><b>场次</b>：累计曲线，每个点按名次档着色（金＝进 FT、品牌色＝进圈、灰＝圈外）；超过 60 场只标 FT 的点。</li>
           <li><b>月度</b>：每月一根柱，赚红亏绿，没打的月份是浅色短横线；「最差」「月均」只按有记录的月份算。</li>
           <li><b>比赛</b>：按净收益排序的横条，中线是 0，往右赚往左亏；点一行跳到记录页，只看这个比赛。</li>
+        </ul></div>
+      </details>
+
+      <details class="help-d">
+        <summary>这组数据说明什么（本地计算）</summary>
+        <div class="help-body"><ul>
+          <li>数据页走势图下面那块结论<b>全部在本机算</b>：不联网、不调用 AI，也不会把账本发到任何地方。只有汇率更新会请求公开接口。</li>
+          <li>判断原则是<b>比场均不比总额</b>，并且带样本门槛：FT / 进圈各需 3 场、赛事和平台各需 5 场、近况对比需 20 场。样本不够的指标不会硬给结论，只在「看依据与样本」里列出来。</li>
+          <li>会看这些：分档场均、盈利是否集中在一场（去掉最大一场后的净收益）、近 10 场 vs 之前、最长连亏、主要亏损赛事、1 手 vs 2 手以上、卫星赛票面回收。</li>
+          <li>点<b>「看依据与样本」</b>能展开每个结论背后的数字（成本 / 收益 / 最大盈亏 / 最大回撤 / 各赛事与平台明细），不是黑箱文案。</li>
         </ul></div>
       </details>
 
@@ -5041,9 +5084,8 @@ function renderTrendSeq(recs){
     if (agg.itm[0]) seg.push('进圈 ' + agg.itm[0] + ' 场 <b class="' + cls(agg.itm[1]) + '">' + signed(agg.itm[1]) + '</b>');
     if (agg.out[0]) seg.push('圈外 ' + agg.out[0] + ' 场 <b class="' + cls(agg.out[1]) + '">' + signed(agg.out[1]) + '</b>');
     if (seg.length) nl.push(seg.join(' · '));
-    if (agg.ft[0] && agg.itm[0] && agg.itm[1] > agg.ft[1]) {
-      nl.push('进圈场次的净收益比 FT 还高 —— 这组记录赢在稳定进圈，不是靠爆一场');
-    }
+    // 「进圈总额 > FT 总额」这种比较在样本少时会误导（1 次 FT vs 5 场进圈），
+    // 已经由上面的深度分析按场均 + 样本门槛重做，这里只保留客观明细。
     noteEl.innerHTML = nl.map(function(t){ return '<div class="nl">' + t + '</div>'; }).join('');
   }
 }
@@ -5578,6 +5620,310 @@ function renderDataEmpty(){
     + '</div>';
 }
 
+/* ==== 深度分析：计算 ====
+   全部是确定性统计，不联网、不调用任何模型。
+   原则：比场均不比总额；样本不够就不下结论（门槛见 INS）。 */
+var INS = { stage: 3, event: 5, tier: 5, recent: 20, trend: 10 };
+
+function computeInsight(list){
+  var rows = (list || []).slice().sort(byTimeAsc).map(function(r){
+    return { r: r, net: recNet(r), st: stageOf(r), sat: isSatellite(r), t: r.time || '' };
+  });
+  var n = rows.length;
+  var out = {
+    n: n, net: 0, cost: 0, income: 0, profit: 0, loss: 0, best: null, worst: null,
+    stages: { ft: { n: 0, net: 0 }, itm: { n: 0, net: 0 }, out: { n: 0, net: 0 } },
+    sat: { n: 0, cost: 0, won: 0, face: 0 },
+    lossStreak: 0, winStreak: 0, curLoss: 0, curWin: 0,
+    drawdown: 0, ddFrom: '', ddTo: '',
+    recent: null, events: [], platforms: [], buys: null, sizes: [], skipped: []
+  };
+  if (!n) return out;
+
+  var st = out.stages, cum = 0, peak = 0, peakT = '';
+  rows.forEach(function(x){
+    out.net += x.net;
+    out.cost += toDisp(money(x.r.cost), curOf(x.r));
+    out.income += toDisp(money(x.r.income), curOf(x.r));
+    if (x.net > 0) out.profit += x.net;
+    if (x.net < 0) out.loss += -x.net;
+    if (!out.best || x.net > out.best.net) out.best = { net: x.net, name: x.r.eventName || '未命名比赛', t: x.t };
+    if (!out.worst || x.net < out.worst.net) out.worst = { net: x.net, name: x.r.eventName || '未命名比赛', t: x.t };
+    if (!x.sat) {
+      var a = st[x.st] || st.out;
+      a.n++; a.net += x.net;
+    }
+
+    if (x.net < 0) {
+      out.curLoss++; out.curWin = 0;
+      if (out.curLoss > out.lossStreak) out.lossStreak = out.curLoss;
+    } else if (x.net > 0) {
+      out.curWin++; out.curLoss = 0;
+      if (out.curWin > out.winStreak) out.winStreak = out.curWin;
+    } else {
+      out.curLoss = 0; out.curWin = 0;
+    }
+
+    cum += x.net;
+    if (cum > peak) { peak = cum; peakT = x.t; }
+    var dd = peak - cum;
+    if (dd > out.drawdown) {
+      out.drawdown = dd;
+      out.ddFrom = peakT || (rows[0] && rows[0].t) || '';
+      out.ddTo = x.t;
+    }
+  });
+
+  // 卫星赛现金成本与赢到的票面（票面按票自己的币种折成展示币种）
+  var ids = Object.create(null);
+  rows.forEach(function(x){ if (x.r.id) ids[x.r.id] = 1; });
+  rows.forEach(function(x){
+    if (!x.sat) return;
+    out.sat.n++;
+    out.sat.cost += toDisp(money(x.r.cost), curOf(x.r));
+    out.sat.won += wonTicketN(x.r);
+  });
+  (Array.isArray(db.tickets) ? db.tickets : []).forEach(function(t){
+    if (t.earnedIn && ids[t.earnedIn]) out.sat.face += toDisp(money(t.face), curOf(t));
+  });
+
+  if (n >= INS.recent) {
+    var k = INS.trend, tail = rows.slice(-k);
+    var tailSum = tail.reduce(function(s, x){ return s + x.net; }, 0);
+    out.recent = { k: k, avg: tailSum / k, prevAvg: (out.net - tailSum) / (n - k) };
+  } else {
+    out.skipped.push('近况对比（需 ' + INS.recent + ' 场）');
+  }
+
+  var ev = Object.create(null), evList = [];
+  rows.forEach(function(x){
+    var key = x.r.eventId || ('n:' + (x.r.eventName || ''));
+    var o = ev[key];
+    if (!o) { o = ev[key] = { name: x.r.eventName || '未命名比赛', n: 0, net: 0, itm: 0 }; evList.push(o); }
+    o.n++; o.net += x.net;
+    if (!x.sat && (x.st === 'itm' || x.st === 'ft')) o.itm++;
+  });
+  out.events = evList.filter(function(o){ return o.n >= INS.event; })
+    .sort(function(a, b){ return b.net - a.net; });
+  if (!out.events.length) out.skipped.push('赛事对比（每个赛事需 ' + INS.event + ' 场）');
+
+  var pf = Object.create(null), pfList = [];
+  rows.forEach(function(x){
+    var pid = recordPlatformId(x.r);
+    if (!pid) return;
+    var o = pf[pid];
+    if (!o) { o = pf[pid] = { name: platformNameOf(x.r) || '未命名平台', n: 0, net: 0, itm: 0 }; pfList.push(o); }
+    o.n++; o.net += x.net;
+    if (!x.sat && (x.st === 'itm' || x.st === 'ft')) o.itm++;
+  });
+  out.platforms = pfList.filter(function(o){ return o.n >= INS.tier; })
+    .sort(function(a, b){ return b.net - a.net; });
+  if (!out.platforms.length) out.skipped.push('平台对比（每个平台需 ' + INS.tier + ' 场）');
+
+  var b1 = { n: 0, net: 0, itm: 0 }, b2 = { n: 0, net: 0, itm: 0 };
+  rows.forEach(function(x){
+    if (x.sat) return;
+    var b = buysOf(x.r) > 1 ? b2 : b1;
+    b.n++; b.net += x.net;
+    if (x.st !== 'out') b.itm++;
+  });
+  if (b1.n >= INS.tier && b2.n >= INS.tier) out.buys = { one: b1, more: b2 };
+  else out.skipped.push('买入档位对比（两组各需 ' + INS.tier + ' 场）');
+
+  var bands = [
+    { k: '≤100 人', n: 0, net: 0, itm: 0 },
+    { k: '101–300 人', n: 0, net: 0, itm: 0 },
+    { k: '300 人以上', n: 0, net: 0, itm: 0 }
+  ];
+  rows.forEach(function(x){
+    if (x.sat) return;
+    var fs = sizeOf(x.r);
+    if (!fs) return;
+    var b = fs <= 100 ? bands[0] : (fs <= 300 ? bands[1] : bands[2]);
+    b.n++; b.net += x.net;
+    if (x.st !== 'out') b.itm++;
+  });
+  out.sizes = bands.filter(function(b){ return b.n >= INS.tier; });
+  if (!out.sizes.length) out.skipped.push('人数分档（每档需 ' + INS.tier + ' 场）');
+
+  if (st.ft.n < INS.stage || st.itm.n < INS.stage) {
+    out.skipped.push('FT / 进圈场均对比（各需 ' + INS.stage + ' 场）');
+  }
+  if (out.sat.n < INS.tier || out.sat.won < 3) {
+    out.skipped.push('卫星赛票面回收（需 ' + INS.tier + ' 场且赢到 3 张）');
+  }
+  return out;
+}
+/* ==== 深度分析：渲染 ==== */
+
+function renderInsight(list){
+  var box = $('#insightCard');
+  if (!box) return;
+  var d = computeInsight(list);
+  if (!d.n) { box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+
+  $('#insightMeta').textContent = d.n + ' 场 · ' + (dataScopeActive() ? dataScopeText() : '全部时间');
+
+  var st = d.stages;
+  var lines = [];
+
+  // 1) 钱主要亏在哪：只在下风集中时才说
+  if (st.out.n && st.out.net < 0 && d.loss > 0) {
+    var outShare = Math.round(-st.out.net / d.loss * 100);
+    if (outShare >= 50) {
+      lines.push('圈外 <b>' + st.out.n + ' 场</b>亏 <b class="' + cls(st.out.net) + '">' + signed(st.out.net)
+        + '</b>，占总亏损 <b>' + outShare + '%</b>');
+    }
+  }
+
+  // 2) 盈利是不是靠一场
+  if (d.best && d.best.net > 0 && d.profit > 0) {
+    var ps = Math.round(d.best.net / d.profit * 100);
+    var exMax = d.net - d.best.net;
+    lines.push(ps >= 60
+      ? '最大一场盈利 <b class="' + cls(d.best.net) + '">' + signed(d.best.net) + '</b>，占总盈利 <b>' + ps
+        + '%</b>；去掉它后净收益 <b class="' + cls(exMax) + '">' + signed(exMax) + '</b>'
+      : '去掉最大一场后净收益 <b class="' + cls(exMax) + '">' + signed(exMax) + '</b>，盈利分散在多场');
+  } else if (d.n && (!d.best || d.best.net <= 0)) {
+    lines.push('这 <b>' + d.n + ' 场</b>没有单场盈利，合计 <b class="' + cls(d.net) + '">' + signed(d.net) + '</b>');
+  }
+
+  // 3) 近况：总场次够 20 才比较，避免拿 3 场当趋势
+  if (d.recent) {
+    var diff = d.recent.avg - d.recent.prevAvg;
+    var avgTxt = '<b class="' + cls(d.recent.avg) + '">' + signed(d.recent.avg) + '</b>';
+    lines.push(Math.abs(diff) < 0.005
+      ? '近 <b>' + d.recent.k + ' 场</b>场均 ' + avgTxt + '，与之前基本持平'
+      : '近 <b>' + d.recent.k + ' 场</b>场均 ' + avgTxt
+        + '，比之前' + (diff > 0 ? '高 ' : '低 ') + '<b>' + fmtMoney(Math.abs(diff)) + '</b>');
+  }
+
+  // 4) 连亏：3 场起才有说头
+  if (d.lossStreak >= 3) {
+    var tailTxt = d.curLoss >= 2 ? '，当前还在连亏 <b>' + d.curLoss + ' 场</b>'
+      : (d.curWin >= 2 ? '，当前连赢 <b>' + d.curWin + ' 场</b>' : '');
+    lines.push('最长连亏 <b>' + d.lossStreak + ' 场</b>' + tailTxt);
+  }
+
+  // 5) 主要亏损赛事：只统计 ≥5 场的，避免单场噪声
+  if (d.events.length >= 2) {
+    var worstEv = d.events[d.events.length - 1];
+    if (worstEv.net < 0) {
+      lines.push('「' + esc(worstEv.name) + '」<b>' + worstEv.n + ' 场</b>净 <b class="' + cls(worstEv.net) + '">'
+        + signed(worstEv.net) + '</b>，场均 <b class="' + cls(worstEv.net / worstEv.n) + '">'
+        + signed(worstEv.net / worstEv.n) + '</b>');
+    }
+  }
+
+  // 6) 买入档位：两组都够 5 场，且差距 ≥10pt 才说（只说事实，不推断因果）
+  if (d.buys) {
+    var r1 = Math.round(d.buys.one.itm / d.buys.one.n * 100);
+    var r2 = Math.round(d.buys.more.itm / d.buys.more.n * 100);
+    if (r2 <= r1 - 10) {
+      lines.push('2 手以上 <b>' + d.buys.more.n + ' 场</b>进圈率 <b>' + r2 + '%</b>，低于 1 手的 <b>' + r1 + '%</b>');
+    } else if (r2 >= r1 + 10) {
+      lines.push('2 手以上 <b>' + d.buys.more.n + ' 场</b>进圈率 <b>' + r2 + '%</b>，高于 1 手的 <b>' + r1 + '%</b>');
+    }
+  }
+
+  // 7) 卫星赛：至少 5 场且赢到 3 张，否则分母没意义
+  if (d.sat.n >= INS.tier && d.sat.won >= 3) {
+    lines.push('卫星赛 <b>' + d.sat.n + ' 场</b>花 <b>' + fmtMoney(d.sat.cost) + '</b>，赢 <b>' + d.sat.won
+      + ' 张</b>票（票面 <b>' + fmtMoney(d.sat.face) + '</b>），每张净成本 <b>'
+      + fmtMoney(d.sat.cost / d.sat.won) + '</b>');
+  }
+
+  // 8) 分档场均：替代旧版「总额谁大」的误导句
+  if (st.ft.n >= INS.stage && st.itm.n >= INS.stage) {
+    var fa = st.ft.net / st.ft.n, ia = st.itm.net / st.itm.n;
+    lines.push(ia > fa
+      ? '进圈场均 <b class="' + cls(ia) + '">' + signed(ia) + '</b> 高于 FT 场均 <b class="' + cls(fa) + '">' + signed(fa) + '</b>'
+      : 'FT 场均 <b class="' + cls(fa) + '">' + signed(fa) + '</b> 高于进圈场均 <b class="' + cls(ia) + '">' + signed(ia) + '</b>');
+  }
+
+  var shown = lines.slice(0, 6);
+  $('#insightList').innerHTML = shown.length
+    ? shown.map(function(t){ return '<li>' + t + '</li>'; }).join('')
+    : '<li class="insight-empty">样本还少（' + d.n + ' 场），先多记几场再看结论。</li>';
+
+  // 依据：把每个结论背后的数字摊开，避免又变成黑箱文案
+  var det = [];
+  function nl(t){ det.push('<div class="nl">' + t + '</div>'); }
+  function avgText(sum, cnt){ return cnt ? signed(sum / cnt) : '—'; }
+
+  nl('分档场均：FT <b>' + st.ft.n + ' 场</b> ' + avgText(st.ft.net, st.ft.n)
+    + ' · 进圈 <b>' + st.itm.n + ' 场</b> ' + avgText(st.itm.net, st.itm.n)
+    + ' · 圈外 <b>' + st.out.n + ' 场</b> ' + avgText(st.out.net, st.out.n));
+  nl('合计：成本 <b>' + fmtMoney(d.cost) + '</b> · 收益 <b>' + fmtMoney(d.income)
+    + '</b> · 净 <b class="' + cls(d.net) + '">' + signed(d.net) + '</b>');
+  if (d.best && d.best.net > 0) {
+    nl('最大盈利：<b class="' + cls(d.best.net) + '">' + signed(d.best.net) + '</b>（' + esc(d.best.name)
+      + '）· 占总盈利 <b>' + Math.round(d.best.net / d.profit * 100) + '%</b>');
+  }
+  if (d.worst && d.worst.net < 0) {
+    nl('最大亏损：<b class="' + cls(d.worst.net) + '">' + signed(d.worst.net) + '</b>（' + esc(d.worst.name)
+      + '）· 占总亏损 <b>' + Math.round(-d.worst.net / d.loss * 100) + '%</b>');
+  }
+  if (d.drawdown > 0) {
+    nl('最大回撤：<b class="' + cls(-d.drawdown) + '">' + signed(-d.drawdown) + '</b>'
+      + (d.ddTo ? '（' + (d.ddFrom ? esc(fmtWhen(d.ddFrom)) : '记账起点') + ' → ' + esc(fmtWhen(d.ddTo)) + '）' : ''));
+  }
+  nl('连胜 / 连亏：最长 <b>' + d.winStreak + '</b> / <b>' + d.lossStreak + '</b> 场'
+    + (d.curWin ? ' · 当前连赢 <b>' + d.curWin + '</b> 场' : (d.curLoss ? ' · 当前连亏 <b>' + d.curLoss + '</b> 场' : '')));
+
+  if (d.events.length) {
+    nl('赛事（≥' + INS.event + ' 场）：' + d.events.slice(0, 5).map(function(o){
+      return esc(o.name) + ' <b>' + o.n + ' 场</b> 场均 <b class="' + cls(o.net / o.n) + '">' + signed(o.net / o.n) + '</b>';
+    }).join(' · '));
+  }
+  if (d.platforms.length) {
+    nl('平台（≥' + INS.tier + ' 场）：' + d.platforms.map(function(o){
+      var p = o.n ? Math.round(o.itm / o.n * 100) : 0;
+      return esc(o.name) + ' <b>' + o.n + ' 场</b> 场均 <b class="' + cls(o.net / o.n) + '">' + signed(o.net / o.n)
+        + '</b> 进圈 <b>' + p + '%</b>';
+    }).join(' · '));
+  }
+  if (d.buys) {
+    var b1 = d.buys.one, b2 = d.buys.more;
+    nl('买入：1 手 <b>' + b1.n + ' 场</b> 场均 ' + avgText(b1.net, b1.n) + ' 进圈 <b>' + Math.round(b1.itm / b1.n * 100)
+      + '%</b> · 2 手以上 <b>' + b2.n + ' 场</b> 场均 <b class="' + cls(b2.net / b2.n) + '">' + signed(b2.net / b2.n)
+      + '</b> 进圈 <b>' + Math.round(b2.itm / b2.n * 100) + '%</b>');
+  }
+  if (d.sizes.length) {
+    nl('人数：' + d.sizes.map(function(b){
+      return b.k + ' <b>' + b.n + ' 场</b> 场均 <b class="' + cls(b.net / b.n) + '">' + signed(b.net / b.n)
+        + '</b> 进圈 <b>' + Math.round(b.itm / b.n * 100) + '%</b>';
+    }).join(' · '));
+  }
+  if (d.sat.n) {
+    nl('卫星赛：<b>' + d.sat.n + ' 场</b> · 现金成本 <b>' + fmtMoney(d.sat.cost) + '</b> · 赢票 <b>' + d.sat.won
+      + '</b> 张 · 票面 <b>' + fmtMoney(d.sat.face) + '</b>');
+  }
+  if (d.skipped.length) {
+    nl('<span class="warn">样本不足，未给结论：' + d.skipped.join('、') + '</span>');
+  }
+  $('#insightDetail').innerHTML = det.join('');
+
+  var detBox = $('#insightDetail'), tg = $('#insightToggle');
+  if (detBox && tg) {
+    var open = !detBox.classList.contains('hidden');
+    tg.setAttribute('aria-expanded', open ? 'true' : 'false');
+    tg.textContent = open ? '收起依据 ‹' : '看依据与样本 ›';
+  }
+}
+
+/* ==== 深度分析：计算结束 ==== */
+
+$('#insightToggle').addEventListener('click', function(){
+  var det = $('#insightDetail');
+  if (!det) return;
+  var hide = !det.classList.contains('hidden');
+  det.classList.toggle('hidden', hide);
+  this.setAttribute('aria-expanded', hide ? 'false' : 'true');
+  this.textContent = hide ? '看依据与样本 ›' : '收起依据 ‹';
+});
+
 function renderData(){
   var list = dateFilteredRecords();
   var hasAny = db.records.length > 0;
@@ -5598,6 +5944,7 @@ function renderData(){
   var reg = regularOnly(list);
   var sat = list.filter(isSatellite);
   renderTrend(list);        // 累计曲线是现金总账，卫星赛是真花钱，照记
+  renderInsight(list);      // 本地规则结论：分档、集中度、连亏、赛事/平台
   renderStages(reg, sat);   // 两个 tab：常规赛看名次档，卫星赛看有没有赢到票
   renderBuys(reg);
   renderBests(reg);
