@@ -2443,7 +2443,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <li>卫星赛赢的是更大比赛的<b>门票</b>，不是现金。票绑定本人、不能变现，所以<b>不进净收益、不进 ROI</b>，只记在数据页「成绩结构 → 卫星赛」的门票台账里。</li>
           <li><b>票不是一场比赛</b>：不产生场次，不进进圈率、FT 率、成绩结构、买入习惯、个人纪录。台账里一张票一条，分「卫星赛赢到」和「获赠」两种来源。</li>
           <li>记一笔把「收益类型」选成「赢门票」，可以填<b>每张票面值和张数</b>；<b>面值留空也能入账</b>，现金收益自动算 0。</li>
-          <li>有些比赛开宝箱，奖励是<b>现金加门票</b>的复合包。这时「收益类型」选<b>「票 + 现金」</b>：上面填宝箱给的钱，下面填票的面值和张数，两边各归各的账 —— <b>现金照进净收益，票只进门票台账</b>，不会互相抵消。</li>
+          <li>一场里<b>同时拿到现金和门票</b>时，收益类型选<b>「票 + 现金」</b>：上面填现金、下面填票的面值和张数，两边各归各的账 —— <b>现金照进净收益，票只进门票台账</b>，不会互相抵消。<b>现金那一栏不限来源</b>：奖金、打比赛途中开宝箱开出的钱、各类额外奖励，只要是这一场进账的现金都填在一起；票同理，宝箱可能开出好几张，也可能只有钱或只有票，按实际填。</li>
           <li>用票打主赛时「成本来源」选「门票」或「票 + 现金」，<b>「用哪张票」就在成本来源下面</b>（默认收起，点一下展开）—— 从列表里选中具体哪一张，赠票也能选，台账就能追到它是哪一场用掉的。<b>现金成本只填自己掏的钱</b>（rebuy / add-on），票面从台账带出、不算现金成本。</li>
           <li>免费获赠的票（没打过卫星赛）点<b>「+ 登记赠票」</b>：可一次登记多张，每张面值可留空，不产生场次、不进任何统计；只有票、没有卫星赛也能打开这个 tab。</li>
           <li>数据页「成绩结构」右上角切<b>常规赛 / 卫星赛</b>：卫星赛那边看命中率、赢到票 / 没赢到各多少场、每场平均花多少现金；下面是全库门票流水，未用 / 已用都能点开，可删、可跳到用掉它的那场。</li>
@@ -3960,7 +3960,7 @@ function recCardHTML(r){
   if (fs && hasRank) metaBits.push(rk + '/' + fs + (rp ? ' · 前' + (rp * 100).toFixed(1) + '%' : ''));
   else if (fs) metaBits.push('共 ' + fs + ' 人');
   else if (st === 'out' && hasRank) metaBits.push('第 ' + rk + ' 名');
-  // 三态收益：只有票就只说票；票和现金都有（宝箱那种）才把现金也带上。
+  // 三态收益：只有票就只说票；票和现金都有才把现金也带上。
   // 纯票那种以前会拖一句「· 现金收益 ¥0」，读起来像漏填了，其实是空的。
   var incCash = money(r.income);
   var sub = wonTicketOf(r)
@@ -5795,7 +5795,8 @@ function paintUsedTicketFace(){
 
 /* 成本来源 / 收益类型决定哪些输入框出现。
    两边都是三态：成本侧「票 + 现金」= 用票进场后又 rebuy；
-   收益侧「票 + 现金」= 宝箱这类复合奖励（开出现金又开出票）。
+   收益侧「票 + 现金」= 这一场既拿了现金又拿了票（打比赛过程开宝箱、
+   多个额外奖励里有的给钱有的给票，都算这种）。
    共同点：两个框各填各的，各归各的账 —— 现金进 income，票进 ticketWon。 */
 function syncTicketUI(){
   if (!form) return;
@@ -5811,14 +5812,20 @@ function syncTicketUI(){
   $('#fIncomeWrap').classList.toggle('hidden', !incCash);
   $('#fIncomeTicketBox').classList.toggle('hidden', !tw);
 
+  // 这个框装的始终是「这一场的现金收益」，来源不限：奖金、宝箱开出的现金、退款……
+  // 之前 both 下写死成「宝箱里的现金」，等于替用户假设了钱的来源，反而挡路。
   var incCap = $('#fIncomeCap');
-  if (incCap) incCap.textContent = form.incomeKind === 'both' ? '现金收益（宝箱里的现金）' : '现金收益（奖金）';
+  if (incCap) {
+    incCap.textContent = form.incomeKind === 'both'
+      ? '现金收益（奖金 / 额外奖励）'
+      : '现金收益（奖金）';
+  }
   // 票 + 现金时那句提示得改：原来那句「赢到的是门票，不算现金收益」会让人
   // 以为上面那个现金框也白填了。要明确说两边都算数、现金照进净收益。
   var incHint = $('#fIncomeTicketHint');
   if (incHint) {
     incHint.textContent = form.incomeKind === 'both'
-      ? '现金收益和门票分开记：上面的现金进净收益，票只入门票台账。'
+      ? '奖金、宝箱开出的钱、额外奖励都填上面的现金；票填下面。现金进净收益，票只进台账。'
       : '赢到的是门票，不算现金收益；每张票面可留空，票数照样入台账。';
   }
 
@@ -5980,7 +5987,7 @@ function openRecordForm(id){
       ticketUsedId: r.ticketUsedId || null,
       ticketWonN: wonTicketN(r) || 1,
       costKind: usedTicketOf(r) ? (money(r.cost) > 0 ? 'both' : 'ticket') : 'cash',
-      // 三个态反推：赢到票 + 有现金 → 票 + 现金（宝箱那种）；只赢票 → 赢门票；否则现金。
+      // 三个态反推：赢到票 + 有现金 → 票 + 现金；只赢票 → 赢门票；否则现金。
       // 老数据没有 both 这一态，靠这两个条件自然落回原来那两种，不用迁移。
       incomeKind: wonTicketOf(r) ? (money(r.income) > 0 ? 'both' : 'ticket') : 'cash'
     };
