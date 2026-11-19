@@ -2136,10 +2136,11 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
             <div class="seg seg-s" id="fIncomeKind" role="group" aria-label="收益类型">
               <button type="button" data-kind="cash" class="on">现金</button>
               <button type="button" data-kind="ticket">赢门票</button>
+              <button type="button" data-kind="both">票 + 现金</button>
             </div>
           </div>
           <div class="field" id="fIncomeWrap">
-            <div class="fbody"><span class="fcap">现金收益（奖金）</span>
+            <div class="fbody"><span class="fcap" id="fIncomeCap">现金收益（奖金）</span>
               <div style="display:flex;align-items:center;gap:4px"><span class="fprefix" data-cursym>¥</span><input class="finput" id="fIncome" placeholder="0" inputmode="decimal" autocomplete="off"></div>
             </div>
           </div>
@@ -2159,7 +2160,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
                 <button type="button" data-n="5">×5</button>
               </div>
             </div>
-            <p class="fhint">赢到的是门票，不算现金收益；每张票面可留空，票数照样入台账。</p>
+            <p class="fhint" id="fIncomeTicketHint">赢到的是门票，不算现金收益；每张票面可留空，票数照样入台账。</p>
           </div>
         </div>
       </div>
@@ -2435,6 +2436,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <li>卫星赛赢的是更大比赛的<b>门票</b>，不是现金。票绑定本人、不能变现，所以<b>不进净收益、不进 ROI</b>，只记在数据页「成绩结构 → 卫星赛」的门票台账里。</li>
           <li><b>票不是一场比赛</b>：不产生场次，不进进圈率、FT 率、成绩结构、买入习惯、个人纪录。台账里一张票一条，分「卫星赛赢到」和「获赠」两种来源。</li>
           <li>记一笔把「收益类型」选成「赢门票」，可以填<b>每张票面值和张数</b>；<b>面值留空也能入账</b>，现金收益自动算 0。</li>
+          <li>有些比赛开宝箱，奖励是<b>现金加门票</b>的复合包。这时「收益类型」选<b>「票 + 现金」</b>：上面填宝箱给的钱，下面填票的面值和张数，两边各归各的账 —— <b>现金照进净收益，票只进门票台账</b>，不会互相抵消。</li>
           <li>用票打主赛时「成本来源」选「门票」或「票 + 现金」，<b>「用哪张票」就在成本来源下面</b>（默认收起，点一下展开）—— 从列表里选中具体哪一张，赠票也能选，台账就能追到它是哪一场用掉的。<b>现金成本只填自己掏的钱</b>（rebuy / add-on），票面从台账带出、不算现金成本。</li>
           <li>免费获赠的票（没打过卫星赛）点<b>「+ 登记赠票」</b>：可一次登记多张，每张面值可留空，不产生场次、不进任何统计；只有票、没有卫星赛也能打开这个 tab。</li>
           <li>数据页「成绩结构」右上角切<b>常规赛 / 卫星赛</b>：卫星赛那边看命中率、赢到票 / 没赢到各多少场、每场平均花多少现金；下面是全库门票流水，未用 / 已用都能点开，可删、可跳到用掉它的那场。</li>
@@ -3951,10 +3953,13 @@ function recCardHTML(r){
   if (fs && hasRank) metaBits.push(rk + '/' + fs + (rp ? ' · 前' + (rp * 100).toFixed(1) + '%' : ''));
   else if (fs) metaBits.push('共 ' + fs + ' 人');
   else if (st === 'out' && hasRank) metaBits.push('第 ' + rk + ' 名');
+  // 三态收益：只有票就只说票；票和现金都有（宝箱那种）才把现金也带上。
+  // 纯票那种以前会拖一句「· 现金收益 ¥0」，读起来像漏填了，其实是空的。
+  var incCash = money(r.income);
   var sub = wonTicketOf(r)
-    ? '赢门票 ' + wonTicketN(r) + ' 张' + (tw > 0 ? ' ' + fmtIn(tw, cur) : ' · 面值未填')
-      + ' · 现金收益 ' + fmtIn(money(r.income), cur)
-    : '收益 ' + fmtIn(money(r.income), cur);
+    ? ('赢门票 ' + wonTicketN(r) + ' 张' + (tw > 0 ? ' ' + fmtIn(tw, cur) : ' · 面值未填')
+      + (incCash > 0 ? ' · 现金 ' + fmtIn(incCash, cur) : ''))
+    : '收益 ' + fmtIn(incCash, cur);
 
   return '<button class="rec" data-open="' + r.id + '">'
     + '<span class="rank' + rankCls + '">' + rankTxt + '</span>'
@@ -5697,7 +5702,9 @@ $('#confirmBg').addEventListener('click', function(){
 function updateNetPreview(){
   var cur = (form && form.cur) || 'CNY';
   // 门票不进现金账：净收益永远只是「现金收益 − 现金成本」，
-  // 票面既不是收入也不是成本，所以公式一行都不用改
+  // 票面既不是收入也不是成本，所以公式一行都不用改。
+  // 唯一的判断是「这一侧到底有没有现金」——「赢门票 / 门票」是纯票，现金记 0；
+  // 「票 + 现金」两边都有现金，现金照算。
   var inc = (form && form.incomeKind === 'ticket') ? 0 : money($('#fIncome').value);
   var cst = (form && form.costKind === 'ticket') ? 0 : money($('#fCost').value);
   var n = inc - cst;
@@ -5775,18 +5782,33 @@ function paintUsedTicketFace(){
 }
 
 /* 成本来源 / 收益类型决定哪些输入框出现。
-   票 + 现金（用票进场后 rebuy）时成本那边两个框都能填，各归各的账。 */
+   两边都是三态：成本侧「票 + 现金」= 用票进场后又 rebuy；
+   收益侧「票 + 现金」= 宝箱这类复合奖励（开出现金又开出票）。
+   共同点：两个框各填各的，各归各的账 —— 现金进 income，票进 ticketWon。 */
 function syncTicketUI(){
   if (!form) return;
   paintKindSeg($('#fCostKind'), form.costKind);
   paintKindSeg($('#fIncomeKind'), form.incomeKind);
   var tc = form.costKind === 'ticket' || form.costKind === 'both';
-  var tw = form.incomeKind === 'ticket';
+  // 收益侧只要带票就得出现票的那一段（赢门票 / 票 + 现金）
+  var tw = form.incomeKind === 'ticket' || form.incomeKind === 'both';
+  var incCash = form.incomeKind !== 'ticket';
 
   $('#fCostWrap').classList.toggle('hidden', form.costKind === 'ticket');
   $('#fCostTicketBox').classList.toggle('hidden', !tc);
-  $('#fIncomeWrap').classList.toggle('hidden', tw);
+  $('#fIncomeWrap').classList.toggle('hidden', !incCash);
   $('#fIncomeTicketBox').classList.toggle('hidden', !tw);
+
+  var incCap = $('#fIncomeCap');
+  if (incCap) incCap.textContent = form.incomeKind === 'both' ? '现金收益（宝箱里的现金）' : '现金收益（奖金）';
+  // 票 + 现金时那句提示得改：原来那句「赢到的是门票，不算现金收益」会让人
+  // 以为上面那个现金框也白填了。要明确说两边都算数、现金照进净收益。
+  var incHint = $('#fIncomeTicketHint');
+  if (incHint) {
+    incHint.textContent = form.incomeKind === 'both'
+      ? '现金收益和门票分开记：上面的现金进净收益，票只入门票台账。'
+      : '赢到的是门票，不算现金收益；每张票面可留空，票数照样入台账。';
+  }
 
   $$('#fTicketWonN button').forEach(function(b){
     b.classList.toggle('on', parseInt(b.getAttribute('data-n'), 10) === (form.ticketWonN || 1));
@@ -5946,7 +5968,9 @@ function openRecordForm(id){
       ticketUsedId: r.ticketUsedId || null,
       ticketWonN: wonTicketN(r) || 1,
       costKind: usedTicketOf(r) ? (money(r.cost) > 0 ? 'both' : 'ticket') : 'cash',
-      incomeKind: wonTicketOf(r) ? 'ticket' : 'cash'
+      // 三个态反推：赢到票 + 有现金 → 票 + 现金（宝箱那种）；只赢票 → 赢门票；否则现金。
+      // 老数据没有 both 这一态，靠这两个条件自然落回原来那两种，不用迁移。
+      incomeKind: wonTicketOf(r) ? (money(r.income) > 0 ? 'both' : 'ticket') : 'cash'
     };
   } else {
     // 新记录不带任何上一场的东西：人数、金额、币种、票、收益类型全空。
