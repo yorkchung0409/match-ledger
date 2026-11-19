@@ -1397,15 +1397,30 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 }
 .signbtn:active{transform:scale(.94)}
 .signbtn.neg{color:var(--loss);border-color:rgba(var(--line-rgb),.16)}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-.row2.one{grid-template-columns:1fr}
+/* 成本 / 收益各是一条纵向流：来源 → 金额 → 门票细节，读一遍就到底，不用来回跳 */
+.flow + .flow{margin-top:16px;padding-top:15px;border-top:var(--bw) solid var(--line-2)}
 /* 门票：成本来源 / 收益类型两行分段，窄屏也要放得下三个选项 */
 .kindrow{display:flex;align-items:center;gap:8px;margin:0 2px 9px;min-width:0}
 .kindrow-l{flex:0 0 auto;font-size:10.5px;letter-spacing:.05em;color:var(--muted-2)}
 .seg-s{margin-left:auto;flex:0 0 auto}
 .seg-s button{padding:5px 6px;font-size:11px}
 /* v4 门票流水：表单里选具体哪张票 / 台账里列票 */
-.tkpick{margin:10px 2px 0}
+.tkbox{display:flex;flex-direction:column;gap:9px;margin-top:9px}
+.tkpick{margin:2px 0 0}
+/* 票列表默认收起：只在用票时展开，一屏放得下成本整条流 */
+.tkpick-head{display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+  padding:10px 12px;border-radius:var(--r-btn);background:var(--surface-2);
+  border:var(--bw) solid var(--soft-line);color:var(--text);font:inherit;cursor:pointer}
+.tkpick-head:active{opacity:.8}
+.tkpick-l{flex:0 0 auto;font-size:11px;letter-spacing:.04em;color:var(--muted-2)}
+.tkpick-l em{font-style:normal;font-size:10px;letter-spacing:.04em;margin-left:5px;padding:1.5px 5px;border-radius:5px;vertical-align:1px;background:var(--surface-3);color:var(--brand);border:var(--bw) solid var(--soft-line)}
+.tkpick-cur{flex:1;min-width:0;font-size:12px;font-weight:600;text-align:right;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tkpick-cur.ph{color:var(--ph);font-weight:400}
+.tkpick-chev{flex:0 0 auto;color:var(--chev);transition:transform .18s}
+.tkpick.open .tkpick-chev{transform:rotate(180deg)}
+.tkpick-body{display:none;margin-top:8px}
+.tkpick.open .tkpick-body{display:block}
 .tklist{display:flex;flex-direction:column;gap:6px;max-height:196px;overflow:auto;-webkit-overflow-scrolling:touch}
 .tkchip{display:flex;align-items:center;gap:9px;width:100%;text-align:left;
   padding:9px 11px;border-radius:var(--r-xs);background:var(--surface-2);
@@ -2060,18 +2075,61 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
             <button type="button" data-cur="USD">$ 美元</button>
           </div>
         </div>
-        <div class="kindrow">
-          <span class="kindrow-l">成本来源</span>
-          <div class="seg seg-s" id="fCostKind" role="group" aria-label="成本来源">
-            <button type="button" data-kind="cash" class="on">现金</button>
-            <button type="button" data-kind="ticket">门票</button>
-            <button type="button" data-kind="both">票 + 现金</button>
+        <!-- 成本一条流、收益一条流：先定来源 / 类型，再填这一条下的东西。
+             以前成本和收益并排、门票夹在两头，读起来得来回跳。 -->
+        <div class="flow">
+          <div class="kindrow">
+            <span class="kindrow-l">成本来源</span>
+            <div class="seg seg-s" id="fCostKind" role="group" aria-label="成本来源">
+              <button type="button" data-kind="cash" class="on">现金</button>
+              <button type="button" data-kind="ticket">门票</button>
+              <button type="button" data-kind="both">票 + 现金</button>
+            </div>
           </div>
-        </div>
-        <div class="row2" id="fMoneyRow">
           <div class="field" id="fCostWrap">
             <div class="fbody"><span class="fcap" id="fCostCap">现金成本（买入）</span>
               <div style="display:flex;align-items:center;gap:4px"><span class="fprefix" data-cursym>¥</span><input class="finput" id="fCost" placeholder="0" inputmode="decimal" autocomplete="off"></div>
+            </div>
+          </div>
+          <!-- 用哪张票跟着成本走：票顶的是买入成本，不是收益 -->
+          <div class="tkbox hidden" id="fCostTicketBox">
+            <div class="field">
+              <div class="fbody"><span class="fcap">这张票的面值（来自台账）</span>
+                <div style="display:flex;align-items:center;gap:4px"><input class="finput" id="fTicketCost" placeholder="面值未填" readonly autocomplete="off"></div>
+              </div>
+            </div>
+            <div class="tkpick" id="fTicketPick">
+              <button type="button" class="tkpick-head" id="fTicketPickHead" aria-expanded="false" aria-controls="fTicketPickBody">
+                <span class="tkpick-l">用哪张票<em class="req">必选</em></span>
+                <span class="tkpick-cur ph" id="fTicketPickCur">未选</span>
+                <svg class="tkpick-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <div class="tkpick-body" id="fTicketPickBody">
+                <div class="tklist" id="fTicketChips"></div>
+                <p class="fhint" id="fTicketPickHint"></p>
+              </div>
+            </div>
+            <p class="fhint">票面从台账带出，不算现金成本；净收益仍按「现金收益 − 现金成本」算。</p>
+          </div>
+          <div class="buyrow">
+            <span class="buyrow-l">买入手数</span>
+            <div class="buychips" id="fBuys" role="group" aria-label="本场买入手数">
+              <button type="button" data-buys="1">×1</button>
+              <button type="button" data-buys="2">×2</button>
+              <button type="button" data-buys="3">×3</button>
+              <button type="button" data-buys="4">×4</button>
+              <button type="button" data-buys="5">×5</button>
+            </div>
+            <span class="buyrow-r" id="fBuyUnit"></span>
+          </div>
+        </div>
+
+        <div class="flow">
+          <div class="kindrow">
+            <span class="kindrow-l">收益类型</span>
+            <div class="seg seg-s" id="fIncomeKind" role="group" aria-label="收益类型">
+              <button type="button" data-kind="cash" class="on">现金</button>
+              <button type="button" data-kind="ticket">赢门票</button>
             </div>
           </div>
           <div class="field" id="fIncomeWrap">
@@ -2079,52 +2137,24 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
               <div style="display:flex;align-items:center;gap:4px"><span class="fprefix" data-cursym>¥</span><input class="finput" id="fIncome" placeholder="0" inputmode="decimal" autocomplete="off"></div>
             </div>
           </div>
-        </div>
-        <div class="kindrow">
-          <span class="kindrow-l">收益类型</span>
-          <div class="seg seg-s" id="fIncomeKind" role="group" aria-label="收益类型">
-            <button type="button" data-kind="cash" class="on">现金</button>
-            <button type="button" data-kind="ticket">赢门票</button>
-          </div>
-        </div>
-        <div class="row2 hidden" id="fTicketRow">
-          <div class="field hidden" id="fTicketCostWrap">
-            <div class="fbody"><span class="fcap">这张票的面值（来自台账）</span>
-              <div style="display:flex;align-items:center;gap:4px"><input class="finput" id="fTicketCost" placeholder="面值未填" readonly autocomplete="off"></div>
+          <div class="tkbox hidden" id="fIncomeTicketBox">
+            <div class="field">
+              <div class="fbody"><span class="fcap">每张票面值（可留空）</span>
+                <div style="display:flex;align-items:center;gap:4px"><span class="fprefix" data-cursym>¥</span><input class="finput" id="fTicketWon" placeholder="0" inputmode="decimal" autocomplete="off"></div>
+              </div>
             </div>
-          </div>
-          <div class="field hidden" id="fTicketWonWrap">
-            <div class="fbody"><span class="fcap">每张票面值（可留空）</span>
-              <div style="display:flex;align-items:center;gap:4px"><span class="fprefix" data-cursym>¥</span><input class="finput" id="fTicketWon" placeholder="0" inputmode="decimal" autocomplete="off"></div>
+            <div class="kindrow" id="fTicketWonNRow">
+              <span class="kindrow-l">赢票张数</span>
+              <div class="buychips" id="fTicketWonN" role="group" aria-label="本场赢到几张票">
+                <button type="button" data-n="1">×1</button>
+                <button type="button" data-n="2">×2</button>
+                <button type="button" data-n="3">×3</button>
+                <button type="button" data-n="4">×4</button>
+                <button type="button" data-n="5">×5</button>
+              </div>
             </div>
+            <p class="fhint">赢到的是门票，不算现金收益；每张票面可留空，票数照样入台账。</p>
           </div>
-        </div>
-        <div class="kindrow hidden" id="fTicketWonNRow">
-          <span class="kindrow-l">赢票张数</span>
-          <div class="buychips" id="fTicketWonN" role="group" aria-label="本场赢到几张票">
-            <button type="button" data-n="1">×1</button>
-            <button type="button" data-n="2">×2</button>
-            <button type="button" data-n="3">×3</button>
-            <button type="button" data-n="4">×4</button>
-            <button type="button" data-n="5">×5</button>
-          </div>
-        </div>
-        <div class="tkpick hidden" id="fTicketPick">
-          <span class="flabel">用哪张票 <em class="req">必选</em></span>
-          <div class="tklist" id="fTicketChips"></div>
-          <p class="fhint" id="fTicketPickHint"></p>
-        </div>
-        <p class="fhint hidden" id="ticketHint"></p>
-        <div class="buyrow">
-          <span class="buyrow-l">买入手数</span>
-          <div class="buychips" id="fBuys" role="group" aria-label="本场买入手数">
-            <button type="button" data-buys="1">×1</button>
-            <button type="button" data-buys="2">×2</button>
-            <button type="button" data-buys="3">×3</button>
-            <button type="button" data-buys="4">×4</button>
-            <button type="button" data-buys="5">×5</button>
-          </div>
-          <span class="buyrow-r" id="fBuyUnit"></span>
         </div>
       </div>
 
@@ -2320,7 +2350,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <li>「成本」填这一场的<b>总投入</b>（含所有 rebuy / add-on），不是单次买入。</li>
           <li>「收益」填这一场拿到的钱，没进钱就填 <b>0</b>。</li>
           <li>「名次」会据此自动判档（进 FT / 进圈 / 圈外），也可以手动改。</li>
-          <li>「比赛人数」填这一场的<b>报名总人次</b>（含重进 / rebuy）。同一比赛会自动带出上一次填的数，改一下就行。</li>
+          <li>「比赛人数」填这一场的<b>报名总人次</b>（含重进 / rebuy）。每场都从空白开始填 —— 上一场的人数不会带过来，420 人的深筹赛和 60 人的快速赛混着记，带过来反而容易错。</li>
           <li>「手数」只是个标签，用来统计你平均买几手，<b>不影响任何金额</b>。</li>
           <li>同一场比赛可以反复选，比赛管理里就是按它横向对比的。</li>
           <li>没录过的比赛，在比赛选择器的搜索框里直接输入新名字，下面会露出「＋ 新建」—— <b>类型（常规赛 / 卫星赛）和平台可以当场定</b>，不用再跑去比赛管理补。</li>
@@ -2399,7 +2429,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
           <li>卫星赛赢的是更大比赛的<b>门票</b>，不是现金。票绑定本人、不能变现，所以<b>不进净收益、不进 ROI</b>，只记在数据页「成绩结构 → 卫星赛」的门票台账里。</li>
           <li><b>票不是一场比赛</b>：不产生场次，不进进圈率、FT 率、成绩结构、买入习惯、个人纪录。台账里一张票一条，分「卫星赛赢到」和「获赠」两种来源。</li>
           <li>记一笔把「收益类型」选成「赢门票」，可以填<b>每张票面值和张数</b>；<b>面值留空也能入账</b>，现金收益自动算 0。</li>
-          <li>用票打主赛时「成本来源」选「门票」或「票 + 现金」，并<b>从列表里选中具体哪一张票</b> —— 赠票也能选，台账就能追到它是哪一场用掉的。<b>现金成本只填自己掏的钱</b>（rebuy / add-on），票面从台账带出、不算现金成本。</li>
+          <li>用票打主赛时「成本来源」选「门票」或「票 + 现金」，<b>「用哪张票」就在成本来源下面</b>（默认收起，点一下展开）—— 从列表里选中具体哪一张，赠票也能选，台账就能追到它是哪一场用掉的。<b>现金成本只填自己掏的钱</b>（rebuy / add-on），票面从台账带出、不算现金成本。</li>
           <li>免费获赠的票（没打过卫星赛）点<b>「+ 登记赠票」</b>：可一次登记多张，每张面值可留空，不产生场次、不进任何统计；只有票、没有卫星赛也能打开这个 tab。</li>
           <li>数据页「成绩结构」右上角切<b>常规赛 / 卫星赛</b>：卫星赛那边看命中率、赢到票 / 没赢到各多少场、每场平均花多少现金；下面是全库门票流水，未用 / 已用都能点开，可删、可跳到用掉它的那场。</li>
           <li>门票台账按<b>全部记录</b>算，不受时间范围影响 —— 查「还有几张票没打」要准。<b>平均每张票花</b> ＝ 卫星赛现金成本 ÷ 赢到的票张数，获赠的票不进分母；<b>未用票数</b>按流水张数算，不再拿记录条数相减。</li>
@@ -2812,14 +2842,6 @@ function rankPctOf(r){
   var fs = sizeOf(r), rk = parseInt(r && r.rank, 10);
   if (!fs || !isFinite(rk) || rk <= 0) return null;
   return Math.min(rk / fs, 1);
-}
-/* 这个比赛最近一次记过的人数，用来预填。换比赛要重新取 ——
-   420 人的深筹赛和 60 人的快速赛混用，名次百分位会全错。 */
-function lastSizeOfEvent(eid){
-  if (!eid) return '';
-  var prev = db.records.filter(function(x){ return x.eventId === eid && sizeOf(x); })
-    .sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); })[0];
-  return prev ? String(sizeOf(prev)) : '';
 }
 /* 进圈那一刻的筹码（BB），1 位小数。本期只做预留，界面没有入口 */
 function bbOf(r){
@@ -5711,51 +5733,71 @@ function renderTicketChips(){
     ? '已选中一张票；票面只进台账，不算现金成本。'
     : '选一张未用的票，免费获赠的票也能选。';
 }
+/* 票列表折叠：默认收着，一屏能把成本整条流看完。
+   open 状态记在 form 上，切换来源 / 重绘都不会把它弄丢。 */
+function setTicketPickOpen(open){
+  var box = $('#fTicketPick');
+  if (!box) return;
+  box.classList.toggle('open', !!open);
+  var head = $('#fTicketPickHead');
+  if (head) head.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+function toggleTicketPick(){
+  var box = $('#fTicketPick');
+  if (!box) return;
+  var open = !box.classList.contains('open');
+  if (form) form.tkClosed = !open;
+  setTicketPickOpen(open);
+}
+
 function paintUsedTicketFace(){
   var el = $('#fTicketCost');
   if (!el) return;
   var t = form && form.ticketUsedId ? ticketById(form.ticketUsedId) : null;
   el.value = (t && money(t.face) > 0) ? ticketFaceText(t) : '';
+  // 收起状态下也要能看出选了哪张 —— 否则折叠等于把信息藏起来
+  var cur = $('#fTicketPickCur');
+  if (cur) {
+    if (t) {
+      cur.textContent = ticketFaceText(t) + (t.note ? ' · ' + t.note : '');
+      cur.classList.remove('ph');
+    } else {
+      cur.textContent = '未选';
+      cur.classList.add('ph');
+    }
+  }
 }
 
 /* 成本来源 / 收益类型决定哪些输入框出现。
-   票 + 现金（用票进场后 rebuy）时四个框都能填，各归各的账。 */
+   票 + 现金（用票进场后 rebuy）时成本那边两个框都能填，各归各的账。 */
 function syncTicketUI(){
   if (!form) return;
   paintKindSeg($('#fCostKind'), form.costKind);
   paintKindSeg($('#fIncomeKind'), form.incomeKind);
   var tc = form.costKind === 'ticket' || form.costKind === 'both';
   var tw = form.incomeKind === 'ticket';
-  var cc = form.costKind !== 'ticket';
-  var ci = !tw;
 
-  $('#fCostWrap').classList.toggle('hidden', !cc);
-  $('#fIncomeWrap').classList.toggle('hidden', !ci);
-  $('#fMoneyRow').classList.toggle('hidden', !cc && !ci);
-  $('#fMoneyRow').classList.toggle('one', !(cc && ci));
-
-  $('#fTicketCostWrap').classList.toggle('hidden', !tc);
-  $('#fTicketWonWrap').classList.toggle('hidden', !tw);
-  $('#fTicketRow').classList.toggle('hidden', !tc && !tw);
-  $('#fTicketRow').classList.toggle('one', !(tc && tw));
-  $('#fTicketWonNRow').classList.toggle('hidden', !tw);
-  $('#fTicketPick').classList.toggle('hidden', !tc);
+  $('#fCostWrap').classList.toggle('hidden', form.costKind === 'ticket');
+  $('#fCostTicketBox').classList.toggle('hidden', !tc);
+  $('#fIncomeWrap').classList.toggle('hidden', tw);
+  $('#fIncomeTicketBox').classList.toggle('hidden', !tw);
 
   $$('#fTicketWonN button').forEach(function(b){
     b.classList.toggle('on', parseInt(b.getAttribute('data-n'), 10) === (form.ticketWonN || 1));
   });
-  if (tc) renderTicketChips();
-  paintUsedTicketFace();
+  if (tc) { renderTicketChips(); paintUsedTicketFace(); }
+  // 还没选票就默认展开 —— 收起是为了省地方，不是为了把必选的东西藏起来；
+  // 选好了就自动收回去。用户手动关过的话这一场不再强行展开（tkClosed）
+  if (tc) {
+    var picked = !!form.ticketUsedId;
+    setTicketPickOpen(picked ? false : !form.tkClosed);
+  } else {
+    // 不用票了就把展开态收回去，下次切回来从干净的收起态开始
+    setTicketPickOpen(false);
+  }
 
   var cap = $('#fCostCap');
   if (cap) cap.textContent = form.costKind === 'both' ? '现金成本（rebuy / add-on）' : '现金成本（买入）';
-  var hint = $('#ticketHint');
-  if (hint) {
-    hint.classList.toggle('hidden', !tc && !tw);
-    hint.textContent = tw
-      ? '赢到的是门票，不算现金收益；每张票面可留空，票数照样入台账。'
-      : (tc ? '票面从台账带出，不算现金成本；净收益仍按「现金收益 − 现金成本」算。' : '');
-  }
   updateNetPreview();
 }
 /* 表单里的币种切换：只换符号，不动已经填的数字 */
@@ -5901,32 +5943,23 @@ function openRecordForm(id){
       incomeKind: wonTicketOf(r) ? 'ticket' : 'cash'
     };
   } else {
-    // 默认选中：当前筛选的比赛 > 最近一次用的比赛 > 唯一比赛
-    var eid = '';
-    if (state.filterEvent !== 'all' && eventById(state.filterEvent)) eid = state.filterEvent;
-    if (!eid) {
-      var last = db.records.slice().sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); })[0];
-      if (last && eventById(last.eventId)) eid = last.eventId;
-    }
-    if (!eid && db.events.length === 1) eid = db.events[0].id;
+    // 新记录不带任何上一场的东西：人数、金额、币种、票、收益类型全空。
+    // 上次记的是 420 人进圈，这次可能是 60 人快速赛 —— 带过来的每个数字都得先删再填，
+    // 比空着更慢，也更容易忘记改。
+    // 唯一保留的是「记录页正筛着的那场比赛」：那是你当下在看的东西，不是历史记忆。
+    var eid = (state.filterEvent !== 'all' && eventById(state.filterEvent)) ? state.filterEvent : '';
     var ev = eid ? eventById(eid) : null;
-    // 同一比赛最近一次记过的人数直接带过来：大多数赛事规模很稳定，
-    // 每场重打一遍数字，是「记不满 500 场」最常见的原因
-    var lastSize = lastSizeOfEvent(eid);
-    // 新记录默认跟上一次用的币种，没记过就跟着当前展示币种
-    var lastCur = db.records.length
-      ? curOf(db.records.slice().sort(function(a, b){ return (b.createdAt || 0) - (a.createdAt || 0); })[0])
-      : dispCur();
     form = {
       id: null, eventId: eid, eventName: ev ? ev.name : '',
-      time: nowStr(), rank: '', fieldSize: lastSize, cost: '', income: '', note: '', stage: 'out', cur: lastCur, buys: 1, costAuto: false,
-      ticketWon: '', ticketUsedId: null, ticketWonN: 1, costKind: 'cash',
-      // 卫星赛默认记「赢门票」，省得每次手切；圈外没赢票再切回现金即可
-      incomeKind: (ev && eventKindOf(ev) === 'satellite') ? 'ticket' : 'cash'
+      time: nowStr(), rank: '', fieldSize: '', cost: '', income: '',
+      note: '', stage: 'out', cur: dispCur(), buys: 1, costAuto: false,
+      ticketWon: '', ticketUsedId: null, ticketWonN: 1,
+      costKind: 'cash', incomeKind: 'cash', tkClosed: false
     };
   }
   paintForm();
-  // 新建时如果这场比赛设过一手买入价，顺手把成本带上，省得每周手打
+  // 预选了比赛（记录页正筛着它）就把这场的一手买入价带出来 —— 那是赛事的固定设定，
+  // 不属于「上一场的记忆」，不带反而要人去比赛管理里查一遍。没预选就什么都不填。
   if (!form.id) applyBuyin();
   openModal('mRecord');
 }
@@ -6275,7 +6308,6 @@ function renderPickerList(kw){
       saveDB();
       form.eventId = ev.id;
       form.eventName = ev.name;
-      form.fieldSize = '';
       // 建完就把草稿清掉，下一条新比赛从「常规赛 + 不指定平台」重新起
       pickKind = 'regular'; pickPlat = '';
       paintForm();
@@ -6289,8 +6321,8 @@ function renderPickerList(kw){
       if (!ev) return;
       form.eventId = ev.id;
       form.eventName = ev.name;
-      // 换了比赛，人数按新比赛的历史重取，别把上一场 420 人的数字带过去
-      form.fieldSize = lastSizeOfEvent(ev.id);
+      // 不预填人数：这场多少人得重新看，带上一场的数字最容易「看着对、其实是错的」。
+      // 一手买入价是赛事的固定设定（不是上一场的记忆），照旧带出来。
       paintForm();
       applyBuyin();
       closeModal('mPicker');
@@ -6985,9 +7017,13 @@ document.addEventListener('click', function(e){
     if (form) {
       form.ticketUsedId = tkChip.getAttribute('data-ticket');
       renderTicketChips(); paintUsedTicketFace();
+      // 选完就收起来，把位置让回给金额和手数
+      form.tkClosed = true;
+      setTicketPickOpen(false);
     }
     return;
   }
+  if (q('#fTicketPickHead')) { toggleTicketPick(); return; }
   if (q('[data-gotogift]')) {
     // 叠两个弹层会让返回键乱掉：先关记一笔，落到数据页的卫星赛栏再开登记
     closeModal('mRecord');
