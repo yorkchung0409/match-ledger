@@ -6093,9 +6093,9 @@ window.addEventListener('popstate', function(){
   var self = !!(navSelf && Date.now() - navSelf < 800);
   if (self) navSelf = 0;
 
-  var open = $$('.modal.open');
-  if (open.length) { closeModal(open[open.length - 1].id); return; }
-
+  // 自己发起的 back（关弹层 / 退二级页）必须先处理，不能落进「有弹层就关最上层」：
+  // 关掉「选择比赛」时 mRecord 还开着，那条分支会把记一笔的表单一起关掉，
+  // 选完比赛就退回列表 —— 最基础的记录流程直接断掉。
   if (navPending) {
     var t = navPending;
     navPending = '';
@@ -6110,7 +6110,11 @@ window.addEventListener('popstate', function(){
   }
   if (self) return;
 
-  // 真正的浏览器返回：跟着落点那条历史的 hash 走，而不是一律回记录页
+  // 真正的浏览器返回：先关最上层弹层
+  var open = $$('.modal.open');
+  if (open.length) { closeModal(open[open.length - 1].id); return; }
+
+  // 再退二级页：跟着落点那条历史的 hash 走，而不是一律回记录页
   var m = /^#\/(records|data|events)$/.exec(location.hash);
   var target = (m && m[1] !== state.view) ? m[1] : (state.view === 'events' ? 'records' : state.view);
   if (target !== state.view) switchView(target, true);
