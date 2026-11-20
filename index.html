@@ -674,7 +674,16 @@ input,textarea,select{font-family:inherit;color:inherit}
 }
 
 /* ---------- filters ---------- */
-.filters{display:flex;gap:7px;margin:18px 0 12px;align-items:center}
+/* 四个筛选两行：比赛 / 平台，日期 / 盈亏。比原来「一行筛选 + 一行平台条」省一行 */
+.filters{
+  display:grid;grid-template-columns:1fr 1fr;gap:7px;
+  margin:18px 0 12px;align-items:center;
+}
+.filters .selwrap{grid-column:1}
+.filters #recPlatWrap{grid-column:2}
+.filters .datebtn{grid-column:1;justify-self:start}
+.filters .seg{grid-column:2;margin-left:0}
+.filters.no-plat .selwrap{grid-column:1/-1}
 .selwrap{position:relative;flex:1 1 0%;min-width:0}
 .selwrap select{
   appearance:none;-webkit-appearance:none;
@@ -702,6 +711,10 @@ input,textarea,select{font-family:inherit;color:inherit}
   color:var(--brand);font-weight:600;
   background:rgba(var(--brand-rgb),.09);border-color:rgba(var(--brand-rgb),.30);
 }
+.selwrap select.on{
+  color:var(--brand);font-weight:600;
+  background:rgba(var(--brand-rgb),.09);border-color:rgba(var(--brand-rgb),.30);
+}
 .seg{display:flex;margin-left:auto;background:rgba(var(--line-rgb),.055);border:var(--bw) solid rgba(var(--line-rgb),.05);border-radius:calc(var(--r-btn) + 1px);padding:3px;gap:2px}
 .seg button{
   padding:8px 11px;border-radius:calc(var(--r-btn) - 2px);font-size:12.5px;color:var(--muted);
@@ -719,40 +732,6 @@ input,textarea,select{font-family:inherit;color:inherit}
 .chip:active{opacity:.7}
 .chip i{font-style:normal;font-size:13px;line-height:1;opacity:.6}
 .chip-note{font-size:11px;color:var(--muted-3);font-variant-numeric:tabular-nums}
-
-/* ---------- 记录搜索 / 月份跳转 ---------- */
-.searchbar{
-  display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:0 12px;height:40px;
-  border-radius:var(--r-btn);background:var(--surface);border:var(--bw) solid var(--line);
-  box-shadow:0 1px 2px rgba(var(--sh-rgb),.04);
-}
-.searchbar svg{flex:0 0 auto;color:var(--muted-3)}
-.searchbar input{
-  flex:1;min-width:0;border:0;background:transparent;outline:none;
-  font:inherit;font-size:13px;color:var(--text);
-}
-.searchbar input::placeholder{color:var(--muted-3)}
-.searchbar input::-webkit-search-cancel-button{display:none}
-.sclear{
-  flex:0 0 auto;width:26px;height:26px;border-radius:50%;border:0;
-  display:grid;place-items:center;background:var(--surface-3);
-  color:var(--muted);font-size:15px;line-height:1;
-}
-/* 月份跳转：并进搜索行，原生 select 在手机上直接弹滚轮 */
-.mselwrap{
-  position:relative;flex:0 0 auto;display:flex;align-items:center;
-  padding-left:8px;margin-left:2px;border-left:var(--bw) solid var(--line-2);
-}
-.mselwrap::after{
-  content:'';position:absolute;right:2px;top:50%;width:6px;height:6px;
-  border-right:1.6px solid var(--muted-3);border-bottom:1.6px solid var(--muted-3);
-  transform:translateY(-70%) rotate(45deg);pointer-events:none;
-}
-#monthJump{
-  appearance:none;-webkit-appearance:none;border:0;background:transparent;
-  max-width:104px;padding:6px 16px 6px 4px;font:inherit;font-size:11.5px;
-  color:var(--muted);outline:none;
-}
 
 /* 时间筛选按钮 */
 .datebtn{
@@ -1839,15 +1818,18 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
 
       <div id="demoBanner"></div>
 
-      <div class="filters">
+      <div class="filters" id="recFilters">
         <div class="selwrap">
           <button class="evsel" id="btnEventFilter" type="button" aria-haspopup="dialog" aria-label="按比赛筛选">
             <span id="evBtnLabel">全部比赛</span>
           </button>
         </div>
+        <div class="selwrap hidden" id="recPlatWrap">
+          <select id="recPlatSelect" aria-label="按平台筛选"></select>
+        </div>
         <button class="datebtn" id="btnDate">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3.2" y="5" width="17.6" height="15.6" rx="3"/><path d="M8 3v4M16 3v4M3.2 10.4h17.6"/></svg>
-          <span id="dateLabel">时间</span>
+          <span id="dateLabel">日期</span>
         </button>
         <div class="seg" id="filterType">
           <button data-type="all" class="on">全部</button>
@@ -1856,24 +1838,11 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         </div>
       </div>
 
-      <div class="platbar hidden" id="recPlatBar"></div>
-
       <div class="chiprow hidden" id="stageChip">
         <button class="chip" type="button" data-chipclear="1">
           <span>只看 <b id="stageChipLabel">进 FT</b></span><i>×</i>
         </button>
         <span class="chip-note" id="stageChipN"></span>
-      </div>
-
-      <!-- 记录多起来之后，只靠筛选找一场太慢：这里按比赛名 / 备注搜。
-           月份跳转并进同一行，避免再占一行把列表挤出首屏。 -->
-      <div class="searchbar" id="recSearchBar">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.2 4.2"/></svg>
-        <input id="recSearch" type="text" placeholder="搜索比赛或备注" autocomplete="off" aria-label="搜索记录">
-        <button type="button" class="sclear hidden" id="recSearchClear" aria-label="清除搜索">×</button>
-        <span class="mselwrap">
-          <select id="monthJump" aria-label="跳到月份"></select>
-        </span>
       </div>
 
       <div id="recordList"></div>
@@ -3738,8 +3707,7 @@ var state = {
   dataDate: { filterY: 'all', filterM: 'all', filterD: 'all' },
   // 平台同理各存各的：记录页问「看哪几场流水」，数据页问「统计哪一段」。
   // 'none' 是「没标平台的」这一档，不是「全部」
-  dataPlat: 'all',
-  recSearch: ''        // 记录页搜索词，只影响列表，不动 hero 统计
+  dataPlat: 'all'
 };
 var form = null;      // 当前编辑的记录
 var formSnapshot = ''; // 打开表单时的字段快照，用来拦「误触关闭」
@@ -3942,7 +3910,7 @@ function dateLabelOf(f){
   if (m !== 'all' && d !== 'all') return m + '/' + d;
   if (m !== 'all') return (+m) + '月';
   if (d !== 'all') return (+d) + '日';
-  return '时间';
+  return '日期';
 }
 /* 顶部那句口径说明也要跟着时间走 */
 function dateScopeText(f){
@@ -4222,22 +4190,11 @@ function recCardHTML(r){
   + '</button>';
 }
 
-function searchQ(){ return String(state.recSearch || '').trim().toLowerCase(); }
-function matchSearch(r){
-  var q = searchQ();
-  if (!q) return true;
-  return (String(r.eventName || '') + '\n' + String(r.note || '')).toLowerCase().indexOf(q) >= 0;
-}
-
 function renderRecords(){
   var box = $('#recordList');
-  var list = filtered().filter(matchSearch);
-  var sb = $('#recSearchBar');
-  if (sb) sb.classList.toggle('hidden', !db.records.length);
+  var list = filtered();
 
   if (!db.records.length) {
-    var mj0 = $('#monthJump');
-    if (mj0) { mj0.innerHTML = '<option value="">月份</option>'; mj0.disabled = true; }
     box.innerHTML = '<div class="empty">'
       + '<div class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M12 15v4"/><path d="M8 21h8"/></svg></div>'
       + '<h3>还没有比赛记录</h3>'
@@ -4247,18 +4204,10 @@ function renderRecords(){
     return;
   }
   if (!list.length) {
-    var mj1 = $('#monthJump');
-    if (mj1) { mj1.innerHTML = '<option value="">月份</option>'; mj1.disabled = true; }
-    box.innerHTML = searchQ()
-      ? '<div class="empty" style="padding:36px 20px">'
-        + '<h3>没有找到「' + esc(String(state.recSearch || '').trim()) + '」</h3>'
-        + '<p>换个关键词，或清除搜索看看全部记录</p>'
-        + '<button class="cta plain" data-clearsearch>清除搜索</button>'
-        + '</div>'
-      : '<div class="empty" style="padding:40px 20px">'
-        + '<h3>没有符合条件的记录</h3>'
-        + '<p>换个筛选条件试试</p>'
-        + '</div>';
+    box.innerHTML = '<div class="empty" style="padding:40px 20px">'
+      + '<h3>没有符合条件的记录</h3>'
+      + '<p>换个筛选条件试试</p>'
+      + '</div>';
     return;
   }
 
@@ -4271,23 +4220,13 @@ function renderRecords(){
     map[k].push(r);
   });
 
-  // 月份跳转：并进搜索行，只在跨月时可用
-  var mj = $('#monthJump');
-  if (mj) {
-    mj.disabled = groups.length <= 1;
-    mj.innerHTML = '<option value="">月份</option>' + groups.map(function(k){
-      return '<option value="' + esc(k) + '">' + esc(monthLabel(k)) + ' · ' + map[k].length + '</option>';
-    }).join('');
-    mj.value = '';
-  }
-
   var html = '';
   groups.forEach(function(k){
     var items = map[k];
     var s = statsOf(items);
     // 这个月里有跟展示币种不同的记录，小计就是折算值，前面标个约等号
     var fx = needsFx(items) ? '≈ ' : '';
-    html += '<div class="month" id="mon-' + esc(k) + '"><span>' + monthLabel(k) + '</span>'
+    html += '<div class="month"><span>' + monthLabel(k) + '</span>'
       + '<em class="' + cls(s.net) + '">' + items.length + ' 场 · ' + fx + signed(s.net) + '</em></div>';
     items.forEach(function(r){ html += recCardHTML(r); });
   });
@@ -4347,7 +4286,16 @@ function renderFilters(){
   if (bar) bar.classList.toggle('hidden', db.records.length === 0);
 
   paintEventBtn();
-  paintPlatBar($('#recPlatBar'), 'rec');
+
+  // 记录页平台改成下拉：平台多起来时横条会把筛选区撑成两行
+  var used = platCounts();
+  var hasPlat = platforms().length > 0;
+  var pw = $('#recPlatWrap');
+  if (pw) pw.classList.toggle('hidden', !hasPlat);
+  var fb = $('#recFilters');
+  if (fb) fb.classList.toggle('no-plat', !hasPlat);
+  if (!hasPlat) state.filterPlat = 'all';
+  else paintPlatSelect(used);
 
   $$('#filterType button').forEach(function(b){
     b.classList.toggle('on', b.getAttribute('data-type') === state.filterType);
@@ -4358,6 +4306,26 @@ function renderFilters(){
   if (dbtn) dbtn.classList.toggle('on', dateActive(state.recDate));
 
   paintStageChip();
+}
+
+/* 记录页的平台下拉：选项带场次数，选中的平台被删掉时退回「全部」 */
+function paintPlatSelect(used){
+  var sel = $('#recPlatSelect');
+  if (!sel) return;
+  var list = platforms();
+  var html = '<option value="all">全部平台 · ' + db.records.length + '</option>';
+  list.forEach(function(p){
+    html += '<option value="' + esc(p.id) + '">' + esc(p.name) + ' · ' + (used[p.id] || 0) + '</option>';
+  });
+  if (used.none > 0) html += '<option value="none">未标平台 · ' + used.none + '</option>';
+  sel.innerHTML = html;
+  var ok = state.filterPlat === 'all' || state.filterPlat === 'none'
+    || list.some(function(p){ return p.id === state.filterPlat; });
+  if (!ok) state.filterPlat = 'all';
+  sel.value = state.filterPlat;
+  sel.classList.toggle('on', state.filterPlat !== 'all');
+  var cur = sel.options[sel.selectedIndex];
+  sel.setAttribute('aria-label', '按平台筛选，当前' + (cur ? cur.text : '全部平台'));
 }
 
 /* ============ v6 平台横条 ============
@@ -7295,37 +7263,6 @@ $('#btnEventDelete').addEventListener('click', function(){
 
 $('#eventSearch').addEventListener('input', debounce(renderEvents, 120));
 
-/* 记录搜索：只过滤列表，不动 hero 的累计数字 —— 找一场不该把总账改了 */
-var recSearchSoon = debounce(function(v){
-  state.recSearch = v;
-  renderRecords();
-}, 120);
-function clearRecSearch(){
-  state.recSearch = '';
-  var inp = $('#recSearch');
-  if (inp) inp.value = '';
-  var cl = $('#recSearchClear');
-  if (cl) cl.classList.add('hidden');
-  renderRecords();
-}
-$('#recSearch').addEventListener('input', function(){
-  var cl = $('#recSearchClear');
-  if (cl) cl.classList.toggle('hidden', !this.value);
-  recSearchSoon(this.value);
-});
-$('#recSearchClear').addEventListener('click', clearRecSearch);
-
-/* 月份跳转：选完就复位成「月份」，当一次性动作而不是筛选条件 */
-$('#monthJump').addEventListener('change', function(){
-  var k = this.value;
-  this.value = '';
-  if (!k) return;
-  var el = document.getElementById('mon-' + k);
-  if (!el) return;
-  var top = el.getBoundingClientRect().top + (window.pageYOffset || 0) - 8;
-  window.scrollTo({ top: top, behavior: prefersReduce() ? 'auto' : 'smooth' });
-});
-
 /* ================= 平台管理 =================
    平台表很小（一般 2~5 个），改名/删除都直接改 db.platforms 并同步快照。
    删除不删历史：记录上的 platformName 保留，platformId 清空 —— 这样
@@ -7892,9 +7829,6 @@ document.addEventListener('click', function(e){
   var el = e.target.closest ? e.target.closest('[data-close], [data-open], [data-add], [data-event]') : null;
   var q = function(s){ return e.target.closest ? e.target.closest(s) : null; };
 
-  // 记录页：清除搜索
-  if (q('[data-clearsearch]')) { clearRecSearch(); return; }
-
   /* v4 门票流水：台账里删票 / 跳到用掉它的那场 / 登记赠票 / 表单里选票 */
   var tkDel = q('[data-delticket]');
   if (tkDel) { deleteTicket(tkDel.getAttribute('data-delticket')); return; }
@@ -8087,6 +8021,13 @@ $('#evfList').addEventListener('click', function(e){
 });
 
 /* 时间筛选：记录页和数据页各开各的，改哪一份由 dpScope 记住 */
+$('#recPlatSelect').addEventListener('change', function(){
+  state.filterPlat = this.value || 'all';
+  renderFilters();
+  renderStats();
+  renderRecords();
+});
+
 $('#btnDate').addEventListener('click', function(){ openDatePicker('rec'); });
 $('#btnDateData').addEventListener('click', function(){ openDatePicker('data'); });
 
