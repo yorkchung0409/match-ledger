@@ -2505,7 +2505,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         <div class="help-body"><ul>
           <li>卫星赛赢的是更大比赛的<b>门票</b>，不是现金。票绑定本人、不能变现，所以<b>不进净收益、不进 ROI</b>，只记在数据页「成绩结构 → 卫星赛」的门票台账里。</li>
           <li><b>票不是一场比赛</b>：不产生场次，不进进圈率、FT 率、成绩结构、买入习惯、个人纪录。台账里一张票一条，分「卫星赛赢到」和「获赠」两种来源。</li>
-          <li>记一笔把「收益类型」选成「赢门票」，可以填<b>每张票面值和张数</b>；<b>面值留空也能入账</b>，现金收益自动算 0。</li>
+          <li>记一笔把「收益类型」选成「赢门票」，可以填<b>每张票面值和张数</b>；<b>面值留空也能入账</b>，现金收益自动算 0。比赛是卫星赛时这组文案会变成<b>「没赢到 / 赢到门票」</b>；<b>圈外、没有现金、票面又留空</b>时按没赢到票记录，不会生成面值未知的票。</li>
           <li>一场里<b>同时拿到现金和门票</b>时，收益类型选<b>「票 + 现金」</b>：上面填现金、下面填票的面值和张数，两边各归各的账 —— <b>现金照进净收益，票只进门票台账</b>，不会互相抵消。<b>现金那一栏不限来源</b>：奖金、打比赛途中开宝箱开出的钱、各类额外奖励，只要是这一场进账的现金都填在一起；票同理，宝箱可能开出好几张，也可能只有钱或只有票，按实际填。</li>
           <li>用票打主赛时「成本来源」选「门票」或「票 + 现金」，<b>「用哪张票」就在成本来源下面</b>（默认收起，点一下展开）—— 从列表里选中具体哪一张，赠票也能选，台账就能追到它是哪一场用掉的。<b>现金成本只填自己掏的钱</b>（rebuy / add-on），票面从台账带出、不算现金成本。</li>
           <li>免费获赠的票（没打过卫星赛）点<b>「+ 登记赠票」</b>：可一次登记多张，每张面值可留空，不产生场次、不进任何统计；只有票、没有卫星赛也能打开这个 tab。</li>
@@ -2993,6 +2993,13 @@ function wonTicketN(r){
 function wonTicketOf(r){ return wonTicketN(r) > 0; }
 function usedTicketOf(r){
   return !!r && (ticketCostOf(r) > 0 || !!(r.ticketUsedId && String(r.ticketUsedId).length));
+}
+/* 票能不能用在 recTime：赢到的票必须早于这场；赠票按日期比 ——
+   赠票默认登记在当天 12:00，早上记一场昨晚的牌不该被它挡住 */
+function ticketBefore(t, recTime){
+  if (!t || !t.date || !recTime) return true;
+  if (t.source === 'gift') return String(t.date).slice(0, 10) <= String(recTime).slice(0, 10);
+  return t.date <= recTime;
 }
 function ticketById(id){
   if (!id || !Array.isArray(db.tickets)) return null;
@@ -6343,7 +6350,7 @@ function renderTicketChips(){
     if (t.id === cur) return true;                   // 当前选中的那张始终列出来
     // 补录更早的比赛时，不该能选「后来才赢到」的票 —— 那会造出
     // 「先用了、后来又赢」的不可能流水。保存时还有一道同样的校验。
-    if (recTime && t.date && t.date > recTime) return false;
+    if (!ticketBefore(t, recTime)) return false;
     return true;
   }));
   if (!list.length) {
@@ -6418,10 +6425,32 @@ function paintUsedTicketFace(){
    收益侧「票 + 现金」= 这一场既拿了现金又拿了票（打比赛过程开宝箱、
    多个额外奖励里有的给钱有的给票，都算这种）。
    共同点：两个框各填各的，各归各的账 —— 现金进 income，票进 ticketWon。 */
+/* 卫星赛没有「奖金」这个概念，收益只有「赢到票 / 没赢到」；
+   文案跟着赛事类型走，免得把「没赢到」误选成「赢门票」 */
+function formIsSatellite(){
+  if (!form) return false;
+  if (form.eventKind === 'satellite') return true;
+  var ev = form.eventId ? eventById(form.eventId) : null;
+  return !!ev && eventKindOf(ev) === 'satellite';
+}
+function paintIncomeLabels(sat){
+  var box = $('#fIncomeKind');
+  if (!box) return;
+  var set = function(k, t){
+    var b = box.querySelector('[data-kind="' + k + '"]');
+    if (b) b.textContent = t;
+  };
+  set('cash', sat ? '没赢到' : '现金');
+  set('ticket', sat ? '赢到门票' : '赢门票');
+  set('both', '票 + 现金');
+}
+
 function syncTicketUI(){
   if (!form) return;
+  var sat = formIsSatellite();
   paintKindSeg($('#fCostKind'), form.costKind);
   paintKindSeg($('#fIncomeKind'), form.incomeKind);
+  paintIncomeLabels(sat);
   var tc = form.costKind === 'ticket' || form.costKind === 'both';
   // 收益侧只要带票就得出现票的那一段（赢门票 / 票 + 现金）
   var tw = form.incomeKind === 'ticket' || form.incomeKind === 'both';
@@ -6438,7 +6467,7 @@ function syncTicketUI(){
   if (incCap) {
     incCap.textContent = form.incomeKind === 'both'
       ? '现金收益（奖金 / 额外奖励）'
-      : '现金收益（奖金）';
+      : (sat ? '现金收益（如有）' : '现金收益（奖金）');
   }
   // 票 + 现金时那句提示得改：原来那句「赢到的是门票，不算现金收益」会让人
   // 以为上面那个现金框也白填了。要明确说两边都算数、现金照进净收益。
@@ -6446,7 +6475,9 @@ function syncTicketUI(){
   if (incHint) {
     incHint.textContent = form.incomeKind === 'both'
       ? '奖金、宝箱开出的钱、额外奖励都填上面的现金；票填下面。现金进净收益，票只进台账。'
-      : '赢到的是门票，不算现金收益；每张票面可留空，票数照样入台账。';
+      : (sat
+        ? '赢到的是门票，不算现金收益；票面可留空。圈外且票面留空时按没赢到票记录；确实赢到票就把「进圈情况」选成进圈。'
+        : '赢到的是门票，不算现金收益；每张票面可留空，票数照样入台账。');
   }
 
   $$('#fTicketWonN button').forEach(function(b){
@@ -6720,6 +6751,7 @@ function saveRecord(){
   // 落盘的是 number：v1 存字符串，统计时要到处 parseFloat。
   // 门票面值单独存，不塞进 cost / income —— 净收益公式保持现金口径。
   var cost = (form.costKind === 'ticket') ? 0 : Math.max(0, money($('#fCost').value));
+  var satForm = formIsSatellite();
   var income = (form.incomeKind === 'ticket') ? 0 : Math.max(0, money($('#fIncome').value));
   // 编辑时的原记录：赛事被删掉后，它是类型 / 平台快照的唯一来源
   var prev = form.id ? db.records.filter(function(x){ return x.id === form.id; })[0] : null;
@@ -6749,7 +6781,7 @@ function saveRecord(){
   // 不能用「还没赢到」的票：补录更早的比赛时，台账里后来的票不该出现。
   // 例外：编辑一条本来就绑着这张票的旧记录时放行，不能因为历史数据不合规就锁死编辑。
   var keptOldTicket = !!(prev && usedT && prev.ticketUsedId === usedT.id);
-  if (usedT && usedT.date && form.time && usedT.date > form.time && !keptOldTicket) {
+  if (usedT && !ticketBefore(usedT, form.time) && !keptOldTicket) {
     toast('这张票是 ' + fmtWhen(usedT.date) + ' 才赢到的，不能用在更早的比赛上');
     return;
   }
@@ -6759,6 +6791,14 @@ function saveRecord(){
   var wonN = (form.incomeKind === 'cash') ? 0
     : Math.max(1, Math.min(5, parseInt(form.ticketWonN, 10) || 1));
   var wonEach = (form.incomeKind === 'cash') ? 0 : Math.max(0, money($('#fTicketWon').value));
+  // 卫星赛圈外、没有现金、票面也空着 —— 实际就是没赢到票。
+  // 不能因为「收益类型」停在赢门票就凭空生成一张面值未知的票（会把命中率也算错）。
+  // 只拦「新记的一笔」：已有记录的票可能是当时真赢到的，不能因为改个备注就把它删掉。
+  var hasEarnedTicket = !!(form.id && (Array.isArray(db.tickets) ? db.tickets : [])
+    .some(function(t){ return t.earnedIn === form.id; }));
+  var voidByOut = !hasEarnedTicket && satForm && form.incomeKind !== 'cash'
+    && form.stage === 'out' && !income && wonEach <= 0;
+  if (voidByOut) wonN = 0;
   var ticketWon = wonEach * wonN;
 
   // 只有进圈/进 FT 才强制名次；圈外可以不填
@@ -6839,6 +6879,7 @@ function saveRecord(){
   formSnapshot = '';   // 已经存了，关窗不该再提示「放弃」
   closeModal('mRecord');
   var msg = off ? '已保存 · 已显示全部时间' : (form.id ? '已更新' : '已记录');
+  if (voidByOut) msg += ' · 圈外没填票面，按没赢到票记录';
   toast(warn ? msg + ' · ' + warn : msg);
 }
 
