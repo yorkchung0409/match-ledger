@@ -673,6 +673,8 @@ input,textarea,select{font-family:inherit;color:inherit}
   background:var(--brand);padding:6px 11px;border-radius:var(--r-chip);
 }
 
+.ev-sort-note{font-size:11px;color:var(--muted-3);margin:9px 2px 7px;letter-spacing:.01em}
+
 /* ---------- filters ---------- */
 /* 四个筛选两行：比赛 / 平台，日期 / 盈亏。比原来「一行筛选 + 一行平台条」省一行 */
 .filters{
@@ -1868,6 +1870,7 @@ body.subpage .app{padding-top:calc(16px + env(safe-area-inset-top))}
         <div class="fbody"><input class="finput" id="eventSearch" placeholder="搜索比赛名"></div>
       </div>
       <div class="platbar" id="platBar"></div>
+      <div class="ev-sort-note" id="evSortNote">按一手买入从高到低 · 未填买入的排最后</div>
       <div id="eventList"></div>
       <div class="totals hidden" id="evTotals">
         <span id="evTotalsLabel"></span>
@@ -4706,6 +4709,8 @@ function renderEvents(){
   var cnt = $('#evCount');
   if (cnt) cnt.textContent = db.events.length + ' 个';
   paintPlatBar($('#platBar'), 'ev');
+  var sn = $('#evSortNote');
+  if (sn) sn.classList.toggle('hidden', !db.events.length);
 
   var byEvent = groupByEvent();
   var list = db.events.filter(function(e){
@@ -4717,9 +4722,13 @@ function renderEvents(){
     }
     return true;
   }).sort(function(a, b){
-    var na = (byEvent[a.id] || []).length;
-    var nb = (byEvent[b.id] || []).length;
-    if (na !== nb) return nb - na;
+    // 按一手买入从高到低；没填买入的排最后，同价按名字
+    var pa = buyinOf(a), pb = buyinOf(b);
+    if (pa !== pb) {
+      if (!pa) return 1;
+      if (!pb) return -1;
+      return pb - pa;
+    }
     return cmpName(a.name, b.name);
   });
 
@@ -4748,6 +4757,9 @@ function renderEvents(){
     sumNet += s.net;
 
     var bits = [];
+    // 买入价放在第一段：列表就是按它排的，不显示的话顺序像随机的
+    var up = buyinOf(e);
+    if (up > 0) bits.push('一手 ' + up);
     if (eventKindOf(e) === 'satellite') {
       var wonN = 0;
       // 面值可以留空，所以不能用 ticketWon > 0 判断赢没赢到票；
